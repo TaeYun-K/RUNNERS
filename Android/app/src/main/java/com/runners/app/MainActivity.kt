@@ -9,8 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.runners.app.auth.LoginScreen
 import com.runners.app.ui.theme.RUNNERSTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,12 +24,21 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RUNNERSTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+				var idToken by remember { mutableStateOf<String?>(null) }
+
+				Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+					if (idToken == null) {
+						LoginScreen(
+							onIdToken = { idToken = it },
+							modifier = Modifier.padding(innerPadding)
+						)
+					} else {
+						Greeting(
+							name = "Logged in (idToken received)",
+							modifier = Modifier.padding(innerPadding)
+						)
+					}
+				}
             }
         }
     }
