@@ -1,4 +1,5 @@
 package com.runners.app.auth
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -58,7 +59,7 @@ fun LoginScreen(
 				onIdToken(idToken)
 			}
 		} catch (exception: ApiException) {
-			errorMessage = "Google sign-in failed: ${exception.statusCode}"
+            errorMessage = "Google sign-in failed: ${exception.statusCode} / ${exception.message}"
 		}
 	}
 
