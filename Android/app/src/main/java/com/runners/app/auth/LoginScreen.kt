@@ -1,4 +1,5 @@
 package com.runners.app.auth
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +27,8 @@ import com.runners.app.R
 @Composable
 fun LoginScreen(
 	onIdToken: (String) -> Unit,
+	isLoading: Boolean = false,
+	backendErrorMessage: String? = null,
 	modifier: Modifier = Modifier
 ) {
 	val context = LocalContext.current
@@ -58,7 +61,7 @@ fun LoginScreen(
 				onIdToken(idToken)
 			}
 		} catch (exception: ApiException) {
-			errorMessage = "Google sign-in failed: ${exception.statusCode}"
+            errorMessage = "Google sign-in failed: ${exception.statusCode} / ${exception.message}"
 		}
 	}
 
@@ -70,13 +73,31 @@ fun LoginScreen(
 		Text("RUNNERS", style = MaterialTheme.typography.headlineMedium)
 		Text("구글로 로그인", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp, bottom = 24.dp))
 
-		Button(onClick = { launcher.launch(signInClient.signInIntent) }) {
+		Button(
+			onClick = { launcher.launch(signInClient.signInIntent) },
+			enabled = !isLoading
+		) {
 			Text("Google로 로그인")
+		}
+
+		if (isLoading) {
+			Text(
+				text = "서버 로그인 중...",
+				modifier = Modifier.padding(top = 16.dp)
+			)
 		}
 
 		if (errorMessage != null) {
 			Text(
 				text = errorMessage!!,
+				color = MaterialTheme.colorScheme.error,
+				modifier = Modifier.padding(top = 16.dp)
+			)
+		}
+
+		if (backendErrorMessage != null) {
+			Text(
+				text = backendErrorMessage,
 				color = MaterialTheme.colorScheme.error,
 				modifier = Modifier.padding(top = 16.dp)
 			)
