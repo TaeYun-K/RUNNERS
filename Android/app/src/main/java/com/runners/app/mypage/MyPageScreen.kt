@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.runners.app.mypage.components.HealthConnectSection
 
 @Composable
 fun MyPageScreen(modifier: Modifier = Modifier) {
@@ -19,5 +20,6 @@ fun MyPageScreen(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("마이페이지", style = MaterialTheme.typography.headlineSmall)
+        HealthConnectSection()
     }
 }

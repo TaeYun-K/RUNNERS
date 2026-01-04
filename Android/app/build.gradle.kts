@@ -15,7 +15,7 @@ if (localPropertiesFile.exists()) {
 
 android {
     namespace = "com.runners.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.runners.app"
@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation("androidx.health.connect:connect-client:1.1.0")
     implementation(libs.play.services.auth)
     implementation(libs.okhttp)
     implementation(libs.androidx.navigation.compose)
