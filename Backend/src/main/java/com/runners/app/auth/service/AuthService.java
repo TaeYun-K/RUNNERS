@@ -12,10 +12,12 @@ public class AuthService {
 
     private final GoogleTokenVerifier googleTokenVerifier;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
 
-    public AuthService(GoogleTokenVerifier googleTokenVerifier, UserRepository userRepository) {
+    public AuthService(GoogleTokenVerifier googleTokenVerifier, UserRepository userRepository, JwtService jwtService) {
         this.googleTokenVerifier = googleTokenVerifier;
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
     }
 
     @Transactional
@@ -32,7 +34,8 @@ public class AuthService {
         if (existingBySub.isPresent()) {
             User user = existingBySub.get();
             user.updateProfile(name, picture);
-            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getPicture(), false);
+            String accessToken = jwtService.createAccessToken(user);
+            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getPicture(), accessToken, false);
         }
 
         // 2) email로도 조회 (기존에 email로 가입했을 가능성 대비)
@@ -46,7 +49,8 @@ public class AuthService {
             // 가장 깔끔한 방법: googleSub를 업데이트하는 도메인 메서드 추가
             userRepository.save(user); // 변경감지로도 OK
             // ⚠️ 이 케이스는 설계 선택: email 가입 + google 연동을 허용할지 여부에 따라 달라짐
-            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getPicture(), false);
+            String accessToken = jwtService.createAccessToken(user);
+            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getPicture(), accessToken, false);
         }
 
         // 3) 신규 가입
@@ -59,6 +63,7 @@ public class AuthService {
                 .build();
 
         User saved = userRepository.save(newUser);
-        return new GoogleLoginResponse(saved.getId(), saved.getEmail(), saved.getName(), saved.getPicture(), true);
+        String accessToken = jwtService.createAccessToken(saved);
+        return new GoogleLoginResponse(saved.getId(), saved.getEmail(), saved.getName(), saved.getPicture(), accessToken, true);
     }
 }

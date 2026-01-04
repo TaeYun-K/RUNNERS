@@ -26,6 +26,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resValue("string", "google_web_client_id", properties.getProperty("google_web_client_id", ""))
+        buildConfigField(
+            "String",
+            "BACKEND_BASE_URL",
+            "\"${properties.getProperty("backend_base_url", "http://10.0.2.2:8080")}\""
+        )
     }
 
     buildTypes {
@@ -46,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -55,7 +61,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.play.services.auth)
+    implementation(libs.okhttp)
+    implementation(libs.androidx.navigation.compose)
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
