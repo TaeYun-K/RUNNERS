@@ -60,7 +60,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(files("libs/samsung-health-data.aar"))
     implementation(libs.play.services.auth)
     implementation(libs.okhttp)
     implementation(libs.androidx.navigation.compose)
