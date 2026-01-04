@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -15,6 +17,8 @@ import java.util.Collections;
 
 @Service
 public class GoogleTokenVerifier {
+
+    private static final Logger log = LoggerFactory.getLogger(GoogleTokenVerifier.class);
 
     private final GoogleIdTokenVerifier verifier;
     private final String expectedAudience;
@@ -34,7 +38,9 @@ public class GoogleTokenVerifier {
         try {
             GoogleIdToken idToken = verifier.verify(idTokenString);
             if (idToken == null) {
-                throw new IllegalArgumentException(buildInvalidTokenMessage(idTokenString));
+                String message = buildInvalidTokenMessage(idTokenString);
+                log.warn(message);
+                throw new IllegalArgumentException(message);
             }
             return idToken.getPayload();
         } catch (Exception e) {
@@ -43,6 +49,7 @@ public class GoogleTokenVerifier {
             if (details != null) {
                 message += " (" + details + ")";
             }
+            log.warn(message, e);
             throw new IllegalArgumentException(message, e);
         }
     }
@@ -65,7 +72,7 @@ public class GoogleTokenVerifier {
             String payloadJson = new String(decoded, StandardCharsets.UTF_8);
             JsonNode payload = objectMapper.readTree(payloadJson);
 
-            String aud = payload.path("aud").asText(null);
+            String aud = readStringOrFirstArrayItem(payload.path("aud"));
             String azp = payload.path("azp").asText(null);
             String iss = payload.path("iss").asText(null);
             String exp = payload.path("exp").asText(null);
@@ -80,5 +87,16 @@ public class GoogleTokenVerifier {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private String readStringOrFirstArrayItem(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        if (node.isArray() && node.size() > 0) {
+            JsonNode first = node.get(0);
+            return first == null || first.isNull() ? null : first.asText(null);
+        }
+        return node.asText(null);
     }
 }
