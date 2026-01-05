@@ -21,8 +21,12 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Grant execute permission for gradlew
+        working-directory: ./backend
+        run: chmod +x gradlew
+
       - name: Build jar (skip tests)
-        working-directory: ./Backend
+        working-directory: ./backend
         run: ./gradlew clean build -x test
 
       - name: Login to GHCR (push)
@@ -35,7 +39,7 @@ jobs:
       - name: Build & push image
         uses: docker/build-push-action@v6
         with:
-          context: ./Backend
+          context: ./backend
           push: true
           tags: |
             ghcr.io/taeyun-k/runners/be:latest
