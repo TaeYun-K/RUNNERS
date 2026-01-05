@@ -9,23 +9,65 @@ permissions:
   packages: write
 
 jobs:
-  build-and-push:
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      nginx: ${{ steps.filter.outputs.nginx }}
+      workflow: ${{ steps.filter.outputs.workflow }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+            nginx:
+              - 'nginx/**'
+            workflow:
+              - '.github/workflows/main.yml'
+
+  build-and-push:
+    needs: changes
+    if: >-
+      ${{
+        needs.changes.outputs.backend == 'true' ||
+        needs.changes.outputs.frontend == 'true' ||
+        needs.changes.outputs.nginx == 'true' ||
+        needs.changes.outputs.workflow == 'true'
+      }}
+    runs-on: ubuntu-latest
+    env:
+      BUILD_BACKEND: ${{ needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflow == 'true' }}
+      BUILD_FRONTEND: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflow == 'true' }}
+      BUILD_NGINX: ${{ needs.changes.outputs.nginx == 'true' || needs.changes.outputs.workflow == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK
+        if: env.BUILD_BACKEND == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Grant execute permission for gradlew
+        if: env.BUILD_BACKEND == 'true'
         working-directory: ./backend
         run: chmod +x gradlew
 
       - name: Build jar (skip tests)
+        if: env.BUILD_BACKEND == 'true'
         working-directory: ./backend
         run: ./gradlew clean build -x test
 
@@ -37,6 +79,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & push image
+        if: env.BUILD_BACKEND == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -46,6 +89,7 @@ jobs:
             ghcr.io/taeyun-k/runners/be:${{ github.sha }}
 
       - name: Build & push FRONTEND image
+        if: env.BUILD_FRONTEND == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
@@ -55,6 +99,7 @@ jobs:
             ghcr.io/taeyun-k/runners/frontend:${{ github.sha }}
 
       - name: Build & push nginx image
+        if: env.BUILD_NGINX == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./nginx
