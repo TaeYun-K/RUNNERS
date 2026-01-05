@@ -34,7 +34,7 @@ jobs:
       - name: Build & push image
         uses: docker/build-push-action@v6
         with:
-          context: ./Backend
+          context: .
           push: true
           tags: |
             ghcr.io/taeyun-k/runners/be:latest
