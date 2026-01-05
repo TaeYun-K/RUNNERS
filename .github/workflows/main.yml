@@ -48,8 +48,7 @@ jobs:
       - name: Build & push nginx (static web) image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile.nginx
+          context: nginx
           push: true
           tags: |
             ghcr.io/taeyun-k/runners/web:latest
