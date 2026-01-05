@@ -1,13 +1,455 @@
 <!doctype html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>RUNNERS</title>
+
+  <style>
+    :root{
+      --bg1:#f7fafc;      /* 전체 배경 (좀 더 뉴트럴) */
+      --bg2:#eef5ff;
+
+      --card:#ffffffcc;   /* 카드 흰색 느낌 */
+      --cardBorder:#d8e3f0;
+
+      --primary:#3b82f6;  /* 메인 블루(채도 낮춤) */
+      --primary2:#60a5fa;
+
+      --text:#0f172a;     /* 텍스트 */
+      --muted:#4b647c;
+
+      --line: rgba(15,23,42,.08);
+      --shadow: 0 18px 55px rgba(15,23,42,.14);
+      --radius: 22px;
+
+      --glass: rgba(255,255,255,.62);
+      --glassBorder: rgba(15,23,42,.08);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", Arial, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 15% 10%, rgba(59,130,246,.14), transparent 60%),
+        radial-gradient(900px 500px at 90% 30%, rgba(96,165,250,.16), transparent 55%),
+        linear-gradient(160deg, var(--bg1), var(--bg2));
+      min-height:100dvh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px 16px;
+    }
+
+    .wrap{
+      width:min(980px, 100%);
+      display:grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap:18px;
+    }
+
+    @media (max-width: 860px){
+      .wrap{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, #ffffff, #f5f9ff);
+      border: 1px solid var(--cardBorder);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(400px 180px at 20% 0%, rgba(96,165,250,.14), transparent 60%),
+        radial-gradient(420px 220px at 85% 20%, rgba(59,130,246,.12), transparent 65%);
+      pointer-events:none;
+    }
+
+    header{
+      padding:26px 26px 18px;
+      position:relative;
+      border-bottom:1px solid var(--line);
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius: 999px;
+      background:var(--glass);
+      border:1px solid var(--glassBorder);
+      color:var(--muted);
+      font-size:13px;
+      backdrop-filter: blur(8px);
+    }
+
+    .dot{
+      width:10px; height:10px;
+      border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, #ffffff, var(--primary));
+      box-shadow: 0 0 0 6px rgba(59,130,246,.12);
+    }
+
+    h1{
+      margin:14px 0 10px;
+      font-size: clamp(34px, 4vw, 52px);
+      line-height:1.05;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle{
+      margin:0;
+      font-size: clamp(15px, 1.8vw, 18px);
+      color:var(--muted);
+      line-height:1.55;
+    }
+
+    .ctaRow{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:12px 16px;
+      border-radius: 14px;
+      border:1px solid #ffffff22;
+      text-decoration:none;
+      color:var(--text);
+      font-weight:700;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+      user-select:none;
+    }
+
+    .btnPrimary{
+      background: linear-gradient(135deg, var(--primary2), var(--primary));
+      border-color:#ffffff26;
+      box-shadow: 0 12px 30px rgba(59,130,246,.22);
+    }
+    .btnPrimary:hover{ transform: translateY(-1px); box-shadow: 0 16px 34px rgba(59,130,246,.28); }
+    .btnPrimary:active{ transform: translateY(0); }
+
+    .btnGhost{
+      background: rgba(15,23,42,.06);
+      color:var(--muted);
+      border-color: rgba(15,23,42,.08);
+    }
+    .btnGhost:hover{ transform: translateY(-1px); }
+
+    main{
+      padding:22px 26px 26px;
+      position:relative;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+
+    @media (max-width: 520px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .feature{
+      padding:16px;
+      border-radius: 18px;
+      border:1px solid var(--glassBorder);
+      background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.56));
+      backdrop-filter: blur(8px);
+      min-height:108px;
+    }
+
+    .feature h3{
+      margin:8px 0 6px;
+      font-size:15px;
+      letter-spacing:-0.01em;
+    }
+
+    .feature p{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.55;
+    }
+
+    .icon{
+      width:40px; height:40px;
+      border-radius: 14px;
+      display:grid;
+      place-items:center;
+      border:1px solid var(--glassBorder);
+      background: radial-gradient(18px 18px at 30% 30%, rgba(255,255,255,.7), transparent 60%),
+                  linear-gradient(135deg, rgba(96,165,250,.18), rgba(59,130,246,.16));
+    }
+
+    .icon svg{ width:22px; height:22px; fill: none; stroke: rgba(15,23,42,.72); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity:.95; }
+
+    /* right side */
+    .side{
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .mock{
+      border-radius: 22px;
+      border: 1px solid rgba(59,130,246,.18);
+      background:
+        radial-gradient(420px 240px at 20% 0%, rgba(96,165,250,.18), transparent 60%),
+        linear-gradient(180deg, rgba(15,23,42,.06), rgba(15,23,42,.03));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.65);
+      overflow:hidden;
+      padding:16px;
+    }
+
+    .phone{
+      width:100%;
+      aspect-ratio: 9 / 16;
+      border-radius: 28px;
+      border:1px solid var(--glassBorder);
+      background:
+        radial-gradient(180px 120px at 30% 10%, rgba(96,165,250,.18), transparent 55%),
+        radial-gradient(220px 140px at 75% 25%, rgba(59,130,246,.14), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.92), rgba(238,245,255,.92));
+      position:relative;
+      box-shadow: 0 22px 55px rgba(15,23,42,.18);
+      overflow:hidden;
+    }
+
+    .status{
+      position:absolute;
+      top:12px; left:14px; right:14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      color:rgba(15,23,42,.62);
+      font-size:12px;
+    }
+
+    .miniCard{
+      position:absolute;
+      left:14px; right:14px;
+      top:58px;
+      padding:14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.72);
+      border:1px solid var(--glassBorder);
+      backdrop-filter: blur(10px);
+    }
+
+    .miniTitle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .pill{
+      font-size:12px;
+      color:rgba(15,23,42,.72);
+      padding:6px 10px;
+      border-radius:999px;
+      background: rgba(15,23,42,.06);
+      border:1px solid rgba(15,23,42,.08);
+      white-space:nowrap;
+    }
+
+    .metric{
+      display:grid;
+      gap:8px;
+    }
+
+    .metricRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      color:rgba(15,23,42,.84);
+      font-size:13px;
+    }
+
+    .bar{
+      height:10px;
+      border-radius:999px;
+      background: rgba(15,23,42,.06);
+      border:1px solid rgba(15,23,42,.06);
+      overflow:hidden;
+    }
+    .bar > span{
+      display:block;
+      height:100%;
+      width:72%;
+      border-radius:999px;
+      background: linear-gradient(90deg, var(--primary), var(--primary2));
+    }
+
+    .footerNote{
+      margin-top:auto;
+      padding-top:10px;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .tiny{
+      color:var(--muted);
+      font-size:12px;
+      margin:0;
+    }
+  </style>
 </head>
+
 <body>
-  <h1>RUNNERS</h1>
-  <p>누적 km로 성장하는 러닝 커뮤니티</p>
-  <a href="https://play.google.com/store">다운로드</a>
+  <div class="wrap">
+    <!-- LEFT -->
+    <section class="card">
+      <header>
+        <div class="badge">
+          <span class="dot" aria-hidden="true"></span>
+          <span>누적 km로 성장하는 러닝 커뮤니티</span>
+        </div>
+        <h1>RUNNERS</h1>
+        <p class="subtitle">
+          기록은 쌓이고, 커뮤니티는 연결됩니다.<br/>
+          달린 만큼 성장하는 러닝 경험을 시작해보세요.
+        </p>
+
+        <div class="ctaRow">
+          <a class="btn btnPrimary" href="https://play.google.com/store" target="_blank" rel="noopener">
+            <!-- play icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 5v14l11-7-11-7z" fill="rgba(255,255,255,.95)"/>
+            </svg>
+            Google Play에서 다운로드
+          </a>
+          <a class="btn btnGhost" href="#features">
+            기능 보기
+          </a>
+        </div>
+      </header>
+
+      <main id="features">
+        <div class="grid">
+          <div class="feature">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 19c3-6 7-9 16-10" />
+                <path d="M4 19c1-4 4-7 9-9" />
+                <path d="M13 10l2 3" />
+              </svg>
+            </div>
+            <h3>누적 km 성장</h3>
+            <p>달린 거리가 쌓일수록 내 러닝 레벨도 함께 올라가요.</p>
+          </div>
+
+          <div class="feature">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M7 8h10" />
+                <path d="M7 12h6" />
+                <path d="M21 12c0 4-4 8-9 8S3 16 3 12 7 4 12 4s9 4 9 8z" />
+              </svg>
+            </div>
+            <h3>커뮤니티</h3>
+            <p>같이 달리는 사람들과 기록을 공유하고, 응원을 주고받아요.</p>
+          </div>
+
+          <div class="feature">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 19h16" />
+                <path d="M6 17V9" />
+                <path d="M12 17V5" />
+                <path d="M18 17v-7" />
+              </svg>
+            </div>
+            <h3>주/월 누적 통계</h3>
+            <p>이번 주, 이번 달—한눈에 흐름을 확인하고 목표를 세워요.</p>
+          </div>
+
+          <div class="feature">
+            <div class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10z" />
+              </svg>
+            </div>
+            <h3>꾸준함을 만드는 UX</h3>
+            <p>복잡한 기능 대신, 꼭 필요한 정보만 담아 더 자주 쓰게 만들어요.</p>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- RIGHT -->
+    <aside class="card side">
+      <div class="mock">
+        <div class="phone" role="img" aria-label="RUNNERS 앱 화면 목업">
+          <div class="status">
+            <span>RUNNERS</span>
+            <span>9:00</span>
+          </div>
+
+          <div class="miniCard">
+            <div class="miniTitle">
+              <strong style="letter-spacing:-0.01em;">이번 달 누적</strong>
+              <span class="pill">Level 12</span>
+            </div>
+
+            <div class="metric">
+              <div class="metricRow">
+                <span style="color:rgba(15,23,42,.56);">거리</span>
+                <span><b>42.3 km</b></span>
+              </div>
+              <div class="bar" aria-hidden="true"><span></span></div>
+              <div class="metricRow">
+                <span style="color:rgba(15,23,42,.56);">이번 주</span>
+                <span>12.1 km</span>
+              </div>
+              <div class="metricRow">
+                <span style="color:rgba(15,23,42,.56);">최근 러닝</span>
+                <span>5.2 km · 31:20</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="position:absolute; left:14px; right:14px; bottom:16px;">
+            <a class="btn btnPrimary" style="width:100%; padding:14px 16px;" href="https://play.google.com/store" target="_blank" rel="noopener">
+              지금 시작하기
+            </a>
+            <p class="tiny" style="margin-top:10px;">
+              * 실제 화면/수치는 예시입니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="footerNote">
+        <p class="tiny" style="margin:0 0 6px;">
+          RUNNERS는 “기록의 누적”과 “커뮤니티 연결”에 집중한 러닝 앱입니다.
+        </p>
+        <p class="tiny" style="margin:0;">
+          추후 스크린샷/로고 이미지를 넣으면 소개 페이지 완성도가 더 올라가요.
+        </p>
+      </div>
+    </aside>
+  </div>
 </body>
 </html>
