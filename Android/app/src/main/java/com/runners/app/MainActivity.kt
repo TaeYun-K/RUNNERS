@@ -16,7 +16,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.runners.app.auth.LoginScreen
+import com.runners.app.navigation.RunnersBottomBar
+import com.runners.app.navigation.RunnersNavHost
+import com.runners.app.network.BackendAuthApi
+import com.runners.app.network.GoogleLoginResult
 import com.runners.app.ui.theme.RUNNERSTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.navigation.compose.rememberNavController
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,18 +33,43 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RUNNERSTheme {
-				var idToken by remember { mutableStateOf<String?>(null) }
+				var session by remember { mutableStateOf<GoogleLoginResult?>(null) }
+				var isLoading by remember { mutableStateOf(false) }
+				var errorMessage by remember { mutableStateOf<String?>(null) }
+				val scope = rememberCoroutineScope()
+				val navController = rememberNavController()
 
-				Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-					if (idToken == null) {
+				Scaffold(
+					modifier = Modifier.fillMaxSize(),
+					bottomBar = { if (session != null) RunnersBottomBar(navController) },
+				) { innerPadding ->
+					if (session == null) {
 						LoginScreen(
-							onIdToken = { idToken = it },
+							onIdToken = { idToken ->
+								scope.launch {
+									isLoading = true
+									errorMessage = null
+									try {
+										val result = withContext(Dispatchers.IO) {
+											BackendAuthApi.googleLogin(idToken)
+										}
+										session = result
+									} catch (e: Exception) {
+										errorMessage = e.message ?: "Backend login failed"
+									} finally {
+										isLoading = false
+									}
+								}
+							},
+							isLoading = isLoading,
+							backendErrorMessage = errorMessage,
 							modifier = Modifier.padding(innerPadding)
 						)
 					} else {
-						Greeting(
-							name = "Logged in (idToken received)",
-							modifier = Modifier.padding(innerPadding)
+						RunnersNavHost(
+							navController = navController,
+							session = session!!,
+							modifier = Modifier.padding(innerPadding),
 						)
 					}
 				}
@@ -44,18 +78,10 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
     RUNNERSTheme {
-        Greeting("Android")
+		Text("Preview")
     }
 }
