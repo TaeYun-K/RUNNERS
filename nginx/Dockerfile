@@ -4,4 +4,4 @@ FROM nginx:1.25-alpine
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
 # static html
-COPY frontend-static/ /usr/share/nginx/html/
+COPY frontend/ /usr/share/nginx/html/
