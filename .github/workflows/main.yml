@@ -45,7 +45,16 @@ jobs:
             ghcr.io/taeyun-k/runners/be:latest
             ghcr.io/taeyun-k/runners/be:${{ github.sha }}
 
-      - name: Build & push nginx (static web) image
+      - name: Build & push FRONTEND image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/taeyun-k/runners/frontend:latest
+            ghcr.io/taeyun-k/runners/frontend:${{ github.sha }}
+
+      - name: Build & push nginx image
         uses: docker/build-push-action@v6
         with:
           context: ./nginx
