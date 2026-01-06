@@ -48,8 +48,8 @@ services:
       JWT_ACCESS_TOKEN_MINUTES: ${JWT_ACCESS_TOKEN_MINUTES}
 
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS}
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     restart: unless-stopped
 
 volumes:

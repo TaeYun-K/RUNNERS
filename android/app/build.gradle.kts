@@ -27,19 +27,26 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resValue("string", "google_web_client_id", properties.getProperty("google_web_client_id", ""))
-        buildConfigField(
-            "String",
-            "BACKEND_BASE_URL",
-            "\"${properties.getProperty("backend_base_url", "http://10.0.2.2:8080")}\""
-        )
     }
 
     buildTypes {
+        debug {
+            buildConfigField(
+                "String",
+                "BACKEND_BASE_URL",
+                "\"${properties.getProperty("backend_base_url_debug", "http://10.0.2.2:8080")}\""
+            )
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
+            )
+            buildConfigField(
+                "String",
+                "BACKEND_BASE_URL",
+                "\"${properties.getProperty("backend_base_url_release", "http://3.34.177.156")}\""
             )
         }
     }
