@@ -32,6 +32,7 @@ services:
         condition: service_healthy
     environment:
       TZ: Asia/Seoul
+      SERVER_SERVLET_CONTEXT_PATH: /api
 
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       SPRING_APPLICATION_NAME: RUNNERS
