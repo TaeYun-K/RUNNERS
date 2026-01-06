@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
 
     @Operation(summary = "Health check", description = "서비스 상태 확인용 엔드포인트")
-    @GetMapping("/api/health")
+    @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
         return ResponseEntity.ok(
             Map.of(
