@@ -106,10 +106,10 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
         }
 
-        Long userIdFromRedis = refreshTokenService.findUserIdByToken(refreshToken)
+        String storedToken = refreshTokenService.findTokenByUserId(userIdFromJwt)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
 
-        if (!userIdFromJwt.equals(userIdFromRedis)) {
+        if (!refreshToken.equals(storedToken)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
         }
 
