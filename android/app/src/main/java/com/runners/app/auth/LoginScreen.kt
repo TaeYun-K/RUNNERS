@@ -99,7 +99,7 @@ fun LoginScreen(
 					fontWeight = FontWeight.Bold,
 				)
 				Text(
-					text = "내 러닝 기록을 한눈에.",
+					text = "누적 km로 성장하는 러닝 커뮤니티",
 					style = MaterialTheme.typography.bodyLarge,
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 					modifier = Modifier.padding(top = 8.dp),
