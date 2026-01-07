@@ -1,8 +1,10 @@
 package com.runners.app.network
 
 import com.runners.app.BuildConfig
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -11,6 +13,7 @@ data class CommunityPostSummaryResult(
     val authorId: Long,
     val authorName: String?,
     val title: String,
+    val contentPreview: String?,
     val viewCount: Int,
     val recommendCount: Int,
     val commentCount: Int,
@@ -22,7 +25,20 @@ data class CommunityPostCursorListResult(
     val nextCursor: String?,
 )
 
+data class CreateCommunityPostResult(
+    val postId: Long,
+    val authorId: Long,
+    val title: String,
+    val content: String,
+    val viewCount: Int,
+    val recommendCount: Int,
+    val commentCount: Int,
+    val createdAt: String,
+)
+
 object BackendCommunityApi {
+    private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+
     fun listPosts(cursor: String?, size: Int = 20): CommunityPostCursorListResult {
         val baseUrl = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts"
         val httpUrlBuilder = baseUrl.toHttpUrl().newBuilder()
@@ -61,6 +77,7 @@ object BackendCommunityApi {
                     authorId = item.getLong("authorId"),
                     authorName = item.optString("authorName").takeIf { it.isNotBlank() },
                     title = item.getString("title"),
+                    contentPreview = item.optString("contentPreview").takeIf { it.isNotBlank() },
                     viewCount = item.optInt("viewCount", 0),
                     recommendCount = item.optInt("recommendCount", 0),
                     commentCount = item.optInt("commentCount", 0),
@@ -69,5 +86,38 @@ object BackendCommunityApi {
             )
         }
         return result
+    }
+
+    fun createPost(title: String, content: String): CreateCommunityPostResult {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts"
+
+        val bodyJson = JSONObject()
+            .put("title", title)
+            .put("content", content)
+            .toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .post(bodyJson.toRequestBody(jsonMediaType))
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Create community post failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return CreateCommunityPostResult(
+                postId = json.getLong("postId"),
+                authorId = json.getLong("authorId"),
+                title = json.getString("title"),
+                content = json.getString("content"),
+                viewCount = json.optInt("viewCount", 0),
+                recommendCount = json.optInt("recommendCount", 0),
+                commentCount = json.optInt("commentCount", 0),
+                createdAt = json.optString("createdAt"),
+            )
+        }
     }
 }

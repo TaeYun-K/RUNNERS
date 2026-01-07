@@ -131,6 +131,7 @@ public class CommunityPostService {
                         post.getAuthor().getId(),
                         post.getAuthor().getName(),
                         post.getTitle(),
+                        toContentPreview(post.getContent()),
                         post.getViewCount(),
                         post.getRecommendCount(),
                         post.getCommentCount(),
@@ -168,5 +169,13 @@ public class CommunityPostService {
     private String encodeCursor(LocalDateTime createdAt, Long id) {
         String raw = createdAt.toString() + "|" + id;
         return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String toContentPreview(String content) {
+        if (content == null) return "";
+        String singleLine = content.replaceAll("\\s+", " ").trim();
+        int limit = 120;
+        if (singleLine.length() <= limit) return singleLine;
+        return singleLine.substring(0, limit).trim() + "…";
     }
 }

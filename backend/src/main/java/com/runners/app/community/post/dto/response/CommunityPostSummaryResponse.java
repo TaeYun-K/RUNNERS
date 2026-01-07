@@ -7,9 +7,9 @@ public record CommunityPostSummaryResponse(
         Long authorId,
         String authorName,
         String title,
+        String contentPreview,
         int viewCount,
         int recommendCount,
         int commentCount,
         LocalDateTime createdAt
 ) {}
-

@@ -12,7 +12,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.health.connect.client.records.ExerciseSessionRecord
-import com.runners.app.community.CommunityScreen
+import com.runners.app.community.ui.CommunityScreen
 import com.runners.app.healthconnect.HealthConnectRepository
 import com.runners.app.home.HomeScreen
 import com.runners.app.home.HomeUiState
