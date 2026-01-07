@@ -30,6 +30,7 @@ import java.time.temporal.TemporalAdjusters
 fun RunnersNavHost(
     navController: NavHostController,
     session: GoogleLoginResult,
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     NavHost(
@@ -160,6 +161,6 @@ fun RunnersNavHost(
         }
         composable(AppRoute.Records.route) { RecordsDashboardScreen() }
         composable(AppRoute.Community.route) { CommunityScreen() }
-        composable(AppRoute.MyPage.route) { MyPageScreen() }
+        composable(AppRoute.MyPage.route) { MyPageScreen(onLogout = onLogout) }
     }
 }

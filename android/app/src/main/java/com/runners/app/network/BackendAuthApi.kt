@@ -2,10 +2,8 @@ package com.runners.app.network
 
 import com.runners.app.BuildConfig
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.time.Duration
 import org.json.JSONObject
 
 data class GoogleLoginResult(
@@ -18,12 +16,6 @@ data class GoogleLoginResult(
 )
 
 object BackendAuthApi {
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(Duration.ofSeconds(30))
-        .readTimeout(Duration.ofSeconds(30))
-        .writeTimeout(Duration.ofSeconds(30))
-        .callTimeout(Duration.ofSeconds(30))
-        .build()
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
     fun googleLogin(idToken: String): GoogleLoginResult {
@@ -38,7 +30,7 @@ object BackendAuthApi {
             .post(bodyJson.toRequestBody(jsonMediaType))
             .build()
 
-        client.newCall(request).execute().use { response ->
+        BackendHttpClient.client.newCall(request).execute().use { response ->
             val responseBody = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
                 throw IllegalStateException("Backend login failed: HTTP ${response.code} ${responseBody.take(300)}")
