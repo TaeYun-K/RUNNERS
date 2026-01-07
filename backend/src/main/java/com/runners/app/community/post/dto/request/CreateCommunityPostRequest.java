@@ -1,4 +1,4 @@
-package com.runners.app.community.post.dto;
+package com.runners.app.community.post.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

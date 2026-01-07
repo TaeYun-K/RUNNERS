@@ -1,4 +1,4 @@
-package com.runners.app.community.post.dto;
+package com.runners.app.community.post.dto.response;
 
 import java.time.LocalDateTime;
 

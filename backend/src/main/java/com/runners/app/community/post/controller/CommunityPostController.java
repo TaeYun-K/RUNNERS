@@ -1,8 +1,9 @@
 package com.runners.app.community.post.controller;
 
-import com.runners.app.community.post.dto.CreateCommunityPostRequest;
-import com.runners.app.community.post.dto.CreateCommunityPostResponse;
-import com.runners.app.community.post.dto.CommunityPostDetailResponse;
+import com.runners.app.community.post.dto.request.CreateCommunityPostRequest;
+import com.runners.app.community.post.dto.response.CreateCommunityPostResponse;
+import com.runners.app.community.post.dto.response.CommunityPostDetailResponse;
+import com.runners.app.community.post.dto.response.CommunityPostCursorListResponse;
 import com.runners.app.community.post.service.CommunityPostService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -66,5 +68,14 @@ public class CommunityPostController {
         }
 
         return communityPostService.getPost(userId, postId);
+    }
+
+    @Operation(summary = "게시글 목록 조회", description = "최신순 커서 기반 목록 조회(nextCursor를 다음 요청의 cursor로 전달)")
+    @GetMapping
+    public CommunityPostCursorListResponse listPosts(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return communityPostService.listPosts(cursor, size);
     }
 }
