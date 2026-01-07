@@ -150,7 +150,7 @@ public class CommunityPostService {
     private record Cursor(LocalDateTime createdAt, long id) {}
 
     private Cursor decodeCursor(String cursor) {
-        if (cursor == null || cursor.isBlank()) return null;
+        if (cursor == null || cursor.isBlank() || "null".equalsIgnoreCase(cursor)) return null;
 
         try {
             String decoded = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8);

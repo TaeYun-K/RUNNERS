@@ -45,7 +45,8 @@ object BackendCommunityApi {
 
             val json = JSONObject(responseBody)
             val posts = parsePosts(json.optJSONArray("posts") ?: JSONArray())
-            val nextCursor = json.optString("nextCursor").takeIf { it.isNotBlank() }
+            val nextCursor = json.optString("nextCursor")
+                .takeIf { it.isNotBlank() && it != "null" }
             return CommunityPostCursorListResult(posts = posts, nextCursor = nextCursor)
         }
     }
@@ -70,4 +71,3 @@ object BackendCommunityApi {
         return result
     }
 }
-
