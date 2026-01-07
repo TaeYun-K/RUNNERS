@@ -38,6 +38,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.runners.app.R
 import com.runners.app.mypage.components.HealthConnectSection
+import com.runners.app.auth.AuthTokenStore
 import com.runners.app.network.BackendUserApi
 import com.runners.app.network.GoogleLoginResult
 import com.runners.app.network.UserMeResult
@@ -55,18 +56,31 @@ fun MyPageScreen(
     val scope = rememberCoroutineScope()
     val webClientId = stringResource(R.string.google_web_client_id)
     var isLogoutDialogOpen by remember { mutableStateOf(false) }
+    var isReLoginDialogOpen by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var userMe by remember { mutableStateOf<UserMeResult?>(null) }
 
     suspend fun refreshUser() {
         if (isLoading) return
+
+        if (AuthTokenStore.peekRefreshToken().isNullOrBlank()) {
+            errorMessage = null
+            isReLoginDialogOpen = true
+            return
+        }
+
         isLoading = true
         errorMessage = null
         try {
             userMe = withContext(Dispatchers.IO) { BackendUserApi.getMe() }
         } catch (e: Exception) {
-            errorMessage = e.message ?: "내 정보 불러오기에 실패했어요"
+            if (AuthTokenStore.peekRefreshToken().isNullOrBlank()) {
+                errorMessage = null
+                isReLoginDialogOpen = true
+            } else {
+                errorMessage = e.message ?: "내 정보 불러오기에 실패했어요"
+            }
         } finally {
             isLoading = false
         }
@@ -189,6 +203,27 @@ fun MyPageScreen(
             dismissButton = {
                 Button(onClick = { isLogoutDialogOpen = false }) {
                     Text("취소")
+                }
+            },
+        )
+    }
+
+    if (isReLoginDialogOpen) {
+        AlertDialog(
+            onDismissRequest = {
+                isReLoginDialogOpen = false
+                onLogout()
+            },
+            title = { Text("다시 로그인해주세요") },
+            text = { Text("로그인이 만료되었어요. 로그인 화면으로 이동할게요.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isReLoginDialogOpen = false
+                        onLogout()
+                    },
+                ) {
+                    Text("확인")
                 }
             },
         )
