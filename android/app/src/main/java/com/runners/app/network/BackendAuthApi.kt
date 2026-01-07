@@ -12,6 +12,7 @@ data class GoogleLoginResult(
     val name: String?,
     val picture: String?,
     val accessToken: String,
+    val refreshToken: String,
     val isNewUser: Boolean,
 )
 
@@ -46,8 +47,32 @@ object BackendAuthApi {
                 name = optNullableString("name"),
                 picture = optNullableString("picture"),
                 accessToken = json.getString("accessToken"),
+                refreshToken = json.getString("refreshToken"),
                 isNewUser = json.optBoolean("newUser", json.optBoolean("isNewUser", false)),
             )
+        }
+    }
+
+    fun refreshAccessToken(refreshToken: String): String {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/auth/refresh"
+
+        val bodyJson = JSONObject()
+            .put("refreshToken", refreshToken)
+            .toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .post(bodyJson.toRequestBody(jsonMediaType))
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Backend token refresh failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return json.getString("accessToken")
         }
     }
 }

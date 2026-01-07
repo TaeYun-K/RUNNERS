@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
 										val result = withContext(Dispatchers.IO) {
 											BackendAuthApi.googleLogin(idToken)
 										}
-										AuthTokenStore.setAccessToken(context, result.accessToken)
+										AuthTokenStore.setTokens(context, result.accessToken, result.refreshToken)
 										session = result
 									} catch (e: Exception) {
 										errorMessage = e.message ?: "Backend login failed"

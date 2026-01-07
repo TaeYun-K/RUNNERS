@@ -2,6 +2,8 @@ package com.runners.app.auth.controller;
 
 import com.runners.app.auth.dto.GoogleLoginRequest;
 import com.runners.app.auth.dto.GoogleLoginResponse;
+import com.runners.app.auth.dto.RefreshTokenRequest;
+import com.runners.app.auth.dto.TokenRefreshResponse;
 import com.runners.app.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
@@ -22,5 +24,14 @@ public class AuthController {
             throw new IllegalArgumentException("idToken is required");
         }
         return authService.googleLogin(req.idToken());
+    }
+
+    @Operation(summary = "Access Token 재발급", description = "Refresh Token을 검증한 뒤 Access Token을 재발급합니다.")
+    @PostMapping("/refresh")
+    public TokenRefreshResponse refresh(@RequestBody RefreshTokenRequest req) {
+        if (req.refreshToken() == null || req.refreshToken().isBlank()) {
+            throw new IllegalArgumentException("refreshToken is required");
+        }
+        return authService.refreshAccessToken(req.refreshToken());
     }
 }

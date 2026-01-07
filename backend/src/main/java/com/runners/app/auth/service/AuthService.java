@@ -2,10 +2,14 @@ package com.runners.app.auth.service;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.runners.app.auth.dto.GoogleLoginResponse;
+import com.runners.app.auth.dto.TokenRefreshResponse;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
+import io.jsonwebtoken.Claims;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @Service
 public class AuthService {
@@ -78,5 +82,41 @@ public class AuthService {
         String refreshToken = jwtService.createRefreshToken(saved);
         refreshTokenService.save(saved.getId(), refreshToken, jwtService.refreshTokenTtl());
         return new GoogleLoginResponse(saved.getId(), saved.getEmail(), saved.getName(), saved.getPicture(), accessToken, refreshToken, true);
+    }
+
+    @Transactional(readOnly = true)
+    public TokenRefreshResponse refreshAccessToken(String refreshToken) {
+        Claims claims;
+        try {
+            claims = jwtService.parseAndValidate(refreshToken);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
+        }
+
+        String type = claims.get("type", String.class);
+        if (!"refresh".equals(type)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
+        }
+
+        String subject = claims.getSubject();
+        Long userIdFromJwt;
+        try {
+            userIdFromJwt = Long.parseLong(subject);
+        } catch (NumberFormatException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
+        }
+
+        Long userIdFromRedis = refreshTokenService.findUserIdByToken(refreshToken)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
+
+        if (!userIdFromJwt.equals(userIdFromRedis)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
+        }
+
+        User user = userRepository.findById(userIdFromJwt)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        String accessToken = jwtService.createAccessToken(user);
+        return new TokenRefreshResponse(accessToken);
     }
 }

@@ -1,6 +1,7 @@
 package com.runners.app.network
 
 import com.runners.app.BuildConfig
+import com.runners.app.RunnersApplication
 import com.runners.app.auth.AuthTokenStore
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
@@ -17,6 +18,7 @@ object BackendHttpClient {
             .readTimeout(Duration.ofSeconds(30))
             .writeTimeout(Duration.ofSeconds(30))
             .callTimeout(Duration.ofSeconds(30))
+            .authenticator(TokenRefreshAuthenticator(RunnersApplication.appContext))
             .addInterceptor(
                 Interceptor { chain ->
                     val original = chain.request()
