@@ -11,16 +11,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.health.connect.client.records.ExerciseSessionRecord
 import com.runners.app.community.CommunityScreen
 import com.runners.app.healthconnect.HealthConnectRepository
 import com.runners.app.home.HomeScreen
 import com.runners.app.home.HomeUiState
+import com.runners.app.home.PopularPostUiModel
+import com.runners.app.home.RecentRunUiModel
 import com.runners.app.mypage.MyPageScreen
 import com.runners.app.network.GoogleLoginResult
 import com.runners.app.records.RecordsDashboardScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -45,17 +50,16 @@ fun RunnersNavHost(
             var totalDistanceKm by remember { mutableStateOf<Double?>(null) }
             var weekDistanceKm by remember { mutableStateOf<Double?>(null) }
             var monthDistanceKm by remember { mutableStateOf<Double?>(null) }
-            var recentRunDistanceKm by remember { mutableStateOf<Double?>(null) }
-            var recentRunDate by remember { mutableStateOf<LocalDate?>(null) }
             var firstRunDate by remember { mutableStateOf<LocalDate?>(null) }
+            var recentRuns by remember { mutableStateOf<List<RecentRunUiModel>>(emptyList()) }
+            val popularPosts = remember { emptyList<PopularPostUiModel>() }
 
             LaunchedEffect(providerPackage) {
                 totalDistanceKm = null
                 weekDistanceKm = null
                 monthDistanceKm = null
-                recentRunDistanceKm = null
-                recentRunDate = null
                 firstRunDate = null
+                recentRuns = emptyList()
 
                 runCatching {
                     val client = HealthConnectRepository.getClient(context, providerPackage)
@@ -66,9 +70,8 @@ fun RunnersNavHost(
                         val totalKm: Double?,
                         val weekKm: Double?,
                         val monthKm: Double?,
-                        val recentKm: Double?,
-                        val recentDate: LocalDate?,
                         val firstDate: LocalDate?,
+                        val recentRuns: List<RecentRunUiModel>,
                     )
 
                     val stats = withContext(Dispatchers.IO) {
@@ -81,69 +84,103 @@ fun RunnersNavHost(
                         val weekStartInstant = weekStart.atStartOfDay(zoneId).toInstant()
                         val monthStartInstant = monthStart.atStartOfDay(zoneId).toInstant()
 
-                        var recentKm: Double? = null
-                        var recentDate: LocalDate? = null
-                        val recentSession = HealthConnectRepository.readMostRecentRunningSession(client)
-                        if (recentSession != null) {
-                            recentKm = HealthConnectRepository.distanceKmForSession(client, recentSession)
-                            recentDate = recentSession.startTime.atZone(zoneId).toLocalDate()
-                        }
-
-                        var firstDate: LocalDate? = null
-                        val firstSession = HealthConnectRepository.readEarliestRunningSession(client)
-                        if (firstSession != null) {
-                            firstDate = firstSession.startTime.atZone(zoneId).toLocalDate()
-                        }
-
-                        val weekSessions = HealthConnectRepository.readRunningSessions(
-                            client = client,
-                            since = weekStartInstant,
-                            until = nowInstant,
-                            maxRecords = 200,
-                        )
-                        var weekKm = 0.0
-                        for (session in weekSessions) {
-                            weekKm += HealthConnectRepository.distanceKmForSession(client, session)
-                        }
-
-                        val monthSessions = HealthConnectRepository.readRunningSessions(
-                            client = client,
-                            since = monthStartInstant,
-                            until = nowInstant,
-                            maxRecords = 400,
-                        )
-                        var monthKm = 0.0
-                        for (session in monthSessions) {
-                            monthKm += HealthConnectRepository.distanceKmForSession(client, session)
-                        }
-
                         val allSessions = HealthConnectRepository.readRunningSessions(
                             client = client,
                             since = Instant.EPOCH,
                             until = nowInstant,
                             maxRecords = 1000,
                         )
+
+                        fun isPreferredManualOrigin(session: ExerciseSessionRecord): Boolean {
+                            val packageName = session.metadata.dataOrigin.packageName.lowercase()
+                            return packageName.contains("zepp") || packageName.contains("huami")
+                        }
+
+                        fun overlaps(a: ExerciseSessionRecord, b: ExerciseSessionRecord): Boolean {
+                            val startDiffMillis = abs(Duration.between(a.startTime, b.startTime).toMillis())
+                            if (startDiffMillis <= Duration.ofMinutes(10).toMillis()) return true
+
+                            val latestStart = maxOf(a.startTime, b.startTime)
+                            val earliestEnd = minOf(a.endTime, b.endTime)
+                            return earliestEnd.isAfter(latestStart)
+                        }
+
+                        fun pickPreferred(a: ExerciseSessionRecord, b: ExerciseSessionRecord): ExerciseSessionRecord {
+                            val aPreferred = isPreferredManualOrigin(a)
+                            val bPreferred = isPreferredManualOrigin(b)
+                            if (aPreferred != bPreferred) return if (aPreferred) a else b
+
+                            val aMinutes = Duration.between(a.startTime, a.endTime).toMinutes()
+                            val bMinutes = Duration.between(b.startTime, b.endTime).toMinutes()
+                            if (aMinutes != bMinutes) return if (aMinutes > bMinutes) a else b
+
+                            return if (a.startTime.isAfter(b.startTime)) a else b
+                        }
+
+                        fun dedupeSessions(sessions: List<ExerciseSessionRecord>): List<ExerciseSessionRecord> {
+                            val chosen = ArrayList<ExerciseSessionRecord>(sessions.size)
+
+                            for (session in sessions) {
+                                var merged = false
+                                for (i in chosen.indices) {
+                                    if (overlaps(session, chosen[i])) {
+                                        chosen[i] = pickPreferred(session, chosen[i])
+                                        merged = true
+                                        break
+                                    }
+                                }
+                                if (!merged) chosen.add(session)
+                            }
+
+                            chosen.sortByDescending { it.startTime }
+                            return chosen
+                        }
+
+                        val sessions = dedupeSessions(allSessions)
+
                         var totalKm = 0.0
-                        for (session in allSessions) {
-                            totalKm += HealthConnectRepository.distanceKmForSession(client, session)
+                        var weekKm = 0.0
+                        var monthKm = 0.0
+
+                        val recent = ArrayList<RecentRunUiModel>(5)
+                        val firstDate = sessions.minByOrNull { it.startTime }?.startTime?.atZone(zoneId)?.toLocalDate()
+
+                        for ((index, session) in sessions.withIndex()) {
+                            val distanceKm = HealthConnectRepository.distanceKmForSession(client, session)
+                            val sessionDate = session.startTime.atZone(zoneId).toLocalDate()
+                            val durationMinutes = Duration.between(session.startTime, session.endTime)
+                                .toMinutes()
+                                .takeIf { it > 0 }
+
+                            totalKm += distanceKm
+                            if (session.startTime >= weekStartInstant) weekKm += distanceKm
+                            if (session.startTime >= monthStartInstant) monthKm += distanceKm
+
+                            if (index < 5) {
+                                recent.add(
+                                    RecentRunUiModel(
+                                        date = sessionDate,
+                                        distanceKm = distanceKm,
+                                        durationMinutes = durationMinutes,
+                                    )
+                                )
+                            }
                         }
 
                         Stats(
                             totalKm = totalKm,
                             weekKm = weekKm,
                             monthKm = monthKm,
-                            recentKm = recentKm,
-                            recentDate = recentDate,
                             firstDate = firstDate,
+                            recentRuns = recent,
                         )
                     }
 
                     totalDistanceKm = stats.totalKm
                     weekDistanceKm = stats.weekKm
                     monthDistanceKm = stats.monthKm
-                    recentRunDistanceKm = stats.recentKm
-                    recentRunDate = stats.recentDate
                     firstRunDate = stats.firstDate
+                    recentRuns = stats.recentRuns
                 }
             }
 
@@ -153,10 +190,12 @@ fun RunnersNavHost(
                     totalDistanceKm = totalDistanceKm,
                     weekDistanceKm = weekDistanceKm,
                     monthDistanceKm = monthDistanceKm,
-                    recentRunDistanceKm = recentRunDistanceKm,
-                    recentRunDate = recentRunDate,
                     firstRunDate = firstRunDate,
-                )
+                    recentRuns = recentRuns,
+                    popularPosts = popularPosts,
+                ),
+                onOpenCommunity = { navController.navigate(AppRoute.Community.route) },
+                onPopularPostClick = { navController.navigate(AppRoute.Community.route) },
             )
         }
         composable(AppRoute.Records.route) { RecordsDashboardScreen() }
