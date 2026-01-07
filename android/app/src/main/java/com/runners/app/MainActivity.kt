@@ -9,16 +9,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.runners.app.auth.LoginScreen
 import com.runners.app.navigation.RunnersBottomBar
 import com.runners.app.navigation.RunnersNavHost
 import com.runners.app.network.BackendAuthApi
+import com.runners.app.auth.AuthTokenStore
 import com.runners.app.network.GoogleLoginResult
 import com.runners.app.ui.theme.RUNNERSTheme
 import kotlinx.coroutines.Dispatchers
@@ -36,8 +39,13 @@ class MainActivity : ComponentActivity() {
 				var session by remember { mutableStateOf<GoogleLoginResult?>(null) }
 				var isLoading by remember { mutableStateOf(false) }
 				var errorMessage by remember { mutableStateOf<String?>(null) }
+				val context = LocalContext.current
 				val scope = rememberCoroutineScope()
 				val navController = rememberNavController()
+
+				LaunchedEffect(Unit) {
+					AuthTokenStore.load(context)
+				}
 
 				Scaffold(
 					modifier = Modifier.fillMaxSize(),
@@ -53,6 +61,7 @@ class MainActivity : ComponentActivity() {
 										val result = withContext(Dispatchers.IO) {
 											BackendAuthApi.googleLogin(idToken)
 										}
+										AuthTokenStore.setAccessToken(context, result.accessToken)
 										session = result
 									} catch (e: Exception) {
 										errorMessage = e.message ?: "Backend login failed"
@@ -69,6 +78,12 @@ class MainActivity : ComponentActivity() {
 						RunnersNavHost(
 							navController = navController,
 							session = session!!,
+							onLogout = {
+								scope.launch {
+									AuthTokenStore.clear(context)
+									session = null
+								}
+							},
 							modifier = Modifier.padding(innerPadding),
 						)
 					}
