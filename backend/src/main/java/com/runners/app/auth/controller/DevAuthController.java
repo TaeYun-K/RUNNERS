@@ -3,6 +3,7 @@ package com.runners.app.auth.controller;
 import com.runners.app.auth.dto.DevTokenRequest;
 import com.runners.app.auth.dto.GoogleLoginResponse;
 import com.runners.app.auth.service.JwtService;
+import com.runners.app.auth.service.RefreshTokenService;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,15 +25,18 @@ public class DevAuthController {
     private final boolean enabled;
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     public DevAuthController(
             @Value("${app.dev-auth.enabled:false}") String enabled,
             UserRepository userRepository,
-            JwtService jwtService
+            JwtService jwtService,
+            RefreshTokenService refreshTokenService
     ) {
         this.enabled = Boolean.parseBoolean(enabled);
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @Operation(
@@ -65,6 +69,8 @@ public class DevAuthController {
         }
 
         String token = jwtService.createAccessToken(user);
+        String refreshToken = jwtService.createRefreshToken(user);
+        refreshTokenService.save(user.getId(), refreshToken, jwtService.refreshTokenTtl());
 
         return new GoogleLoginResponse(
                 user.getId(),
@@ -72,6 +78,7 @@ public class DevAuthController {
                 user.getName(),
                 user.getPicture(),
                 token,
+                refreshToken,
                 isNewUser
         );
     }

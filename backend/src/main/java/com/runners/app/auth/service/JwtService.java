@@ -21,13 +21,16 @@ public class JwtService {
 
     private final SecretKey key;
     private final Duration accessTokenTtl;
+    private final Duration refreshTokenTtl;
 
     public JwtService(
             @Value("${jwt.secret}") String secret,
-            @Value("${jwt.access-token-minutes:60}") long accessTokenMinutes
+            @Value("${jwt.access-token-minutes:60}") long accessTokenMinutes,
+            @Value("${jwt.refresh-token-days:14}") long refreshTokenDays
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenTtl = Duration.ofMinutes(accessTokenMinutes);
+        this.refreshTokenTtl = Duration.ofDays(refreshTokenDays);
     }
 
     public String createAccessToken(User user) {
@@ -42,6 +45,23 @@ public class JwtService {
                 .claim("role", user.getRole())
                 .signWith(key)
                 .compact();
+    }
+
+    public String createRefreshToken(User user) {
+        Instant now = Instant.now();
+        Instant exp = now.plus(refreshTokenTtl);
+
+        return Jwts.builder()
+                .subject(String.valueOf(user.getId()))
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(exp))
+                .claim("type", "refresh")
+                .signWith(key)
+                .compact();
+    }
+
+    public Duration refreshTokenTtl() {
+        return refreshTokenTtl;
     }
 
     public Claims parseAndValidate(String token) {

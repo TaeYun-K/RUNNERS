@@ -6,5 +6,6 @@ public record GoogleLoginResponse(
         String name,
         String picture,
         String accessToken,
+        String refreshToken,
         boolean isNewUser
 ) {}

@@ -13,11 +13,18 @@ public class AuthService {
     private final GoogleTokenVerifier googleTokenVerifier;
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
-    public AuthService(GoogleTokenVerifier googleTokenVerifier, UserRepository userRepository, JwtService jwtService) {
+    public AuthService(
+            GoogleTokenVerifier googleTokenVerifier,
+            UserRepository userRepository,
+            JwtService jwtService,
+            RefreshTokenService refreshTokenService
+    ) {
         this.googleTokenVerifier = googleTokenVerifier;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @Transactional
@@ -35,7 +42,9 @@ public class AuthService {
             User user = existingBySub.get();
             user.updateProfile(name, picture);
             String accessToken = jwtService.createAccessToken(user);
-            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getPicture(), accessToken, false);
+            String refreshToken = jwtService.createRefreshToken(user);
+            refreshTokenService.save(user.getId(), refreshToken, jwtService.refreshTokenTtl());
+            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getPicture(), accessToken, refreshToken, false);
         }
 
         // 2) email로도 조회 (기존에 email로 가입했을 가능성 대비)
@@ -50,7 +59,9 @@ public class AuthService {
             userRepository.save(user); // 변경감지로도 OK
             // ⚠️ 이 케이스는 설계 선택: email 가입 + google 연동을 허용할지 여부에 따라 달라짐
             String accessToken = jwtService.createAccessToken(user);
-            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getPicture(), accessToken, false);
+            String refreshToken = jwtService.createRefreshToken(user);
+            refreshTokenService.save(user.getId(), refreshToken, jwtService.refreshTokenTtl());
+            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getPicture(), accessToken, refreshToken, false);
         }
 
         // 3) 신규 가입
@@ -64,6 +75,8 @@ public class AuthService {
 
         User saved = userRepository.save(newUser);
         String accessToken = jwtService.createAccessToken(saved);
-        return new GoogleLoginResponse(saved.getId(), saved.getEmail(), saved.getName(), saved.getPicture(), accessToken, true);
+        String refreshToken = jwtService.createRefreshToken(saved);
+        refreshTokenService.save(saved.getId(), refreshToken, jwtService.refreshTokenTtl());
+        return new GoogleLoginResponse(saved.getId(), saved.getEmail(), saved.getName(), saved.getPicture(), accessToken, refreshToken, true);
     }
 }
