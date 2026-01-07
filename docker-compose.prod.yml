@@ -49,6 +49,9 @@ services:
       JWT_ACCESS_TOKEN_MINUTES: ${JWT_ACCESS_TOKEN_MINUTES}
 
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS}
+
+      # Swagger 테스트용 (기본 false): APP_DEV_AUTH_ENABLED=true 로 켜기
+      APP_DEV_AUTH_ENABLED: ${APP_DEV_AUTH_ENABLED:-false}
     expose:
       - "8080"
     restart: unless-stopped

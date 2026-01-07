@@ -26,11 +26,11 @@ public class DevAuthController {
     private final JwtService jwtService;
 
     public DevAuthController(
-            @Value("${app.dev-auth.enabled:false}") boolean enabled,
+            @Value("${app.dev-auth.enabled:false}") String enabled,
             UserRepository userRepository,
             JwtService jwtService
     ) {
-        this.enabled = enabled;
+        this.enabled = Boolean.parseBoolean(enabled);
         this.userRepository = userRepository;
         this.jwtService = jwtService;
     }
