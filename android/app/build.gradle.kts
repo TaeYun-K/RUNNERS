@@ -13,6 +13,8 @@ val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     properties.load(FileInputStream(localPropertiesFile))
 }
+val backendBaseUrl = properties.getProperty("backend_base_url")?.takeIf { it.isNotBlank() }
+    ?: "http://runners.io.kr"
 
 android {
     namespace = "com.runners.app"
@@ -27,26 +29,16 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resValue("string", "google_web_client_id", properties.getProperty("google_web_client_id", ""))
+        buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
     }
 
     buildTypes {
-        debug {
-            buildConfigField(
-                "String",
-                "BACKEND_BASE_URL",
-                "\"${properties.getProperty("backend_base_url_debug", "http://10.0.2.2:8080")}\""
-            )
-        }
+        debug {}
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
-            )
-            buildConfigField(
-                "String",
-                "BACKEND_BASE_URL",
-                "\"${properties.getProperty("backend_base_url_release", "http://3.34.177.156")}\""
             )
         }
     }

@@ -27,7 +27,7 @@ object BackendAuthApi {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
     fun googleLogin(idToken: String): GoogleLoginResult {
-        val url = BuildConfig.BACKEND_BASE_URL.trimEnd('/') + "/api/auth/google"
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/auth/google"
 
         val bodyJson = JSONObject()
             .put("idToken", idToken)
