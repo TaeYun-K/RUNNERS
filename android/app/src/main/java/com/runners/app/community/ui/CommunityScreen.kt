@@ -23,6 +23,7 @@ import com.runners.app.settings.AppSettingsStore
 fun CommunityScreen(
     authorNickname: String,
     totalDistanceKm: Double?,
+    onCreateClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CommunityViewModel = viewModel(),
 ) {
@@ -59,22 +60,7 @@ fun CommunityScreen(
     ) {
         CommunityHeader(
             title = "커뮤니티",
-            onCreateClick = viewModel::openCreateDialog,
-        )
-
-        CommunityCreatePostDialog(
-            isOpen = uiState.isCreateDialogOpen,
-            authorNickname = authorNickname,
-            totalDistanceKm = totalDistanceKm,
-            showTotalDistance = showTotalDistanceInCommunity,
-            title = uiState.createTitle,
-            onTitleChange = viewModel::onCreateTitleChange,
-            content = uiState.createContent,
-            onContentChange = viewModel::onCreateContentChange,
-            isCreating = uiState.isCreating,
-            errorMessage = uiState.createErrorMessage,
-            onSubmit = viewModel::submitCreatePost,
-            onDismiss = viewModel::closeCreateDialog,
+            onCreateClick = onCreateClick,
         )
 
         PullToRefreshBox(

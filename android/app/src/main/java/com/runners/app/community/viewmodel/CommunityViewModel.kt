@@ -81,21 +81,17 @@ class CommunityViewModel(
         }
     }
 
-    fun openCreateDialog() {
-        _uiState.update { it.copy(isCreateDialogOpen = true, createErrorMessage = null) }
-    }
-
-    fun closeCreateDialog() {
+    fun resetCreateDraft() {
         if (_uiState.value.isCreating) return
-        _uiState.update { it.copy(isCreateDialogOpen = false, createErrorMessage = null) }
+        _uiState.update { it.copy(createTitle = "", createContent = "", createErrorMessage = null) }
     }
 
     fun onCreateTitleChange(value: String) {
-        _uiState.update { it.copy(createTitle = value) }
+        _uiState.update { it.copy(createTitle = value, createErrorMessage = null) }
     }
 
     fun onCreateContentChange(value: String) {
-        _uiState.update { it.copy(createContent = value) }
+        _uiState.update { it.copy(createContent = value, createErrorMessage = null) }
     }
 
     fun submitCreatePost() {
@@ -115,9 +111,10 @@ class CommunityViewModel(
                 _uiState.update {
                     it.copy(
                         isCreating = false,
-                        isCreateDialogOpen = false,
                         createTitle = "",
                         createContent = "",
+                        createErrorMessage = null,
+                        createSuccessSignal = it.createSuccessSignal + 1L,
                         scrollToTopSignal = it.scrollToTopSignal + 1L,
                     )
                 }
