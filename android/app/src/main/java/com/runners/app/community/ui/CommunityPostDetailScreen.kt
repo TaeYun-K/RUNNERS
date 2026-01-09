@@ -150,8 +150,12 @@ fun CommunityPostDetailScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                val createdLabel =
-                                    data.createdAt.takeIf { it.length >= 16 }?.replace('T', ' ') ?: data.createdAt
+                                fun toSecondPrecision(raw: String): String {
+                                    val normalized = raw.replace('T', ' ')
+                                    return normalized.takeIf { it.length >= 19 }?.substring(0, 19) ?: normalized
+                                }
+
+                                val createdLabel = toSecondPrecision(data.createdAt)
                                 Text(
                                     text = "작성 $createdLabel",
                                     style = MaterialTheme.typography.bodySmall,
@@ -159,8 +163,7 @@ fun CommunityPostDetailScreen(
                                 )
                                 val updatedAt = data.updatedAt
                                 if (!updatedAt.isNullOrBlank()) {
-                                    val updatedLabel =
-                                        updatedAt.takeIf { it.length >= 16 }?.replace('T', ' ') ?: updatedAt
+                                    val updatedLabel = toSecondPrecision(updatedAt)
                                     Text(
                                         text = "수정 $updatedLabel",
                                         style = MaterialTheme.typography.bodySmall,
