@@ -1,5 +1,6 @@
 package com.runners.app.community.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ fun CommunityPostList(
     errorMessage: String?,
     nextCursor: String?,
     showTotalDistance: Boolean,
+    onPostClick: (Long) -> Unit,
     onRetryInitial: () -> Unit,
     onRetryMore: () -> Unit,
     modifier: Modifier = Modifier,
@@ -64,7 +66,11 @@ fun CommunityPostList(
                 modifier = modifier.fillMaxSize(),
             ) {
                 items(posts, key = { it.postId }) { post ->
-                    Card(Modifier.fillMaxWidth()) {
+                    Card(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { onPostClick(post.postId) }
+                    ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(post.title, style = MaterialTheme.typography.titleMedium)
                             if (!post.contentPreview.isNullOrBlank()) {

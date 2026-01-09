@@ -9,11 +9,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import com.runners.app.community.ui.CommunityCreatePostScreen
+import com.runners.app.community.ui.CommunityPostDetailScreen
 import com.runners.app.community.ui.CommunityScreen
 import com.runners.app.community.viewmodel.CommunityViewModel
 import com.runners.app.healthconnect.HealthConnectRepository
@@ -230,6 +233,7 @@ fun RunnersNavHost(
                 authorNickname = session.nickname ?: session.email ?: "RUNNERS",
                 totalDistanceKm = totalDistanceKm,
                 onCreateClick = { navController.navigate(AppRoute.CommunityCreate.route) },
+                onPostClick = { postId -> navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) },
                 viewModel = communityViewModel,
             )
         }
@@ -239,6 +243,16 @@ fun RunnersNavHost(
                 totalDistanceKm = totalDistanceKm,
                 onBack = { navController.popBackStack() },
                 viewModel = communityViewModel,
+            )
+        }
+        composable(
+            route = AppRoute.CommunityPostDetail.route,
+            arguments = listOf(navArgument("postId") { type = NavType.LongType }),
+        ) { entry ->
+            val postId = entry.arguments?.getLong("postId") ?: return@composable
+            CommunityPostDetailScreen(
+                postId = postId,
+                onBack = { navController.popBackStack() },
             )
         }
         composable(AppRoute.MyPage.route) { MyPageScreen(session = session, onLogout = onLogout) }

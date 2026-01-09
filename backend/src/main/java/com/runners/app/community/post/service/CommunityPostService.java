@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -80,15 +79,17 @@ public class CommunityPostService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         var viewId = new CommunityPostViewId(postId, viewerId, LocalDate.now());
-        try {
-            communityPostViewRepository.saveAndFlush(CommunityPostView.builder()
-                    .id(viewId)
-                    .post(post)
-                    .user(viewer)
-                    .build());
+        boolean alreadyViewedToday = communityPostViewRepository.existsById(viewId);
+        if (!alreadyViewedToday) {
+            communityPostViewRepository.save(
+                    CommunityPostView.builder()
+                            .id(viewId)
+                            .post(post)
+                            .user(viewer)
+                            .viewedAt(LocalDateTime.now())
+                            .build()
+            );
             post.increaseViewCount();
-        } catch (DataIntegrityViolationException ignored) {
-            // already viewed today
         }
 
         var author = post.getAuthor();

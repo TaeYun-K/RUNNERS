@@ -37,6 +37,21 @@ data class CreateCommunityPostResult(
     val createdAt: String,
 )
 
+data class CommunityPostDetailResult(
+    val postId: Long,
+    val authorId: Long,
+    val authorName: String?,
+    val authorPicture: String?,
+    val authorTotalDistanceKm: Double?,
+    val title: String,
+    val content: String,
+    val viewCount: Int,
+    val recommendCount: Int,
+    val commentCount: Int,
+    val createdAt: String,
+    val updatedAt: String?,
+)
+
 object BackendCommunityApi {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -122,6 +137,43 @@ object BackendCommunityApi {
                 recommendCount = json.optInt("recommendCount", 0),
                 commentCount = json.optInt("commentCount", 0),
                 createdAt = json.optString("createdAt"),
+            )
+        }
+    }
+
+    fun getPost(postId: Long): CommunityPostDetailResult {
+        require(postId > 0) { "postId must be positive" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId"
+
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Fetch community post failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            val authorTotalDistanceKm =
+                json.optDouble("authorTotalDistanceKm", Double.NaN)
+                    .takeIf { !it.isNaN() }
+            return CommunityPostDetailResult(
+                postId = json.getLong("postId"),
+                authorId = json.getLong("authorId"),
+                authorName = json.optString("authorName").takeIf { it.isNotBlank() },
+                authorPicture = json.optString("authorPicture").takeIf { it.isNotBlank() },
+                authorTotalDistanceKm = authorTotalDistanceKm,
+                title = json.getString("title"),
+                content = json.getString("content"),
+                viewCount = json.optInt("viewCount", 0),
+                recommendCount = json.optInt("recommendCount", 0),
+                commentCount = json.optInt("commentCount", 0),
+                createdAt = json.optString("createdAt"),
+                updatedAt = json.optString("updatedAt").takeIf { it.isNotBlank() && it != "null" },
             )
         }
     }
