@@ -12,12 +12,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import com.runners.app.community.ui.CommunityCreatePostScreen
 import com.runners.app.community.ui.CommunityPostDetailScreen
 import com.runners.app.community.ui.CommunityScreen
+import com.runners.app.community.state.CommunityPostStatsUpdate
 import com.runners.app.community.viewmodel.CommunityViewModel
 import com.runners.app.healthconnect.HealthConnectRepository
 import com.runners.app.home.HomeScreen
@@ -205,6 +207,8 @@ fun RunnersNavHost(
         }
     }
 
+    val communityPostStatsUpdateKey = "community:post:statsUpdate"
+
     NavHost(
         navController = navController,
         startDestination = AppRoute.Home.route,
@@ -228,7 +232,19 @@ fun RunnersNavHost(
             )
         }
         composable(AppRoute.Records.route) { RecordsDashboardScreen() }
-        composable(AppRoute.Community.route) {
+        composable(AppRoute.Community.route) { entry ->
+            val statsUpdate =
+                entry.savedStateHandle
+                    .getStateFlow<CommunityPostStatsUpdate?>(communityPostStatsUpdateKey, null)
+                    .collectAsStateWithLifecycle()
+                    .value
+
+            LaunchedEffect(statsUpdate) {
+                val update = statsUpdate ?: return@LaunchedEffect
+                communityViewModel.applyPostStatsUpdate(update)
+                entry.savedStateHandle[communityPostStatsUpdateKey] = null
+            }
+
             CommunityScreen(
                 authorNickname = session.nickname ?: session.email ?: "RUNNERS",
                 totalDistanceKm = totalDistanceKm,
@@ -252,7 +268,22 @@ fun RunnersNavHost(
             val postId = entry.arguments?.getLong("postId") ?: return@composable
             CommunityPostDetailScreen(
                 postId = postId,
-                onBack = { navController.popBackStack() },
+                onBack = { detail ->
+                    if (detail != null) {
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set(
+                                communityPostStatsUpdateKey,
+                                CommunityPostStatsUpdate(
+                                    postId = detail.postId,
+                                    viewCount = detail.viewCount,
+                                    recommendCount = detail.recommendCount,
+                                    commentCount = detail.commentCount,
+                                ),
+                            )
+                    }
+                    navController.popBackStack()
+                },
             )
         }
         composable(AppRoute.MyPage.route) { MyPageScreen(session = session, onLogout = onLogout) }

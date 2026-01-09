@@ -3,6 +3,7 @@ package com.runners.app.community.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.runners.app.community.data.CommunityRepository
+import com.runners.app.community.state.CommunityPostStatsUpdate
 import com.runners.app.community.state.CommunityUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -132,5 +133,21 @@ class CommunityViewModel(
 
     private fun refreshAfterCreate() {
         refresh()
+    }
+
+    fun applyPostStatsUpdate(update: CommunityPostStatsUpdate) {
+        _uiState.update { state ->
+            val updatedPosts =
+                state.posts.map { post ->
+                    if (post.postId != update.postId) return@map post
+                    post.copy(
+                        viewCount = update.viewCount,
+                        recommendCount = update.recommendCount,
+                        commentCount = update.commentCount,
+                    )
+                }
+
+            state.copy(posts = updatedPosts)
+        }
     }
 }

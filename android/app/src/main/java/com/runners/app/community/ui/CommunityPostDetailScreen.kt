@@ -1,5 +1,6 @@
 package com.runners.app.community.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,7 +45,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun CommunityPostDetailScreen(
     postId: Long,
-    onBack: () -> Unit,
+    onBack: (CommunityPostDetailResult?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -75,13 +76,17 @@ fun CommunityPostDetailScreen(
         load()
     }
 
+    BackHandler(enabled = true) {
+        onBack(post)
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text("게시글") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { onBack(post) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
                     }
                 },
