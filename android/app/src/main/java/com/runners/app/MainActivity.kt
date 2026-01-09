@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
 								userId = me.userId,
 								email = me.email,
 								name = me.name,
+								nickname = me.nickname,
 								picture = me.picture,
 								accessToken = newAccessToken,
 								refreshToken = refreshToken,

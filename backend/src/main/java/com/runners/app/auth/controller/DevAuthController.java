@@ -83,7 +83,8 @@ public class DevAuthController {
         return new GoogleLoginResponse(
                 user.getId(),
                 user.getEmail(),
-                user.getDisplayName(),
+                user.getName(),
+                user.getNickname(),
                 user.getPicture(),
                 token,
                 refreshToken,

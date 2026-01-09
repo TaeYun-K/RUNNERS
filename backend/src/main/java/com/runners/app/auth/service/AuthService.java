@@ -53,7 +53,7 @@ public class AuthService {
             String accessToken = jwtService.createAccessToken(user);
             String refreshToken = jwtService.createRefreshToken(user);
             refreshTokenService.save(user.getId(), refreshToken, jwtService.refreshTokenTtl());
-            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getDisplayName(), user.getPicture(), accessToken, refreshToken, false);
+            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getNickname(), user.getPicture(), accessToken, refreshToken, false);
         }
 
         // 2) email로도 조회 (기존에 email로 가입했을 가능성 대비)
@@ -71,7 +71,7 @@ public class AuthService {
             String accessToken = jwtService.createAccessToken(user);
             String refreshToken = jwtService.createRefreshToken(user);
             refreshTokenService.save(user.getId(), refreshToken, jwtService.refreshTokenTtl());
-            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getDisplayName(), user.getPicture(), accessToken, refreshToken, false);
+            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getNickname(), user.getPicture(), accessToken, refreshToken, false);
         }
 
         // 3) 신규 가입
@@ -88,7 +88,7 @@ public class AuthService {
         String accessToken = jwtService.createAccessToken(saved);
         String refreshToken = jwtService.createRefreshToken(saved);
         refreshTokenService.save(saved.getId(), refreshToken, jwtService.refreshTokenTtl());
-        return new GoogleLoginResponse(saved.getId(), saved.getEmail(), saved.getDisplayName(), saved.getPicture(), accessToken, refreshToken, true);
+        return new GoogleLoginResponse(saved.getId(), saved.getEmail(), saved.getName(), saved.getNickname(), saved.getPicture(), accessToken, refreshToken, true);
     }
 
     private void ensureNickname(User user) {

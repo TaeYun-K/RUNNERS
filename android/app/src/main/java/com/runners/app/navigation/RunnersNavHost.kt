@@ -186,7 +186,7 @@ fun RunnersNavHost(
 
             HomeScreen(
                 uiState = HomeUiState(
-                    nickname = session.name ?: session.email ?: "RUNNERS",
+                    nickname = session.nickname ?: session.email ?: "RUNNERS",
                     totalDistanceKm = totalDistanceKm,
                     weekDistanceKm = weekDistanceKm,
                     monthDistanceKm = monthDistanceKm,

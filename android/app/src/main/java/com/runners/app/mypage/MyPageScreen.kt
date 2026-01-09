@@ -118,16 +118,6 @@ fun MyPageScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Button(
-                    onClick = {
-                        nicknameDraft = (userMe?.name ?: session.name).orEmpty()
-                        nicknameErrorMessage = null
-                        isNicknameDialogOpen = true
-                    },
-                    enabled = !isLoading,
-                ) {
-                    Text("닉네임 변경")
-                }
 
                 if (isLoading) {
                     Row(
@@ -162,7 +152,19 @@ fun MyPageScreen(
                 HorizontalDivider() 
                 ListItem( 
                     headlineContent = { Text("닉네임") }, 
-                    supportingContent = { Text(userMe?.name ?: session.name ?: "-") }, 
+                    supportingContent = { Text(userMe?.nickname ?: session.nickname ?: "-") },
+                    trailingContent = {
+                        Button(
+                            onClick = {
+                                nicknameDraft = (userMe?.nickname ?: session.nickname).orEmpty()
+                                nicknameErrorMessage = null
+                                isNicknameDialogOpen = true
+                            },
+                            enabled = !isLoading,
+                        ) {
+                            Text("변경")
+                        }
+                    },
                 ) 
                 HorizontalDivider() 
                 ListItem( 

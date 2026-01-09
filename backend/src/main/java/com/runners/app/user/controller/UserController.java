@@ -35,7 +35,8 @@ public class UserController {
         return new UserMeResponse(
                 user.getId(),
                 user.getEmail(),
-                user.getDisplayName(),
+                user.getName(),
+                user.getNickname(),
                 user.getPicture(),
                 user.getRole()
         );
@@ -57,7 +58,8 @@ public class UserController {
             return new UserMeResponse(
                     user.getId(),
                     user.getEmail(),
-                    user.getDisplayName(),
+                    user.getName(),
+                    user.getNickname(),
                     user.getPicture(),
                     user.getRole()
             );
@@ -73,7 +75,8 @@ public class UserController {
         return new UserMeResponse(
                 user.getId(),
                 user.getEmail(),
-                user.getDisplayName(),
+                user.getName(),
+                user.getNickname(),
                 user.getPicture(),
                 user.getRole()
         );

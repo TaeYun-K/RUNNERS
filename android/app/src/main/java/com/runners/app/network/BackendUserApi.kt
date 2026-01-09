@@ -10,6 +10,7 @@ data class UserMeResult(
     val userId: Long,
     val email: String,
     val name: String?,
+    val nickname: String?,
     val picture: String?,
     val role: String?,
 )
@@ -39,6 +40,7 @@ object BackendUserApi {
                 userId = json.getLong("userId"),
                 email = json.getString("email"),
                 name = optNullableString("name"),
+                nickname = optNullableString("nickname"),
                 picture = optNullableString("picture"),
                 role = optNullableString("role"),
             )
@@ -71,6 +73,7 @@ object BackendUserApi {
                 userId = json.getLong("userId"),
                 email = json.getString("email"),
                 name = optNullableString("name"),
+                nickname = optNullableString("nickname"),
                 picture = optNullableString("picture"),
                 role = optNullableString("role"),
             )
