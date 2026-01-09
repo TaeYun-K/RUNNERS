@@ -7,6 +7,7 @@ public record CommunityPostDetailResponse(
         Long authorId,
         String authorName,
         String authorPicture,
+        Double authorTotalDistanceKm,
         String title,
         String content,
         int viewCount,
@@ -15,4 +16,3 @@ public record CommunityPostDetailResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {}
-

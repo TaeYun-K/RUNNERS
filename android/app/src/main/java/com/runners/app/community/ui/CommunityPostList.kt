@@ -3,9 +3,12 @@ package com.runners.app.community.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -21,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.runners.app.network.CommunityPostSummaryResult
+import java.util.Locale
 
 @Composable
 fun CommunityPostList(
@@ -30,6 +34,7 @@ fun CommunityPostList(
     isLoadingMore: Boolean,
     errorMessage: String?,
     nextCursor: String?,
+    showTotalDistance: Boolean,
     onRetryInitial: () -> Unit,
     onRetryMore: () -> Unit,
     modifier: Modifier = Modifier,
@@ -71,11 +76,22 @@ fun CommunityPostList(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            Text(
-                                text = post.authorName ?: "익명",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = post.authorName ?: "익명",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                if (showTotalDistance) {
+                                    val km = post.authorTotalDistanceKm
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = if (km != null) "· ${formatKm(km)}" else "· km 정보 없음",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                             HorizontalDivider()
                             Text(
                                 text = "조회 ${post.viewCount} · 추천 ${post.recommendCount} · 댓글 ${post.commentCount}",
@@ -135,3 +151,6 @@ fun CommunityPostList(
         }
     }
 }
+
+private fun formatKm(km: Double): String =
+    String.format(Locale.getDefault(), "%.1fkm", km.coerceAtLeast(0.0))

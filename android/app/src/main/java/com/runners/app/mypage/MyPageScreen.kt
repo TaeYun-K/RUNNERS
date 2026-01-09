@@ -69,8 +69,8 @@ fun MyPageScreen(
     var nicknameErrorMessage by remember { mutableStateOf<String?>(null) }
     var isNicknameSaving by remember { mutableStateOf(false) }
 
-    val showTotalDistanceInCommunityCreate =
-        AppSettingsStore.showTotalDistanceInCommunityCreateFlow(context)
+    val showTotalDistanceInCommunity =
+        AppSettingsStore.showTotalDistanceInCommunityFlow(context)
             .collectAsStateWithLifecycle(initialValue = true)
             .value
 
@@ -186,14 +186,14 @@ fun MyPageScreen(
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ListItem(
-                    headlineContent = { Text("커뮤니티 글쓰기 누적 거리 표시") },
-                    supportingContent = { Text("게시글 작성 시 닉네임 옆에 내 누적 km를 표시해요") },
+                    headlineContent = { Text("커뮤니티 누적 거리 표시") },
+                    supportingContent = { Text("게시글 목록/작성 화면에서 닉네임 옆에 누적 km를 표시해요") },
                     trailingContent = {
                         Switch(
-                            checked = showTotalDistanceInCommunityCreate,
+                            checked = showTotalDistanceInCommunity,
                             onCheckedChange = { checked ->
                                 scope.launch {
-                                    AppSettingsStore.setShowTotalDistanceInCommunityCreate(context, checked)
+                                    AppSettingsStore.setShowTotalDistanceInCommunity(context, checked)
                                 }
                             },
                         )

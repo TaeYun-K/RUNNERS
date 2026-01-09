@@ -30,8 +30,8 @@ fun CommunityScreen(
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
-    val showTotalDistanceInCommunityCreate =
-        AppSettingsStore.showTotalDistanceInCommunityCreateFlow(context)
+    val showTotalDistanceInCommunity =
+        AppSettingsStore.showTotalDistanceInCommunityFlow(context)
             .collectAsStateWithLifecycle(initialValue = true)
             .value
 
@@ -66,7 +66,7 @@ fun CommunityScreen(
             isOpen = uiState.isCreateDialogOpen,
             authorNickname = authorNickname,
             totalDistanceKm = totalDistanceKm,
-            showTotalDistance = showTotalDistanceInCommunityCreate,
+            showTotalDistance = showTotalDistanceInCommunity,
             title = uiState.createTitle,
             onTitleChange = viewModel::onCreateTitleChange,
             content = uiState.createContent,
@@ -94,6 +94,7 @@ fun CommunityScreen(
                 isLoadingMore = uiState.isLoadingMore,
                 errorMessage = uiState.listErrorMessage,
                 nextCursor = uiState.nextCursor,
+                showTotalDistance = showTotalDistanceInCommunity,
                 onRetryInitial = viewModel::refresh,
                 onRetryMore = viewModel::loadMore,
                 modifier = Modifier.fillMaxSize(),

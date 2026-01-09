@@ -12,6 +12,7 @@ data class CommunityPostSummaryResult(
     val postId: Long,
     val authorId: Long,
     val authorName: String?,
+    val authorTotalDistanceKm: Double?,
     val title: String,
     val contentPreview: String?,
     val viewCount: Int,
@@ -71,11 +72,15 @@ object BackendCommunityApi {
         val result = ArrayList<CommunityPostSummaryResult>(array.length())
         for (i in 0 until array.length()) {
             val item = array.getJSONObject(i)
+            val authorTotalDistanceKm =
+                item.optDouble("authorTotalDistanceKm", Double.NaN)
+                    .takeIf { !it.isNaN() }
             result.add(
                 CommunityPostSummaryResult(
                     postId = item.getLong("postId"),
                     authorId = item.getLong("authorId"),
                     authorName = item.optString("authorName").takeIf { it.isNotBlank() },
+                    authorTotalDistanceKm = authorTotalDistanceKm,
                     title = item.getString("title"),
                     contentPreview = item.optString("contentPreview").takeIf { it.isNotBlank() },
                     viewCount = item.optInt("viewCount", 0),

@@ -20,8 +20,10 @@ import com.runners.app.home.PopularPostUiModel
 import com.runners.app.home.RecentRunUiModel
 import com.runners.app.mypage.MyPageScreen
 import com.runners.app.network.GoogleLoginResult
+import com.runners.app.network.BackendUserApi
 import com.runners.app.records.RecordsDashboardScreen
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import java.time.DayOfWeek
@@ -46,6 +48,7 @@ fun RunnersNavHost(
     var monthDistanceKm by remember { mutableStateOf<Double?>(null) }
     var firstRunDate by remember { mutableStateOf<LocalDate?>(null) }
     var recentRuns by remember { mutableStateOf<List<RecentRunUiModel>>(emptyList()) }
+    var lastSyncedTotalDistanceKm by remember { mutableStateOf<Double?>(null) }
 
     LaunchedEffect(providerPackage) {
         totalDistanceKm = null
@@ -174,6 +177,24 @@ fun RunnersNavHost(
             monthDistanceKm = stats.monthKm
             firstRunDate = stats.firstDate
             recentRuns = stats.recentRuns
+        }
+    }
+
+    LaunchedEffect(totalDistanceKm) {
+        val km = totalDistanceKm ?: return@LaunchedEffect
+        if (km.isNaN() || km.isInfinite() || km < 0.0) return@LaunchedEffect
+
+        val last = lastSyncedTotalDistanceKm
+        val shouldSync = last == null || kotlin.math.abs(km - last) >= 0.1
+        if (!shouldSync) return@LaunchedEffect
+
+        runCatching {
+            withContext(Dispatchers.IO) {
+                // Avoid firing immediately during startup recompositions.
+                delay(300)
+                BackendUserApi.updateTotalDistanceKm(km)
+            }
+            lastSyncedTotalDistanceKm = km
         }
     }
 

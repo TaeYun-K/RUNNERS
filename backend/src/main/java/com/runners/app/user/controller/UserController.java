@@ -1,10 +1,12 @@
 package com.runners.app.user.controller;
 
 import com.runners.app.user.dto.UpdateNicknameRequest;
+import com.runners.app.user.dto.UpdateTotalDistanceRequest;
 import com.runners.app.user.dto.UserMeResponse;
 import com.runners.app.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,7 +40,8 @@ public class UserController {
                 user.getName(),
                 user.getNickname(),
                 user.getPicture(),
-                user.getRole()
+                user.getRole(),
+                user.getTotalDistanceKm()
         );
     }
 
@@ -61,7 +64,8 @@ public class UserController {
                     user.getName(),
                     user.getNickname(),
                     user.getPicture(),
-                    user.getRole()
+                    user.getRole(),
+                    user.getTotalDistanceKm()
             );
         }
 
@@ -78,7 +82,46 @@ public class UserController {
                 user.getName(),
                 user.getNickname(),
                 user.getPicture(),
-                user.getRole()
+                user.getRole(),
+                user.getTotalDistanceKm()
+        );
+    }
+
+    @Operation(summary = "내 누적 거리 업데이트", description = "사용자의 누적 러닝 거리(km)를 업데이트합니다.")
+    @PatchMapping("/me/total-distance")
+    public UserMeResponse updateTotalDistanceKm(
+            Authentication authentication,
+            @Valid @RequestBody UpdateTotalDistanceRequest request
+    ) {
+        Long userId = requireUserId(authentication);
+
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        Double nextKm = request.totalDistanceKm();
+        if (Objects.equals(user.getTotalDistanceKm(), nextKm)) {
+            return new UserMeResponse(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getName(),
+                    user.getNickname(),
+                    user.getPicture(),
+                    user.getRole(),
+                    user.getTotalDistanceKm()
+            );
+        }
+
+        user.updateTotalDistanceKm(nextKm);
+        userRepository.save(user);
+
+        return new UserMeResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getNickname(),
+                user.getPicture(),
+                user.getRole(),
+                user.getTotalDistanceKm()
         );
     }
 

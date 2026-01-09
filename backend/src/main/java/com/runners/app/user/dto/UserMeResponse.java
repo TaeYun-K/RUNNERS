@@ -6,5 +6,6 @@ public record UserMeResponse(
         String name,
         String nickname,
         String picture,
-        String role
+        String role,
+        Double totalDistanceKm
 ) {}
