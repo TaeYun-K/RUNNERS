@@ -8,12 +8,9 @@ import com.runners.app.community.post.dto.response.CreateCommunityPostResponse;
 import com.runners.app.community.post.dto.response.CommunityPostDetailResponse;
 import com.runners.app.community.post.dto.response.CommunityPostSummaryResponse;
 import com.runners.app.community.post.repository.CommunityPostRepository;
-import com.runners.app.community.view.CommunityPostView;
-import com.runners.app.community.view.CommunityPostViewId;
-import com.runners.app.community.view.CommunityPostViewRepository;
+import com.runners.app.community.view.CommunityPostViewTracker;
 import com.runners.app.user.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
@@ -28,16 +25,16 @@ import org.springframework.web.server.ResponseStatusException;
 public class CommunityPostService {
 
     private final CommunityPostRepository communityPostRepository;
-    private final CommunityPostViewRepository communityPostViewRepository;
+    private final CommunityPostViewTracker communityPostViewTracker;
     private final UserRepository userRepository;
 
     public CommunityPostService(
             CommunityPostRepository communityPostRepository,
-            CommunityPostViewRepository communityPostViewRepository,
+            CommunityPostViewTracker communityPostViewTracker,
             UserRepository userRepository
     ) {
         this.communityPostRepository = communityPostRepository;
-        this.communityPostViewRepository = communityPostViewRepository;
+        this.communityPostViewTracker = communityPostViewTracker;
         this.userRepository = userRepository;
     }
 
@@ -78,17 +75,8 @@ public class CommunityPostService {
         var viewer = userRepository.findById(viewerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        var viewId = new CommunityPostViewId(postId, viewerId, LocalDate.now());
-        boolean alreadyViewedToday = communityPostViewRepository.existsById(viewId);
-        if (!alreadyViewedToday) {
-            communityPostViewRepository.save(
-                    CommunityPostView.builder()
-                            .id(viewId)
-                            .post(post)
-                            .user(viewer)
-                            .viewedAt(LocalDateTime.now())
-                            .build()
-            );
+        boolean isFirstViewToday = communityPostViewTracker.markViewedTodayIfFirst(postId, viewerId);
+        if (isFirstViewToday) {
             post.increaseViewCount();
         }
 

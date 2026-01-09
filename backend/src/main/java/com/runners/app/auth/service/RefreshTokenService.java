@@ -2,6 +2,7 @@ package com.runners.app.auth.service;
 
 import java.time.Duration;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +13,7 @@ public class RefreshTokenService {
 
     private final StringRedisTemplate redis;
 
-    public RefreshTokenService(StringRedisTemplate redis) {
+    public RefreshTokenService(@Qualifier("refreshStringRedisTemplate") StringRedisTemplate redis) {
         this.redis = redis;
     }
 
