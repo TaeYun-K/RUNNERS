@@ -96,7 +96,7 @@ public class CommunityPostService {
         return new CommunityPostDetailResponse(
                 post.getId(),
                 author.getId(),
-                author.getName(),
+                author.getDisplayName(),
                 author.getPicture(),
                 post.getTitle(),
                 post.getContent(),
@@ -129,7 +129,7 @@ public class CommunityPostService {
                 .map(post -> new CommunityPostSummaryResponse(
                         post.getId(),
                         post.getAuthor().getId(),
-                        post.getAuthor().getName(),
+                        post.getAuthor().getDisplayName(),
                         post.getTitle(),
                         toContentPreview(post.getContent()),
                         post.getViewCount(),

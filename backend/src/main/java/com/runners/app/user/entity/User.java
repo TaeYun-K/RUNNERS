@@ -6,7 +6,8 @@ import lombok.*;
 @Entity
 @Table(name = "users", uniqueConstraints = {
         @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
-        @UniqueConstraint(name = "uk_users_google_sub", columnNames = "google_sub")
+        @UniqueConstraint(name = "uk_users_google_sub", columnNames = "google_sub"),
+        @UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -29,11 +30,24 @@ public class User {
     @Column(length = 100)
     private String name;
 
+    @Column(length = 30)
+    private String nickname;
+
     @Column(length = 500)
     private String picture;
 
     public void updateProfile(String name, String picture) {
         this.name = name;
         this.picture = picture;
+    }
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public String getDisplayName() {
+        if (nickname != null && !nickname.isBlank()) return nickname;
+        if (name != null && !name.isBlank()) return name;
+        return "RUNNERS";
     }
 }

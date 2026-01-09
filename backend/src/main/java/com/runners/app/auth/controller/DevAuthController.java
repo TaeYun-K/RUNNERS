@@ -6,6 +6,7 @@ import com.runners.app.auth.service.JwtService;
 import com.runners.app.auth.service.RefreshTokenService;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
+import com.runners.app.user.service.NicknameService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -26,17 +27,20 @@ public class DevAuthController {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final NicknameService nicknameService;
 
     public DevAuthController(
             @Value("${app.dev-auth.enabled:false}") String enabled,
             UserRepository userRepository,
             JwtService jwtService,
-            RefreshTokenService refreshTokenService
+            RefreshTokenService refreshTokenService,
+            NicknameService nicknameService
     ) {
         this.enabled = Boolean.parseBoolean(enabled);
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
+        this.nicknameService = nicknameService;
     }
 
     @Operation(
@@ -64,8 +68,12 @@ public class DevAuthController {
                     .googleSub(googleSub)
                     .role(role)
                     .name(request.name())
+                    .nickname(nicknameService.generateUniqueNickname())
                     .picture(null)
                     .build());
+        } else if (user.getNickname() == null || user.getNickname().isBlank()) {
+            user.updateNickname(nicknameService.generateUniqueNickname());
+            user = userRepository.save(user);
         }
 
         String token = jwtService.createAccessToken(user);
@@ -75,7 +83,7 @@ public class DevAuthController {
         return new GoogleLoginResponse(
                 user.getId(),
                 user.getEmail(),
-                user.getName(),
+                user.getDisplayName(),
                 user.getPicture(),
                 token,
                 refreshToken,

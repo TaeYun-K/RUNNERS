@@ -13,12 +13,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.CircularProgressIndicator 
+import androidx.compose.material3.HorizontalDivider 
+import androidx.compose.material3.Icon 
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ListItem 
+import androidx.compose.material3.MaterialTheme 
+import androidx.compose.material3.Text 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,9 +58,13 @@ fun MyPageScreen(
     val webClientId = stringResource(R.string.google_web_client_id)
     var isLogoutDialogOpen by remember { mutableStateOf(false) }
     var isReLoginDialogOpen by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var userMe by remember { mutableStateOf<UserMeResult?>(null) }
+    var isLoading by remember { mutableStateOf(false) } 
+    var errorMessage by remember { mutableStateOf<String?>(null) } 
+    var userMe by remember { mutableStateOf<UserMeResult?>(null) } 
+    var isNicknameDialogOpen by remember { mutableStateOf(false) }
+    var nicknameDraft by remember { mutableStateOf("") }
+    var nicknameErrorMessage by remember { mutableStateOf<String?>(null) }
+    var isNicknameSaving by remember { mutableStateOf(false) }
 
     suspend fun refreshUser() {
         if (isLoading) return
@@ -113,6 +118,16 @@ fun MyPageScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Button(
+                    onClick = {
+                        nicknameDraft = (userMe?.name ?: session.name).orEmpty()
+                        nicknameErrorMessage = null
+                        isNicknameDialogOpen = true
+                    },
+                    enabled = !isLoading,
+                ) {
+                    Text("닉네임 변경")
+                }
 
                 if (isLoading) {
                     Row(
@@ -144,14 +159,14 @@ fun MyPageScreen(
                     headlineContent = { Text("이메일") },
                     supportingContent = { Text(userMe?.email ?: session.email ?: "-") },
                 )
-                HorizontalDivider()
-                ListItem(
-                    headlineContent = { Text("이름") },
-                    supportingContent = { Text(userMe?.name ?: session.name ?: "-") },
-                )
-                HorizontalDivider()
-                ListItem(
-                    headlineContent = { Text("권한") },
+                HorizontalDivider() 
+                ListItem( 
+                    headlineContent = { Text("닉네임") }, 
+                    supportingContent = { Text(userMe?.name ?: session.name ?: "-") }, 
+                ) 
+                HorizontalDivider() 
+                ListItem( 
+                    headlineContent = { Text("권한") }, 
                     supportingContent = { Text(userMe?.role ?: "-") },
                 )
             }
@@ -208,11 +223,11 @@ fun MyPageScreen(
         )
     }
 
-    if (isReLoginDialogOpen) {
-        AlertDialog(
-            onDismissRequest = {
-                isReLoginDialogOpen = false
-                onLogout()
+    if (isReLoginDialogOpen) { 
+        AlertDialog( 
+            onDismissRequest = { 
+                isReLoginDialogOpen = false 
+                onLogout() 
             },
             title = { Text("다시 로그인해주세요") },
             text = { Text("로그인이 만료되었어요. 로그인 화면으로 이동할게요.") },
@@ -224,6 +239,73 @@ fun MyPageScreen(
                     },
                 ) {
                     Text("확인")
+                }
+            }, 
+        ) 
+    } 
+
+    if (isNicknameDialogOpen) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isNicknameSaving) {
+                    isNicknameDialogOpen = false
+                }
+            },
+            title = { Text("닉네임 변경") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = nicknameDraft,
+                        onValueChange = {
+                            nicknameDraft = it
+                            nicknameErrorMessage = null
+                        },
+                        singleLine = true,
+                        label = { Text("닉네임") },
+                        enabled = !isNicknameSaving,
+                    )
+                    if (nicknameErrorMessage != null) {
+                        Text(nicknameErrorMessage!!, color = MaterialTheme.colorScheme.error)
+                    } else {
+                        Text(
+                            "2~20자, 한글/영문/숫자/언더바(_)만 가능",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (isNicknameSaving) return@Button
+                        isNicknameSaving = true
+                        nicknameErrorMessage = null
+                        scope.launch {
+                            try {
+                                val updated = withContext(Dispatchers.IO) {
+                                    BackendUserApi.updateNickname(nicknameDraft)
+                                }
+                                userMe = updated
+                                isNicknameDialogOpen = false
+                            } catch (e: Exception) {
+                                nicknameErrorMessage = e.message ?: "닉네임 변경에 실패했어요"
+                            } finally {
+                                isNicknameSaving = false
+                            }
+                        }
+                    },
+                    enabled = !isNicknameSaving,
+                ) {
+                    Text(if (isNicknameSaving) "변경 중…" else "변경")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { isNicknameDialogOpen = false },
+                    enabled = !isNicknameSaving,
+                ) {
+                    Text("취소")
                 }
             },
         )

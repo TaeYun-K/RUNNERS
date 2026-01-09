@@ -22,6 +22,7 @@ import com.runners.app.navigation.RunnersBottomBar
 import com.runners.app.navigation.RunnersNavHost
 import com.runners.app.network.BackendAuthApi
 import com.runners.app.auth.AuthTokenStore
+import com.runners.app.network.BackendUserApi
 import com.runners.app.network.GoogleLoginResult
 import com.runners.app.ui.theme.RUNNERSTheme
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +46,34 @@ class MainActivity : ComponentActivity() {
 
 				LaunchedEffect(Unit) {
 					AuthTokenStore.load(context)
+
+					val refreshToken = AuthTokenStore.peekRefreshToken()
+					if (!refreshToken.isNullOrBlank() && session == null) {
+						isLoading = true
+						errorMessage = null
+						try {
+							val newAccessToken = withContext(Dispatchers.IO) {
+								BackendAuthApi.refreshAccessToken(refreshToken)
+							}
+							AuthTokenStore.setAccessToken(context, newAccessToken)
+
+							val me = withContext(Dispatchers.IO) { BackendUserApi.getMe() }
+							session = GoogleLoginResult(
+								userId = me.userId,
+								email = me.email,
+								name = me.name,
+								picture = me.picture,
+								accessToken = newAccessToken,
+								refreshToken = refreshToken,
+								isNewUser = false,
+							)
+						} catch (e: Exception) {
+							AuthTokenStore.clear(context)
+							session = null
+						} finally {
+							isLoading = false
+						}
+					}
 				}
 
 				Scaffold(
