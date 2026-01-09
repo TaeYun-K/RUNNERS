@@ -19,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ListItem 
 import androidx.compose.material3.MaterialTheme 
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Person
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.runners.app.R
@@ -43,6 +45,7 @@ import com.runners.app.auth.AuthTokenStore
 import com.runners.app.network.BackendUserApi
 import com.runners.app.network.GoogleLoginResult
 import com.runners.app.network.UserMeResult
+import com.runners.app.settings.AppSettingsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -65,6 +68,11 @@ fun MyPageScreen(
     var nicknameDraft by remember { mutableStateOf("") }
     var nicknameErrorMessage by remember { mutableStateOf<String?>(null) }
     var isNicknameSaving by remember { mutableStateOf(false) }
+
+    val showTotalDistanceInCommunityCreate =
+        AppSettingsStore.showTotalDistanceInCommunityCreateFlow(context)
+            .collectAsStateWithLifecycle(initialValue = true)
+            .value
 
     suspend fun refreshUser() {
         if (isLoading) return
@@ -177,6 +185,21 @@ fun MyPageScreen(
         Text("앱 설정", style = MaterialTheme.typography.titleMedium)
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ListItem(
+                    headlineContent = { Text("커뮤니티 글쓰기 누적 거리 표시") },
+                    supportingContent = { Text("게시글 작성 시 닉네임 옆에 내 누적 km를 표시해요") },
+                    trailingContent = {
+                        Switch(
+                            checked = showTotalDistanceInCommunityCreate,
+                            onCheckedChange = { checked ->
+                                scope.launch {
+                                    AppSettingsStore.setShowTotalDistanceInCommunityCreate(context, checked)
+                                }
+                            },
+                        )
+                    },
+                )
+                HorizontalDivider()
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Filled.Settings, contentDescription = null)
                     Text("헬스 커넥트", style = MaterialTheme.typography.titleSmall)
