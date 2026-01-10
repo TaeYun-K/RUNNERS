@@ -52,6 +52,40 @@ data class CommunityPostDetailResult(
     val updatedAt: String?,
 )
 
+data class CommunityCommentResult(
+    val commentId: Long,
+    val authorId: Long,
+    val authorName: String?,
+    val authorPicture: String?,
+    val authorTotalDistanceKm: Double?,
+    val parentId: Long?,
+    val content: String,
+    val createdAt: String,
+    val updatedAt: String?,
+)
+
+data class CreateCommunityCommentResult(
+    val commentId: Long,
+    val postId: Long,
+    val authorId: Long,
+    val parentId: Long?,
+    val content: String,
+    val commentCount: Int,
+    val createdAt: String,
+)
+
+data class DeleteCommunityCommentResult(
+    val commentId: Long,
+    val postId: Long,
+    val commentCount: Int,
+    val deletedAt: String?,
+)
+
+data class CommunityCommentCursorListResult(
+    val comments: List<CommunityCommentResult>,
+    val nextCursor: String?,
+)
+
 object BackendCommunityApi {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -161,6 +195,7 @@ object BackendCommunityApi {
             val authorTotalDistanceKm =
                 json.optDouble("authorTotalDistanceKm", Double.NaN)
                     .takeIf { !it.isNaN() }
+
             return CommunityPostDetailResult(
                 postId = json.getLong("postId"),
                 authorId = json.getLong("authorId"),
@@ -175,6 +210,121 @@ object BackendCommunityApi {
                 createdAt = json.optString("createdAt"),
                 updatedAt = json.optString("updatedAt").takeIf { it.isNotBlank() && it != "null" },
             )
+        }
+    }
+
+    fun createComment(postId: Long, content: String, parentId: Long? = null): CreateCommunityCommentResult {
+        require(postId > 0) { "postId must be positive" }
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/comments"
+
+        val bodyJson = JSONObject()
+            .put("content", content)
+            .apply {
+                if (parentId != null) put("parentId", parentId)
+            }
+            .toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .post(bodyJson.toRequestBody(jsonMediaType))
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Create community comment failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return CreateCommunityCommentResult(
+                commentId = json.getLong("commentId"),
+                postId = json.getLong("postId"),
+                authorId = json.getLong("authorId"),
+                parentId = json.optLong("parentId", -1L).takeIf { it > 0 },
+                content = json.getString("content"),
+                commentCount = json.optInt("commentCount", 0),
+                createdAt = json.optString("createdAt"),
+            )
+        }
+    }
+
+    fun deleteComment(postId: Long, commentId: Long): DeleteCommunityCommentResult {
+        require(postId > 0) { "postId must be positive" }
+        require(commentId > 0) { "commentId must be positive" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/comments/$commentId"
+
+        val request = Request.Builder()
+            .url(url)
+            .delete()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Delete community comment failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return DeleteCommunityCommentResult(
+                commentId = json.getLong("commentId"),
+                postId = json.getLong("postId"),
+                commentCount = json.optInt("commentCount", 0),
+                deletedAt = json.optString("deletedAt").takeIf { it.isNotBlank() && it != "null" },
+            )
+        }
+    }
+
+    fun listComments(postId: Long, cursor: String?, size: Int = 20): CommunityCommentCursorListResult {
+        require(postId > 0) { "postId must be positive" }
+
+        val baseUrl = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/comments"
+        val httpUrlBuilder = baseUrl.toHttpUrl().newBuilder()
+            .addQueryParameter("size", size.coerceIn(1, 50).toString())
+
+        if (!cursor.isNullOrBlank()) {
+            httpUrlBuilder.addQueryParameter("cursor", cursor)
+        }
+
+        val request = Request.Builder()
+            .url(httpUrlBuilder.build())
+            .get()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Fetch community comments failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            val comments =
+                run {
+                    val array = json.optJSONArray("comments") ?: JSONArray()
+                    val result = ArrayList<CommunityCommentResult>(array.length())
+                    for (i in 0 until array.length()) {
+                        val item = array.getJSONObject(i)
+                        val commentAuthorTotalDistanceKm =
+                            item.optDouble("authorTotalDistanceKm", Double.NaN)
+                                .takeIf { !it.isNaN() }
+                        result.add(
+                            CommunityCommentResult(
+                                commentId = item.getLong("commentId"),
+                                authorId = item.getLong("authorId"),
+                                authorName = item.optString("authorName").takeIf { it.isNotBlank() },
+                                authorPicture = item.optString("authorPicture").takeIf { it.isNotBlank() },
+                                authorTotalDistanceKm = commentAuthorTotalDistanceKm,
+                                parentId = item.optLong("parentId", -1L).takeIf { it > 0 },
+                                content = item.optString("content"),
+                                createdAt = item.optString("createdAt"),
+                                updatedAt = item.optString("updatedAt").takeIf { it.isNotBlank() && it != "null" },
+                            )
+                        )
+                    }
+                    result
+                }
+            val nextCursor = json.optString("nextCursor").takeIf { it.isNotBlank() && it != "null" }
+            return CommunityCommentCursorListResult(comments = comments, nextCursor = nextCursor)
         }
     }
 }

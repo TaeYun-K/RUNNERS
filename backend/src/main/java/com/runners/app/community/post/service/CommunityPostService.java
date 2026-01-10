@@ -81,7 +81,6 @@ public class CommunityPostService {
         }
 
         var author = post.getAuthor();
-
         return new CommunityPostDetailResponse(
                 post.getId(),
                 author.getId(),
