@@ -17,10 +17,12 @@ import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import com.runners.app.community.ui.CommunityCreatePostScreen
+import com.runners.app.community.ui.CommunityPostEditScreen
 import com.runners.app.community.ui.CommunityPostDetailScreen
 import com.runners.app.community.ui.CommunityScreen
 import com.runners.app.community.state.CommunityPostStatsUpdate
 import com.runners.app.community.viewmodel.CommunityViewModel
+import com.runners.app.community.viewmodel.CommunityPostDetailViewModel
 import com.runners.app.healthconnect.HealthConnectRepository
 import com.runners.app.home.HomeScreen
 import com.runners.app.home.HomeUiState
@@ -284,6 +286,28 @@ fun RunnersNavHost(
                     }
                     navController.popBackStack()
                 },
+                onEdit = { navController.navigate(AppRoute.CommunityPostEdit.createRoute(postId)) },
+                currentUserId = session.userId,
+            )
+        }
+        composable(
+            route = AppRoute.CommunityPostEdit.route,
+            arguments = listOf(navArgument("postId") { type = NavType.LongType }),
+        ) { entry ->
+            val postId = entry.arguments?.getLong("postId") ?: return@composable
+            val detailEntry = remember(entry) { navController.getBackStackEntry(AppRoute.CommunityPostDetail.route) }
+            val viewModel: CommunityPostDetailViewModel =
+                viewModel(
+                    viewModelStoreOwner = detailEntry,
+                    key = "CommunityPostDetailViewModel:$postId",
+                    factory = CommunityPostDetailViewModel.Factory(postId = postId),
+                )
+
+            CommunityPostEditScreen(
+                postId = postId,
+                onBack = { navController.popBackStack() },
+                currentUserId = session.userId,
+                viewModel = viewModel,
             )
         }
         composable(AppRoute.MyPage.route) { MyPageScreen(session = session, onLogout = onLogout) }

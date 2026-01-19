@@ -120,6 +120,46 @@ class CommunityPostDetailViewModel(
         }
     }
 
+    fun updatePost(title: String, content: String) {
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.isUpdatingPost) return@launch
+
+            val newTitle = title.trim()
+            val newContent = content.trim()
+            if (newTitle.isBlank() || newContent.isBlank()) return@launch
+
+            _uiState.update { it.copy(isUpdatingPost = true, updatePostErrorMessage = null) }
+
+            runCatching {
+                repository.updatePost(postId = postId, title = newTitle, content = newContent)
+            }.onSuccess { updated ->
+                // 1) 즉시 화면 데이터 갱신
+                _uiState.update {
+                    it.copy(
+                        post = it.post?.copy(
+                            title = updated.title,
+                            content = updated.content,
+                            // 서버가 updatedAt을 내려주면 반영 (CreateCommunityPostResult에 updatedAt 추가한 경우)
+                            updatedAt = updated.updatedAt ?: it.post?.updatedAt
+                        ),
+                        isUpdatingPost = false,
+                    )
+                }
+
+                // 2) 서버 데이터로 완전 동기화 원하면 아래 한 줄 추가 (선택)
+                // loadPost()
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        updatePostErrorMessage = error.message ?: "게시글을 수정하지 못했어요",
+                        isUpdatingPost = false,
+                    )
+                }
+            }
+        }
+    }
+
     class Factory(
         private val postId: Long,
         private val repository: CommunityRepository = CommunityRepository(),

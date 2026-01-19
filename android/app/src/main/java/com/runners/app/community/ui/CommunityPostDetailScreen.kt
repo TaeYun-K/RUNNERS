@@ -71,6 +71,8 @@ import java.time.ZoneId
 fun CommunityPostDetailScreen(
     postId: Long,
     onBack: (CommunityPostDetailResult?) -> Unit,
+    onEdit: () -> Unit,
+    currentUserId: Long,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -109,6 +111,17 @@ fun CommunityPostDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = { onBack(uiState.post) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
+                    }
+                },
+                actions = {
+                    val canEdit = uiState.post?.authorId == currentUserId
+                    if (canEdit) {
+                        TextButton(
+                            onClick = onEdit,
+                            enabled = !uiState.isPostLoading && !uiState.isUpdatingPost,
+                        ) {
+                            Text("수정")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

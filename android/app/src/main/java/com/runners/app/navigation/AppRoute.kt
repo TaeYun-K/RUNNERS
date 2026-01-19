@@ -8,6 +8,9 @@ sealed class AppRoute(val route: String) {
     data object CommunityPostDetail : AppRoute("community/posts/{postId}") {
         fun createRoute(postId: Long): String = "community/posts/$postId"
     }
+    data object CommunityPostEdit : AppRoute("community/posts/{postId}/edit") {
+        fun createRoute(postId: Long): String = "community/posts/$postId/edit"
+    }
     data object MyPage : AppRoute("mypage")
 }
 

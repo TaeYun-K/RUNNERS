@@ -14,6 +14,8 @@ data class CommunityPostDetailUiState(
     val commentDraft: String = "",
     val isSubmittingComment: Boolean = false,
     val submitCommentErrorMessage: String? = null,
+    val isUpdatingPost: Boolean = false,
+    val updatePostErrorMessage: String? = null,
 ) {
     val isRefreshing: Boolean get() = isPostLoading || isCommentsLoading
     val canSubmitComment: Boolean get() = commentDraft.trim().isNotBlank() && !isSubmittingComment

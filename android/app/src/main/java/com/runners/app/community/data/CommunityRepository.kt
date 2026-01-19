@@ -26,6 +26,15 @@ class CommunityRepository {
             BackendCommunityApi.createPost(title = title, content = content)
         }
 
+    suspend fun updatePost(postId: Long, title: String, content: String): CreateCommunityPostResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.updatePost(
+                postId = postId,
+                title = title,
+                content = content,
+            )
+        }
+
     suspend fun createComment(postId: Long, content: String, parentId: Long? = null): CreateCommunityCommentResult =
         withContext(Dispatchers.IO) {
             BackendCommunityApi.createComment(postId = postId, content = content, parentId = parentId)

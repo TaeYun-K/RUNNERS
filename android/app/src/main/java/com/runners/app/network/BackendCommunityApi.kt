@@ -35,6 +35,7 @@ data class CreateCommunityPostResult(
     val recommendCount: Int,
     val commentCount: Int,
     val createdAt: String,
+    val updatedAt: String? = null,
 )
 
 data class CommunityPostDetailResult(
@@ -244,6 +245,44 @@ object BackendCommunityApi {
                 content = json.getString("content"),
                 commentCount = json.optInt("commentCount", 0),
                 createdAt = json.optString("createdAt"),
+            )
+        }
+    }
+
+    fun updatePost(postId: Long, title: String, content: String): CreateCommunityPostResult {
+        require(postId > 0) { "postId must be positive" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId"
+
+        val bodyJson = JSONObject()
+            .put("title", title)
+            .put("content", content)
+            .toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .put(bodyJson.toRequestBody(jsonMediaType))
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException(
+                    "Update community post failed: HTTP ${response.code} ${responseBody.take(300)}"
+                )
+            }
+
+            val json = JSONObject(responseBody)
+            return CreateCommunityPostResult(
+                postId = json.getLong("postId"),
+                authorId = json.getLong("authorId"),
+                title = json.getString("title"),
+                content = json.getString("content"),
+                viewCount = json.optInt("viewCount", 0),
+                recommendCount = json.optInt("recommendCount", 0),
+                commentCount = json.optInt("commentCount", 0),
+                createdAt = json.optString("createdAt"),
+                updatedAt = json.optString("updatedAt").takeIf { it.isNotBlank() && it != "null" }, // 추가
             )
         }
     }
