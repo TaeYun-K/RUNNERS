@@ -1,7 +1,7 @@
 package com.runners.app.community.comment.service;
 
-import com.runners.app.community.CommunityContentStatus;
-import com.runners.app.community.comment.CommunityComment;
+import com.runners.app.global.status.CommunityContentStatus;
+import com.runners.app.community.comment.entity.CommunityComment;
 import com.runners.app.community.comment.dto.request.CreateCommunityCommentRequest;
 import com.runners.app.community.comment.dto.response.CreateCommunityCommentResponse;
 import com.runners.app.community.comment.dto.response.CommunityCommentCursorListResponse;

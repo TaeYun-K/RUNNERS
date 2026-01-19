@@ -1,6 +1,6 @@
 package com.runners.app.community.comment.repository;
 
-import com.runners.app.community.comment.CommunityComment;
+import com.runners.app.community.comment.entity.CommunityComment;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;

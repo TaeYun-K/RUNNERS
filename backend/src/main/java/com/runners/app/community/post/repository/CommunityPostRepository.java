@@ -1,6 +1,6 @@
 package com.runners.app.community.post.repository;
 
-import com.runners.app.community.CommunityContentStatus;
+import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.post.entity.CommunityPost;
 import java.time.LocalDateTime;
 import java.util.List;

@@ -1,6 +1,6 @@
 package com.runners.app.community.post.service;
 
-import com.runners.app.community.CommunityContentStatus;
+import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.community.post.dto.request.CreateCommunityPostRequest;
 import com.runners.app.community.post.dto.response.CommunityPostCursorListResponse;

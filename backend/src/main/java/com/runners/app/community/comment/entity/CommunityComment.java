@@ -1,6 +1,6 @@
-package com.runners.app.community.comment;
+package com.runners.app.community.comment.entity;
 
-import com.runners.app.community.CommunityContentStatus;
+import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.user.entity.User;
 import jakarta.persistence.*;

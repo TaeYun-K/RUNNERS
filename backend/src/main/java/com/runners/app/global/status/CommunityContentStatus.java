@@ -1,4 +1,4 @@
-package com.runners.app.community;
+package com.runners.app.global.status;
 
 public enum CommunityContentStatus {
     ACTIVE,
