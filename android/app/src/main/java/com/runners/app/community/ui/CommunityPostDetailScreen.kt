@@ -11,10 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,7 +31,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -45,12 +42,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,13 +51,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.runners.app.network.BackendCommunityApi
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.runners.app.community.viewmodel.CommunityPostDetailViewModel
 import com.runners.app.network.CommunityCommentResult
 import com.runners.app.network.CommunityPostDetailResult
 import com.runners.app.settings.AppSettingsStore
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,94 +65,25 @@ fun CommunityPostDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val viewModel: CommunityPostDetailViewModel =
+        viewModel(
+            key = "CommunityPostDetailViewModel:$postId",
+            factory = CommunityPostDetailViewModel.Factory(postId = postId),
+        )
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val showTotalDistanceInCommunity =
         AppSettingsStore.showTotalDistanceInCommunityFlow(context)
             .collectAsStateWithLifecycle(initialValue = true)
             .value
-
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var post by remember { mutableStateOf<CommunityPostDetailResult?>(null) }
-
-    var comments by remember { mutableStateOf<List<CommunityCommentResult>>(emptyList()) }
-    var commentsNextCursor by remember { mutableStateOf<String?>(null) }
-    var isCommentsLoading by remember { mutableStateOf(false) }
-    var commentsErrorMessage by remember { mutableStateOf<String?>(null) }
     val pullToRefreshState = rememberPullToRefreshState()
-
-    var commentDraft by remember { mutableStateOf("") }
-    var isSubmittingComment by remember { mutableStateOf(false) }
-    var submitCommentErrorMessage by remember { mutableStateOf<String?>(null) }
 
     fun toSecondPrecision(raw: String): String {
         val normalized = raw.replace('T', ' ')
         return normalized.takeIf { it.length >= 19 }?.substring(0, 19) ?: normalized
     }
 
-    suspend fun loadPost() {
-        if (isLoading) return
-        isLoading = true
-        errorMessage = null
-        try {
-            post = withContext(Dispatchers.IO) { BackendCommunityApi.getPost(postId) }
-        } catch (e: Exception) {
-            errorMessage = e.message ?: "게시글을 불러오지 못했어요"
-        } finally {
-            isLoading = false
-        }
-    }
-
-    suspend fun loadComments(reset: Boolean) {
-        if (isCommentsLoading) return
-        if (!reset && commentsNextCursor == null) return
-
-        isCommentsLoading = true
-        commentsErrorMessage = null
-
-        val cursor = if (reset) null else commentsNextCursor
-        try {
-            val result =
-                withContext(Dispatchers.IO) { BackendCommunityApi.listComments(postId = postId, cursor = cursor, size = 20) }
-            commentsNextCursor = result.nextCursor
-            comments = if (reset) result.comments else comments + result.comments
-        } catch (e: Exception) {
-            commentsErrorMessage = e.message ?: "댓글을 불러오지 못했어요"
-        } finally {
-            isCommentsLoading = false
-        }
-    }
-
-    suspend fun submitComment() {
-        if (isSubmittingComment) return
-
-        val content = commentDraft.trim()
-        if (content.isBlank()) return
-
-        isSubmittingComment = true
-        submitCommentErrorMessage = null
-        try {
-            val result =
-                withContext(Dispatchers.IO) {
-                    BackendCommunityApi.createComment(postId = postId, content = content, parentId = null)
-                }
-            commentDraft = ""
-            post = post?.copy(commentCount = result.commentCount)
-            loadComments(reset = true)
-        } catch (e: Exception) {
-            submitCommentErrorMessage = e.message ?: "댓글을 작성하지 못했어요"
-        } finally {
-            isSubmittingComment = false
-        }
-    }
-
-    LaunchedEffect(postId) {
-        loadPost()
-        loadComments(reset = true)
-    }
-
     BackHandler(enabled = true) {
-        onBack(post)
+        onBack(uiState.post)
     }
 
     Scaffold(
@@ -178,7 +98,7 @@ fun CommunityPostDetailScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { onBack(post) }) {
+                    IconButton(onClick = { onBack(uiState.post) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
                     }
                 },
@@ -204,7 +124,7 @@ fun CommunityPostDetailScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    val canSubmit = commentDraft.trim().isNotBlank() && !isSubmittingComment
+                    val canSubmit = uiState.canSubmitComment
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -228,8 +148,8 @@ fun CommunityPostDetailScreen(
                         }
 
                         OutlinedTextField(
-                            value = commentDraft,
-                            onValueChange = { commentDraft = it },
+                            value = uiState.commentDraft,
+                            onValueChange = viewModel::onCommentDraftChange,
                             placeholder = {
                                 Text(
                                     "댓글을 입력하세요...",
@@ -238,7 +158,7 @@ fun CommunityPostDetailScreen(
                             },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
-                            enabled = !isSubmittingComment,
+                            enabled = !uiState.isSubmittingComment,
                             shape = RoundedCornerShape(24.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -259,11 +179,11 @@ fun CommunityPostDetailScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             IconButton(
-                                onClick = { scope.launch { submitComment() } },
+                                onClick = viewModel::submitComment,
                                 enabled = canSubmit,
                                 modifier = Modifier.size(44.dp),
                             ) {
-                                if (isSubmittingComment) {
+                                if (uiState.isSubmittingComment) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(18.dp),
                                         strokeWidth = 2.dp,
@@ -282,7 +202,7 @@ fun CommunityPostDetailScreen(
                         }
                     }
 
-                    if (submitCommentErrorMessage != null) {
+                    if (uiState.submitCommentErrorMessage != null) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
@@ -291,7 +211,7 @@ fun CommunityPostDetailScreen(
                             shape = RoundedCornerShape(8.dp),
                         ) {
                             Text(
-                                text = submitCommentErrorMessage!!,
+                                text = uiState.submitCommentErrorMessage!!,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -303,15 +223,19 @@ fun CommunityPostDetailScreen(
         },
     ) { padding ->
         PullToRefreshBox(
-            isRefreshing = isLoading || isCommentsLoading,
-            onRefresh = { scope.launch { loadPost(); loadComments(reset = true) } },
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = {
+                if (!uiState.isRefreshing && !uiState.isSubmittingComment) {
+                    viewModel.refresh()
+                }
+            },
             state = pullToRefreshState,
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize(),
         ) {
             when {
-                isLoading && post == null -> {
+                uiState.isPostLoading && uiState.post == null -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
@@ -323,7 +247,7 @@ fun CommunityPostDetailScreen(
                     }
                 }
 
-                errorMessage != null && post == null -> {
+                uiState.postErrorMessage != null && uiState.post == null -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -332,18 +256,18 @@ fun CommunityPostDetailScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = errorMessage!!,
+                            text = uiState.postErrorMessage!!,
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        Button(onClick = { scope.launch { loadPost(); loadComments(reset = true) } }) {
+                        Button(onClick = viewModel::refresh) {
                             Text("다시 시도")
                         }
                     }
                 }
 
                 else -> {
-                    val data = post
+                    val data = uiState.post
                     if (data != null) {
                         Column(
                             modifier = Modifier
@@ -450,22 +374,22 @@ fun CommunityPostDetailScreen(
                                         color = MaterialTheme.colorScheme.onSurface,
                                     )
                                     Text(
-                                        text = "${comments.size}",
+                                        text = "${uiState.comments.size}",
                                         style = MaterialTheme.typography.titleMedium,
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }
-                                if (commentsErrorMessage != null && comments.isEmpty()) {
+                                if (uiState.commentsErrorMessage != null && uiState.comments.isEmpty()) {
                                     Text(
-                                        text = commentsErrorMessage!!,
+                                        text = uiState.commentsErrorMessage!!,
                                         color = MaterialTheme.colorScheme.error,
                                     )
-                                    TextButton(onClick = { scope.launch { loadComments(reset = true) } }) {
+                                    TextButton(onClick = viewModel::refresh) {
                                         Text("다시 시도")
                                     }
                                 } else {
-                                    if (comments.isEmpty() && isCommentsLoading) {
+                                    if (uiState.comments.isEmpty() && uiState.isCommentsLoading) {
                                         Box(
                                             Modifier.fillMaxWidth(),
                                             contentAlignment = Alignment.Center,
@@ -475,14 +399,14 @@ fun CommunityPostDetailScreen(
                                                 strokeWidth = 2.dp,
                                             )
                                         }
-                                    } else if (comments.isEmpty()) {
+                                    } else if (uiState.comments.isEmpty()) {
                                         Text(
                                             text = "아직 댓글이 없어요. 첫 댓글을 남겨보세요!",
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             style = MaterialTheme.typography.bodyMedium,
                                         )
                                     } else {
-                                        comments.forEach { comment ->
+                                        uiState.comments.forEach { comment ->
                                             CommentItem(
                                                 comment = comment,
                                                 showTotalDistance = showTotalDistanceInCommunity,
@@ -490,22 +414,22 @@ fun CommunityPostDetailScreen(
                                             )
                                         }
 
-                                        if (commentsErrorMessage != null) {
+                                        if (uiState.commentsErrorMessage != null) {
                                             Text(
-                                                text = commentsErrorMessage!!,
+                                                text = uiState.commentsErrorMessage!!,
                                                 color = MaterialTheme.colorScheme.error,
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
                                         }
 
-                                        if (commentsNextCursor != null) {
+                                        if (uiState.commentsNextCursor != null) {
                                             TextButton(
-                                                onClick = { scope.launch { loadComments(reset = false) } },
-                                                enabled = !isCommentsLoading,
+                                                onClick = viewModel::loadMoreComments,
+                                                enabled = !uiState.isCommentsLoading,
                                                 modifier = Modifier.fillMaxWidth(),
                                             ) {
                                                 Text(
-                                                    text = if (isCommentsLoading) "불러오는 중..." else "댓글 더 보기",
+                                                    text = if (uiState.isCommentsLoading) "불러오는 중..." else "댓글 더 보기",
                                                     fontWeight = FontWeight.Medium,
                                                 )
                                             }

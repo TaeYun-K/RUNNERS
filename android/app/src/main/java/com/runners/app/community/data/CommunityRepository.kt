@@ -2,6 +2,7 @@ package com.runners.app.community.data
 
 import com.runners.app.network.BackendCommunityApi
 import com.runners.app.network.CommunityPostCursorListResult
+import com.runners.app.network.CommunityPostDetailResult
 import com.runners.app.network.CreateCommunityPostResult
 import com.runners.app.network.CreateCommunityCommentResult
 import com.runners.app.network.DeleteCommunityCommentResult
@@ -13,6 +14,11 @@ class CommunityRepository {
     suspend fun listPosts(cursor: String?, size: Int = 20): CommunityPostCursorListResult =
         withContext(Dispatchers.IO) {
             BackendCommunityApi.listPosts(cursor = cursor, size = size)
+        }
+
+    suspend fun getPost(postId: Long): CommunityPostDetailResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.getPost(postId)
         }
 
     suspend fun createPost(title: String, content: String): CreateCommunityPostResult =
