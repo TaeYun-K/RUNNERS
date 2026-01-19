@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,18 +37,20 @@ public class CommunityPostController {
             Authentication authentication,
             @Valid @RequestBody CreateCommunityPostRequest request
     ) {
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
-        }
-
-        Long userId;
-        try {
-            userId = Long.valueOf(authentication.getName());
-        } catch (NumberFormatException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token subject");
-        }
-
+        Long userId = extractUserId(authentication);
         return communityPostService.createPost(userId, request);
+    }
+
+    @Operation(summary = "게시글 수정", description = "JWT로 인증된 사용자가 게시글을 수정")
+    @PutMapping("/{postId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CreateCommunityPostResponse updatePost(
+        Authentication authentication,
+        @PathVariable Long postId,
+        @Valid @RequestBody CreateCommunityPostRequest request
+    ) {
+        Long userId = extractUserId(authentication);
+        return communityPostService.updatePost(userId, postId, request);
     }
 
     @Operation(summary = "게시글 조회", description = "JWT로 인증된 사용자가 게시글을 조회(유저-일 단위로 조회수 1회 증가)")
@@ -56,17 +59,7 @@ public class CommunityPostController {
             Authentication authentication,
             @PathVariable Long postId
     ) {
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
-        }
-
-        Long userId;
-        try {
-            userId = Long.valueOf(authentication.getName());
-        } catch (NumberFormatException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token subject");
-        }
-
+        Long userId = extractUserId(authentication);
         return communityPostService.getPost(userId, postId);
     }
 
@@ -77,5 +70,19 @@ public class CommunityPostController {
             @RequestParam(defaultValue = "20") int size
     ) {
         return communityPostService.listPosts(cursor, size);
+    }
+
+    // userId 추출 메소드
+    private Long extractUserId(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        Long userId;
+        try {
+            return Long.valueOf(authentication.getName());
+        } catch (NumberFormatException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token subject");
+        }
     }
 }

@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -60,6 +61,33 @@ public class CommunityPostService {
                 saved.getRecommendCount(),
                 saved.getCommentCount(),
                 saved.getCreatedAt()
+        );
+    }
+
+    @Transactional
+    public CreateCommunityPostResponse updatePost(Long authorId, Long postId, CreateCommunityPostRequest request) {
+        var author = userRepository.findById(authorId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        var post = communityPostRepository.findById(postId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+
+        // 작성자 검증
+        if (!post.getAuthor().getId().equals(author.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission to update this post");
+        }
+
+        post.updateContent(request.title(), request.content());
+
+        return new CreateCommunityPostResponse(
+            post.getId(),
+            author.getId(),
+            post.getTitle(),
+            post.getContent(),
+            post.getViewCount(),
+            post.getRecommendCount(),
+            post.getCommentCount(),
+            post.getCreatedAt()
         );
     }
 

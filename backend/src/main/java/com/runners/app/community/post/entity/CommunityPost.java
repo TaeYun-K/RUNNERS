@@ -73,6 +73,11 @@ public class CommunityPost {
         updatedAt = LocalDateTime.now();
     }
 
+    public void updateContent(String title, String content) {
+        this.title = title;
+        this.content = content;
+    }
+
     public void markDeleted() {
         status = CommunityContentStatus.DELETED;
         deletedAt = LocalDateTime.now();
