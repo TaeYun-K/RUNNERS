@@ -92,6 +92,24 @@ public class CommunityPostService {
     }
 
     @Transactional
+    public void deletePost(Long userId, Long postId) {
+        var post = communityPostRepository.findById(postId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+
+        // 작성자 검증
+        if (!post.getAuthor().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission");
+        }
+
+        // 이미 삭제된 경우
+        if (post.getStatus() == CommunityContentStatus.DELETED) {
+            return; // 또는 예외
+        }
+
+        post.markDeleted();
+    }
+
+    @Transactional
     public CommunityPostDetailResponse getPost(Long viewerId, Long postId) {
         CommunityPost post = communityPostRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));

@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -51,6 +52,20 @@ public class CommunityPostController {
     ) {
         Long userId = extractUserId(authentication);
         return communityPostService.updatePost(userId, postId, request);
+    }
+
+    @Operation(
+        summary = "게시글 삭제",
+        description = "JWT로 인증된 사용자가 본인 게시글을 삭제합니다 (논리 삭제)"
+    )
+    @DeleteMapping("/{postId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePost(
+        Authentication authentication,
+        @PathVariable Long postId
+    ) {
+        Long userId = extractUserId(authentication);
+        communityPostService.deletePost(userId, postId);
     }
 
     @Operation(summary = "게시글 조회", description = "JWT로 인증된 사용자가 게시글을 조회(유저-일 단위로 조회수 1회 증가)")
