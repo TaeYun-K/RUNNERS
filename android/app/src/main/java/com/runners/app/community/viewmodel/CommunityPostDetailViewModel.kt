@@ -85,7 +85,7 @@ class CommunityPostDetailViewModel(
 
     fun cancelEditingComment() {
         val state = _uiState.value
-        if (state.isUpdatingComment) return
+        if (state.isUpdatingComment || state.isDeletingComment) return
         _uiState.update {
             it.copy(
                 editingCommentId = null,
@@ -102,7 +102,7 @@ class CommunityPostDetailViewModel(
     fun submitEditingComment() {
         viewModelScope.launch {
             val state = _uiState.value
-            if (state.isUpdatingComment) return@launch
+            if (state.isUpdatingComment || state.isDeletingComment) return@launch
 
             val commentId = state.editingCommentId ?: return@launch
             val content = state.editingCommentDraft.trim()
@@ -127,6 +127,57 @@ class CommunityPostDetailViewModel(
                     it.copy(
                         updateCommentErrorMessage = error.message ?: "댓글을 수정하지 못했어요",
                         isUpdatingComment = false,
+                    )
+                }
+            }
+        }
+    }
+
+    fun requestDeleteComment(commentId: Long) {
+        val state = _uiState.value
+        if (state.isDeletingComment || state.isUpdatingComment) return
+        _uiState.update {
+            it.copy(
+                deleteCommentTargetId = commentId,
+                deleteCommentErrorMessage = null,
+            )
+        }
+    }
+
+    fun cancelDeleteComment() {
+        val state = _uiState.value
+        if (state.isDeletingComment) return
+        _uiState.update { it.copy(deleteCommentTargetId = null, deleteCommentErrorMessage = null) }
+    }
+
+    fun confirmDeleteComment() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.isDeletingComment || state.isUpdatingComment) return@launch
+
+            val targetId = state.deleteCommentTargetId ?: return@launch
+
+            _uiState.update { it.copy(isDeletingComment = true, deleteCommentErrorMessage = null) }
+
+            runCatching {
+                repository.deleteComment(postId = postId, commentId = targetId)
+            }.onSuccess { result ->
+                _uiState.update {
+                    it.copy(
+                        post = it.post?.copy(commentCount = result.commentCount),
+                        deleteCommentTargetId = null,
+                        isDeletingComment = false,
+                    )
+                }
+                if (_uiState.value.editingCommentId == targetId) {
+                    cancelEditingComment()
+                }
+                loadComments(reset = true)
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isDeletingComment = false,
+                        deleteCommentErrorMessage = error.message ?: "댓글을 삭제하지 못했어요",
                     )
                 }
             }

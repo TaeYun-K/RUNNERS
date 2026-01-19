@@ -487,7 +487,7 @@ fun CommunityPostDetailScreen(
                                             style = MaterialTheme.typography.bodyMedium,
                                         )
                                      } else {
-                                         uiState.comments.forEach { comment ->
+                                        uiState.comments.forEach { comment ->
                                             CommentItem(
                                                 comment = comment,
                                                 currentUserId = currentUserId,
@@ -505,13 +505,17 @@ fun CommunityPostDetailScreen(
                                                         initialContent = comment.content,
                                                     )
                                                 },
+                                                onDeleteClick = {
+                                                    menuOpenedCommentId = null
+                                                    viewModel.requestDeleteComment(comment.commentId)
+                                                },
                                                 onEditCancel = viewModel::cancelEditingComment,
                                                 onEditSave = viewModel::submitEditingComment,
                                                 isEditSaving = uiState.isUpdatingComment,
                                                 showTotalDistance = showTotalDistanceInCommunity,
                                                 toSecondPrecision = ::toSecondPrecision,
                                             )
-                                         }
+                                        }
 
                                         if (uiState.updateCommentErrorMessage != null) {
                                             Text(
@@ -520,10 +524,17 @@ fun CommunityPostDetailScreen(
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
                                         }
+                                        if (uiState.deleteCommentErrorMessage != null) {
+                                            Text(
+                                                text = uiState.deleteCommentErrorMessage!!,
+                                                color = MaterialTheme.colorScheme.error,
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
+                                        }
 
-                                         if (uiState.commentsErrorMessage != null) {
-                                             Text(
-                                                 text = uiState.commentsErrorMessage!!,
+                                        if (uiState.commentsErrorMessage != null) {
+                                            Text(
+                                                text = uiState.commentsErrorMessage!!,
                                                  color = MaterialTheme.colorScheme.error,
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
@@ -551,6 +562,30 @@ fun CommunityPostDetailScreen(
                 }
             }
         }
+    }
+
+    if (uiState.deleteCommentTargetId != null) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancelDeleteComment,
+            title = { Text("댓글 삭제") },
+            text = { Text("이 댓글을 삭제할까요?") },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::confirmDeleteComment,
+                    enabled = !uiState.isDeletingComment,
+                ) {
+                    Text(if (uiState.isDeletingComment) "삭제 중..." else "삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = viewModel::cancelDeleteComment,
+                    enabled = !uiState.isDeletingComment,
+                ) {
+                    Text("취소")
+                }
+            },
+        )
     }
 }
 
@@ -591,6 +626,7 @@ private fun CommentItem(
     editingDraft: String,
     onEditingDraftChange: (String) -> Unit,
     onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     onEditCancel: () -> Unit,
     onEditSave: () -> Unit,
     isEditSaving: Boolean,
@@ -678,6 +714,13 @@ private fun CommentItem(
                             onClick = {
                                 onMenuExpandedChange(false)
                                 onEditClick()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("삭제") },
+                            onClick = {
+                                onMenuExpandedChange(false)
+                                onDeleteClick()
                             },
                         )
                     }
