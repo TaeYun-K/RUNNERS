@@ -5,8 +5,18 @@ import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -14,9 +24,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.runners.app.ui.theme.Blue40
+import com.runners.app.ui.theme.Blue60
+import com.runners.app.ui.theme.Teal40
+import com.runners.app.ui.theme.Teal60
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -52,23 +69,30 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start
+                .padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalArrangement = spacedBy(16.dp),
         ) {
-            Text(
-                text = "안녕하세요, ${uiState.nickname}님",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
+            // 환영 헤더
+            Column(verticalArrangement = spacedBy(4.dp)) {
+                Text(
+                    text = "안녕하세요,",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "${uiState.nickname}님",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
 
             TotalDistanceHeroCard(
                 totalDistanceKm = uiState.totalDistanceKm,
@@ -77,19 +101,36 @@ fun HomeScreen(
                 firstRunDate = uiState.firstRunDate,
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            // 주간/월간 통계 그리드
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = spacedBy(12.dp),
+            ) {
+                StatMiniCard(
+                    icon = Icons.Outlined.CalendarMonth,
+                    label = "이번 주",
+                    value = uiState.weekDistanceKm?.toKmText() ?: "0.0 km",
+                    gradientColors = listOf(Blue40, Blue60),
+                    modifier = Modifier.weight(1f),
+                )
+                StatMiniCard(
+                    icon = Icons.Filled.TrendingUp,
+                    label = "이번 달",
+                    value = uiState.monthDistanceKm?.toKmText() ?: "0.0 km",
+                    gradientColors = listOf(Teal40, Teal60),
+                    modifier = Modifier.weight(1f),
+                )
+            }
 
-            RecentRunsCard(
-                runs = uiState.recentRuns,
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
+            RecentRunsCard(runs = uiState.recentRuns)
 
             PopularPostsCard(
                 posts = uiState.popularPosts,
                 onOpenCommunity = onOpenCommunity,
                 onPostClick = onPopularPostClick,
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -102,95 +143,138 @@ private fun TotalDistanceHeroCard(
     firstRunDate: LocalDate?,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape(22.dp)
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(20.dp)
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        ),
+        shape = RoundedCornerShape(24.dp),
     ) {
-        Text(
-            text = "총 러닝 거리",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = spacedBy(16.dp),
-            verticalAlignment = Alignment.Bottom,
+        Column(
+            modifier = Modifier.padding(24.dp),
         ) {
             Row(
-                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(Blue40, Blue60)
+                            )
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DirectionsRun,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+                Column {
+                    Text(
+                        text = "총 누적 거리",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
                 verticalAlignment = Alignment.Bottom,
             ) {
                 Text(
-                    text = totalDistanceKm?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
-                    style = MaterialTheme.typography.displaySmall,
+                    text = totalDistanceKm?.let { String.format(Locale.US, "%.1f", it) } ?: "0.0",
+                    style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "km",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 6.dp),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
             }
-            Column(
-                modifier = Modifier.widthIn(max = 140.dp),
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = spacedBy(6.dp),
-            ) {
-                SmallMetric(label = "이번 주", valueKm = weekDistanceKm)
-                SmallMetric(label = "이번 달", valueKm = monthDistanceKm)
-            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = if (totalDistanceKm == null) {
+                    "Health Connect 권한을 확인해주세요"
+                } else if (firstRunDate != null) {
+                    "${firstRunDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd", Locale.KOREAN))}부터 달리는 중"
+                } else {
+                    "오늘도 한 걸음 더 나아가요"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+            )
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = if (totalDistanceKm == null) {
-                "Health Connect 권한/연결을 확인해주세요."
-            } else if (firstRunDate != null) {
-                "${firstRunDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd", Locale.KOREAN))}부터 달리는 중"
-            } else {
-                "오늘도 한 걸음 더."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
 @Composable
-private fun SmallMetric(
+private fun StatMiniCard(
+    icon: ImageVector,
     label: String,
-    valueKm: Double?,
+    value: String,
+    gradientColors: List<Color>,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = valueKm?.toKmText() ?: "—",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        brush = Brush.linearGradient(gradientColors)
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+
+            Column(verticalArrangement = spacedBy(2.dp)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
     }
 }
 
@@ -199,59 +283,86 @@ private fun RecentRunsCard(
     runs: List<RecentRunUiModel>,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(22.dp)
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(20.dp)
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Text(
-            text = "최근 러닝",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Column(
+            modifier = Modifier.padding(20.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "최근 러닝",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Icon(
+                    imageVector = Icons.Outlined.Schedule,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        if (runs.isEmpty()) {
-            Text(
-                text = "아직 기록이 없어요.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            return@Column
-        }
-
-        Column(verticalArrangement = spacedBy(12.dp)) {
-            runs.forEach { run ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column {
-                        Text(
-                            text = run.date.format(DateTimeFormatter.ofPattern("M월 d일 (E)", Locale.KOREAN)),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        val durationText = run.durationMinutes?.let { "${it}분" }
-                        if (durationText != null) {
+            if (runs.isEmpty()) {
+                Text(
+                    text = "아직 기록이 없어요. 첫 러닝을 시작해보세요!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Column(verticalArrangement = spacedBy(12.dp)) {
+                    runs.forEach { run ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = spacedBy(12.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                )
+                                Column {
+                                    Text(
+                                        text = run.date.format(DateTimeFormatter.ofPattern("M월 d일 (E)", Locale.KOREAN)),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    run.durationMinutes?.let { minutes ->
+                                        Text(
+                                            text = "${minutes}분",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
                             Text(
-                                text = durationText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = run.distanceKm.toKmText(),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
                     }
-                    Text(
-                        text = run.distanceKm.toKmText(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
                 }
             }
         }
@@ -265,66 +376,85 @@ private fun PopularPostsCard(
     onPostClick: (postId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(22.dp)
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(20.dp)
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(20.dp),
         ) {
-            Text(
-                text = "인기 게시글",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = "더보기",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(onClick = onOpenCommunity),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (posts.isEmpty()) {
-            Text(
-                text = "아직 인기 게시글이 없어요.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            return@Column
-        }
-
-        Column(verticalArrangement = spacedBy(12.dp)) {
-            posts.take(5).forEach { post ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onOpenCommunity),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "인기 게시글",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onPostClick(post.id) },
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = post.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "♥ ${post.likeCount}  ·  💬 ${post.commentCount}",
+                        text = "더보기",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
                     )
+                    Icon(
+                        imageVector = Icons.Outlined.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (posts.isEmpty()) {
+                Text(
+                    text = "아직 인기 게시글이 없어요. 커뮤니티에서 첫 글을 작성해보세요!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Column(verticalArrangement = spacedBy(12.dp)) {
+                    posts.take(5).forEach { post ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onPostClick(post.id) }
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = post.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "${post.likeCount} · ${post.commentCount}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.runners.app.community.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,19 +10,30 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.RemoveRedEye
+import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.runners.app.network.CommunityPostSummaryResult
@@ -44,14 +56,30 @@ fun CommunityPostList(
     when {
         posts.isEmpty() && isInitialLoading -> {
             Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 3.dp,
+                )
             }
         }
 
         errorMessage != null && posts.isEmpty() -> {
-            Card(modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(errorMessage, color = MaterialTheme.colorScheme.error)
+            Card(
+                modifier = modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                ),
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Column(
+                    Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                     Button(onClick = onRetryInitial) {
                         Text("다시 시도")
                     }
@@ -62,59 +90,15 @@ fun CommunityPostList(
         else -> {
             LazyColumn(
                 state = listState,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = modifier.fillMaxSize(),
             ) {
                 items(posts, key = { it.postId }) { post ->
-                    Card(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { onPostClick(post.postId) }
-                    ) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(post.title, style = MaterialTheme.typography.titleMedium)
-                            if (!post.contentPreview.isNullOrBlank()) {
-                                Text(
-                                    text = post.contentPreview,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = post.authorName ?: "익명",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                if (showTotalDistance) {
-                                    val km = post.authorTotalDistanceKm
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(
-                                        text = if (km != null) "· ${formatKm(km)}" else "· km 정보 없음",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                            HorizontalDivider()
-                            Text(
-                                text = "조회 ${post.viewCount} · 추천 ${post.recommendCount} · 댓글 ${post.commentCount}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            val dateLabel =
-                                post.createdAt.takeIf { it.length >= 10 }?.substring(0, 10) ?: post.createdAt
-                            if (dateLabel.isNotBlank()) {
-                                Text(
-                                    text = dateLabel,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
+                    PostCard(
+                        post = post,
+                        showTotalDistance = showTotalDistance,
+                        onClick = { onPostClick(post.postId) },
+                    )
                 }
 
                 item {
@@ -123,17 +107,33 @@ fun CommunityPostList(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 12.dp),
+                                    .padding(vertical = 16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(24.dp),
+                                )
                             }
                         }
 
                         errorMessage != null -> {
-                            Card(Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Text(errorMessage, color = MaterialTheme.colorScheme.error)
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Column(
+                                    Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Text(
+                                        text = errorMessage,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                    )
                                     Button(onClick = onRetryMore, enabled = nextCursor != null) {
                                         Text("다시 시도")
                                     }
@@ -141,20 +141,166 @@ fun CommunityPostList(
                             }
                         }
 
-                        nextCursor == null -> {
+                        nextCursor == null && posts.isNotEmpty() -> {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 16.dp),
+                                    .padding(vertical = 20.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("더이상 게시글이 없습니다.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    text = "모든 게시글을 불러왔어요",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PostCard(
+    post: CommunityPostSummaryResult,
+    showTotalDistance: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // 제목
+            Text(
+                text = post.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            // 내용 미리보기
+            if (!post.contentPreview.isNullOrBlank()) {
+                Text(
+                    text = post.contentPreview,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            // 작성자 정보
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // 아바타
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = (post.authorName?.firstOrNull() ?: "?").toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                Text(
+                    text = post.authorName ?: "익명",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+
+                if (showTotalDistance) {
+                    val km = post.authorTotalDistanceKm
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (km != null) formatKm(km) else "",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                val dateLabel =
+                    post.createdAt.takeIf { it.length >= 10 }?.substring(0, 10) ?: post.createdAt
+                if (dateLabel.isNotBlank()) {
+                    Text(
+                        text = dateLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            // 통계
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                StatItem(
+                    icon = Icons.Outlined.RemoveRedEye,
+                    count = post.viewCount,
+                )
+                StatItem(
+                    icon = Icons.Outlined.ThumbUp,
+                    count = post.recommendCount,
+                )
+                StatItem(
+                    icon = Icons.Outlined.ChatBubbleOutline,
+                    count = post.commentCount,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(
+    icon: ImageVector,
+    count: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = "$count",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

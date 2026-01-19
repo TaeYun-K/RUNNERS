@@ -1,34 +1,49 @@
 package com.runners.app.community.ui
+
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.RemoveRedEye
+import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,7 +53,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.runners.app.network.BackendCommunityApi
@@ -149,30 +167,39 @@ fun CommunityPostDetailScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("게시글") },
+                title = {
+                    Text(
+                        "게시글",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { onBack(post) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
             )
         },
         bottomBar = {
             Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .imePadding(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .navigationBarsPadding()
+                    .imePadding(),
             ) {
-                HorizontalDivider()
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     val canSubmit = commentDraft.trim().isNotBlank() && !isSubmittingComment
 
@@ -184,23 +211,39 @@ fun CommunityPostDetailScreen(
                         OutlinedTextField(
                             value = commentDraft,
                             onValueChange = { commentDraft = it },
-                            label = { Text("댓글") },
+                            placeholder = { Text("댓글을 입력하세요") },
                             modifier = Modifier.weight(1f),
-                            minLines = 1,
-                            maxLines = 1,
+                            singleLine = true,
                             enabled = !isSubmittingComment,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            ),
                         )
 
                         IconButton(
                             onClick = { scope.launch { submitComment() } },
                             enabled = canSubmit,
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = if (canSubmit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = if (canSubmit) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "댓글 작성")
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "댓글 작성",
+                                modifier = Modifier.size(20.dp),
+                            )
                         }
                     }
 
                     if (submitCommentErrorMessage != null) {
-                        Text(submitCommentErrorMessage!!, color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = submitCommentErrorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
                 }
             }
@@ -220,7 +263,10 @@ fun CommunityPostDetailScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 3.dp,
+                        )
                     }
                 }
 
@@ -230,8 +276,13 @@ fun CommunityPostDetailScreen(
                             .fillMaxSize()
                             .padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = errorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
                         Button(onClick = { scope.launch { loadPost(); loadComments(reset = true) } }) {
                             Text("다시 시도")
                         }
@@ -246,32 +297,78 @@ fun CommunityPostDetailScreen(
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
                                 .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            Text(data.title, style = MaterialTheme.typography.headlineSmall)
+                            // 제목
+                            Text(
+                                text = data.title,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
 
-                            Card(Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // 게시글 본문 카드
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            ) {
+                                Column(
+                                    Modifier.padding(20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                ) {
                                     CommunityAuthorLine(
                                         nickname = data.authorName ?: "익명",
                                         totalDistanceKm = data.authorTotalDistanceKm,
                                         showTotalDistance = showTotalDistanceInCommunity,
                                     )
-                                    HorizontalDivider()
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                     Text(
                                         text = data.content,
                                         style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.4f,
                                     )
                                 }
                             }
 
-                            Card(Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text(
-                                        text = "조회 ${data.viewCount} · 추천 ${data.recommendCount} · 댓글 ${data.commentCount}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                            // 통계 카드
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Column(
+                                    Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                                    ) {
+                                        DetailStatItem(
+                                            icon = Icons.Outlined.RemoveRedEye,
+                                            label = "조회",
+                                            value = "${data.viewCount}",
+                                        )
+                                        DetailStatItem(
+                                            icon = Icons.Outlined.ThumbUp,
+                                            label = "추천",
+                                            value = "${data.recommendCount}",
+                                        )
+                                        DetailStatItem(
+                                            icon = Icons.Outlined.ChatBubbleOutline,
+                                            label = "댓글",
+                                            value = "${data.commentCount}",
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
                                     val createdLabel = toSecondPrecision(data.createdAt)
                                     Text(
                                         text = "작성 $createdLabel",
@@ -290,56 +387,77 @@ fun CommunityPostDetailScreen(
                                 }
                             }
 
-                            Card(Modifier.fillMaxWidth()) {
+                            // 댓글 섹션
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            ) {
                                 Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.padding(20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
                                 ) {
-                                    Text("댓글", style = MaterialTheme.typography.titleMedium)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text(
+                                            text = "댓글",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                        Text(
+                                            text = "${comments.size}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
 
                                     if (commentsErrorMessage != null && comments.isEmpty()) {
-                                        Text(commentsErrorMessage!!, color = MaterialTheme.colorScheme.error)
+                                        Text(
+                                            text = commentsErrorMessage!!,
+                                            color = MaterialTheme.colorScheme.error,
+                                        )
                                         TextButton(onClick = { scope.launch { loadComments(reset = true) } }) {
                                             Text("다시 시도")
                                         }
                                     } else {
                                         if (comments.isEmpty() && isCommentsLoading) {
-                                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                                CircularProgressIndicator()
+                                            Box(
+                                                Modifier.fillMaxWidth(),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(24.dp),
+                                                    strokeWidth = 2.dp,
+                                                )
                                             }
                                         } else if (comments.isEmpty()) {
                                             Text(
-                                                "아직 댓글이 없어요. 첫 댓글을 남겨보세요!",
+                                                text = "아직 댓글이 없어요. 첫 댓글을 남겨보세요!",
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                style = MaterialTheme.typography.bodyMedium,
                                             )
                                         } else {
                                             comments.forEach { comment ->
-                                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                    CommunityAuthorLine(
-                                                        nickname = comment.authorName ?: "익명",
-                                                        totalDistanceKm = comment.authorTotalDistanceKm,
-                                                        showTotalDistance = showTotalDistanceInCommunity,
-                                                    )
-                                                    Text(comment.content, style = MaterialTheme.typography.bodyMedium)
-                                                    val createdLabel = toSecondPrecision(comment.createdAt)
-                                                    val updatedLabel = comment.updatedAt?.let(::toSecondPrecision)
-                                                    Text(
-                                                        text = buildString {
-                                                            append(createdLabel)
-                                                            if (!updatedLabel.isNullOrBlank() && updatedLabel != createdLabel) {
-                                                                append(" · 수정 ")
-                                                                append(updatedLabel)
-                                                            }
-                                                        },
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    )
-                                                    HorizontalDivider()
-                                                }
+                                                CommentItem(
+                                                    comment = comment,
+                                                    showTotalDistance = showTotalDistanceInCommunity,
+                                                    toSecondPrecision = ::toSecondPrecision,
+                                                )
                                             }
 
                                             if (commentsErrorMessage != null) {
-                                                Text(commentsErrorMessage!!, color = MaterialTheme.colorScheme.error)
+                                                Text(
+                                                    text = commentsErrorMessage!!,
+                                                    color = MaterialTheme.colorScheme.error,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
                                             }
 
                                             if (commentsNextCursor != null) {
@@ -348,17 +466,128 @@ fun CommunityPostDetailScreen(
                                                     enabled = !isCommentsLoading,
                                                     modifier = Modifier.fillMaxWidth(),
                                                 ) {
-                                                    Text(if (isCommentsLoading) "불러오는 중..." else "댓글 더 보기")
+                                                    Text(
+                                                        text = if (isCommentsLoading) "불러오는 중..." else "댓글 더 보기",
+                                                        fontWeight = FontWeight.Medium,
+                                                    )
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DetailStatItem(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = "$label $value",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun CommentItem(
+    comment: CommunityCommentResult,
+    showTotalDistance: Boolean,
+    toSecondPrecision: (String) -> String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            // 아바타
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = (comment.authorName?.firstOrNull() ?: "?").toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = comment.authorName ?: "익명",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (showTotalDistance && comment.authorTotalDistanceKm != null) {
+                        Text(
+                            text = String.format("%.1fkm", comment.authorTotalDistanceKm),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+
+                val createdLabel = toSecondPrecision(comment.createdAt)
+                val updatedLabel = comment.updatedAt?.let(toSecondPrecision)
+                Text(
+                    text = buildString {
+                        append(createdLabel)
+                        if (!updatedLabel.isNullOrBlank() && updatedLabel != createdLabel) {
+                            append(" (수정됨)")
+                        }
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Text(
+            text = comment.content,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(start = 38.dp),
+        )
+
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outlineVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
     }
 }

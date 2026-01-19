@@ -1,26 +1,35 @@
 package com.runners.app.mypage
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator 
-import androidx.compose.material3.HorizontalDivider 
-import androidx.compose.material3.Icon 
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ListItem 
-import androidx.compose.material3.MaterialTheme 
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text 
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,12 +39,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Logout
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -61,9 +73,9 @@ fun MyPageScreen(
     val webClientId = stringResource(R.string.google_web_client_id)
     var isLogoutDialogOpen by remember { mutableStateOf(false) }
     var isReLoginDialogOpen by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) } 
-    var errorMessage by remember { mutableStateOf<String?>(null) } 
-    var userMe by remember { mutableStateOf<UserMeResult?>(null) } 
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var userMe by remember { mutableStateOf<UserMeResult?>(null) }
     var isNicknameDialogOpen by remember { mutableStateOf(false) }
     var nicknameDraft by remember { mutableStateOf("") }
     var nicknameErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -106,88 +118,190 @@ fun MyPageScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("마이페이지", style = MaterialTheme.typography.headlineSmall)
+        // 헤더
+        Text(
+            text = "마이페이지",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
 
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Filled.Person, contentDescription = null)
-                    Text(
-                        text = userMe?.name ?: session.name ?: "RUNNERS",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+        // 프로필 카드
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            ),
+            shape = RoundedCornerShape(20.dp),
+        ) {
+            Column(
+                Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    // 프로필 아바타
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = ((userMe?.name ?: session.name)?.firstOrNull() ?: "R").toString().uppercase(),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = userMe?.name ?: session.name ?: "RUNNERS",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                        Text(
+                            text = userMe?.email ?: session.email ?: "-",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        )
+                    }
                 }
-                Text(
-                    text = userMe?.email ?: session.email ?: "-",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
 
                 if (isLoading) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.padding(vertical = 4.dp))
-                        Text("내 정보 불러오는 중…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                        Text(
+                            "내 정보 불러오는 중...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        )
                     }
                 } else if (errorMessage != null) {
-                    Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
-                    Button(onClick = { scope.launch { refreshUser() } }) {
+                    Text(
+                        text = errorMessage!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Button(
+                        onClick = { scope.launch { refreshUser() } },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    ) {
                         Text("다시 시도")
                     }
                 }
             }
         }
 
-        Text("개인정보", style = MaterialTheme.typography.titleMedium)
-        Card(Modifier.fillMaxWidth()) {
+        // 개인정보 섹션
+        SectionTitle(title = "개인정보")
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        ) {
             Column {
-                ListItem(
-                    headlineContent = { Text("사용자 ID") },
-                    supportingContent = { Text("${userMe?.userId ?: session.userId}") },
+                InfoListItem(
+                    label = "사용자 ID",
+                    value = "${userMe?.userId ?: session.userId}",
                 )
-                HorizontalDivider()
-                ListItem(
-                    headlineContent = { Text("이메일") },
-                    supportingContent = { Text(userMe?.email ?: session.email ?: "-") },
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                InfoListItem(
+                    label = "이메일",
+                    value = userMe?.email ?: session.email ?: "-",
                 )
-                HorizontalDivider() 
-                ListItem( 
-                    headlineContent = { Text("닉네임") }, 
-                    supportingContent = { Text(userMe?.nickname ?: session.nickname ?: "-") },
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            "닉네임",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            userMe?.nickname ?: session.nickname ?: "-",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
                     trailingContent = {
-                        Button(
+                        OutlinedButton(
                             onClick = {
                                 nicknameDraft = (userMe?.nickname ?: session.nickname).orEmpty()
                                 nicknameErrorMessage = null
                                 isNicknameDialogOpen = true
                             },
                             enabled = !isLoading,
+                            shape = RoundedCornerShape(8.dp),
                         ) {
-                            Text("변경")
+                            Icon(
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text("  변경")
                         }
                     },
-                ) 
-                HorizontalDivider() 
-                ListItem( 
-                    headlineContent = { Text("권한") }, 
-                    supportingContent = { Text(userMe?.role ?: "-") },
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                InfoListItem(
+                    label = "권한",
+                    value = userMe?.role ?: "-",
                 )
             }
         }
 
-        Text("앱 설정", style = MaterialTheme.typography.titleMedium)
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // 앱 설정 섹션
+        SectionTitle(title = "앱 설정")
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        ) {
+            Column(Modifier.padding(4.dp)) {
                 ListItem(
-                    headlineContent = { Text("커뮤니티 누적 거리 표시") },
-                    supportingContent = { Text("게시글 목록/작성 화면에서 닉네임 옆에 누적 km를 표시해요") },
+                    headlineContent = {
+                        Text(
+                            "커뮤니티 누적 거리 표시",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            "게시글에서 닉네임 옆에 누적 km 표시",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
                     trailingContent = {
                         Switch(
                             checked = showTotalDistanceInCommunity,
@@ -196,33 +310,78 @@ fun MyPageScreen(
                                     AppSettingsStore.setShowTotalDistanceInCommunity(context, checked)
                                 }
                             },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                            ),
                         )
                     },
                 )
-                HorizontalDivider()
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Filled.Settings, contentDescription = null)
-                    Text("헬스 커넥트", style = MaterialTheme.typography.titleSmall)
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Text(
+                        "헬스 커넥트",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                 }
-                HorizontalDivider()
-                HealthConnectSection()
+
+                Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    HealthConnectSection()
+                }
             }
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(8.dp))
 
-        Button(
+        // 로그아웃 버튼
+        OutlinedButton(
             onClick = { isLogoutDialogOpen = true },
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.error,
+            ),
         ) {
-            Text("로그아웃", color = MaterialTheme.colorScheme.onError)
+            Icon(
+                imageVector = Icons.Outlined.Logout,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                "  로그아웃",
+                fontWeight = FontWeight.Medium,
+            )
         }
+
+        Spacer(Modifier.height(16.dp))
     }
 
+    // 로그아웃 다이얼로그
     if (isLogoutDialogOpen) {
         AlertDialog(
             onDismissRequest = { isLogoutDialogOpen = false },
-            title = { Text("로그아웃") },
+            title = {
+                Text(
+                    "로그아웃",
+                    fontWeight = FontWeight.SemiBold,
+                )
+            },
             text = { Text("정말 로그아웃 하시겠어요?") },
             confirmButton = {
                 Button(
@@ -235,26 +394,35 @@ fun MyPageScreen(
                         GoogleSignIn.getClient(context, gso).signOut()
                         onLogout()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
                 ) {
-                    Text("로그아웃", color = MaterialTheme.colorScheme.onError)
+                    Text("로그아웃")
                 }
             },
             dismissButton = {
-                Button(onClick = { isLogoutDialogOpen = false }) {
+                OutlinedButton(onClick = { isLogoutDialogOpen = false }) {
                     Text("취소")
                 }
             },
+            shape = RoundedCornerShape(20.dp),
         )
     }
 
-    if (isReLoginDialogOpen) { 
-        AlertDialog( 
-            onDismissRequest = { 
-                isReLoginDialogOpen = false 
-                onLogout() 
+    // 재로그인 다이얼로그
+    if (isReLoginDialogOpen) {
+        AlertDialog(
+            onDismissRequest = {
+                isReLoginDialogOpen = false
+                onLogout()
             },
-            title = { Text("다시 로그인해주세요") },
+            title = {
+                Text(
+                    "다시 로그인해주세요",
+                    fontWeight = FontWeight.SemiBold,
+                )
+            },
             text = { Text("로그인이 만료되었어요. 로그인 화면으로 이동할게요.") },
             confirmButton = {
                 Button(
@@ -265,10 +433,12 @@ fun MyPageScreen(
                 ) {
                     Text("확인")
                 }
-            }, 
-        ) 
-    } 
+            },
+            shape = RoundedCornerShape(20.dp),
+        )
+    }
 
+    // 닉네임 변경 다이얼로그
     if (isNicknameDialogOpen) {
         AlertDialog(
             onDismissRequest = {
@@ -276,7 +446,12 @@ fun MyPageScreen(
                     isNicknameDialogOpen = false
                 }
             },
-            title = { Text("닉네임 변경") },
+            title = {
+                Text(
+                    "닉네임 변경",
+                    fontWeight = FontWeight.SemiBold,
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -288,9 +463,15 @@ fun MyPageScreen(
                         singleLine = true,
                         label = { Text("닉네임") },
                         enabled = !isNicknameSaving,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     if (nicknameErrorMessage != null) {
-                        Text(nicknameErrorMessage!!, color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = nicknameErrorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     } else {
                         Text(
                             "2~20자, 한글/영문/숫자/언더바(_)만 가능",
@@ -322,17 +503,58 @@ fun MyPageScreen(
                     },
                     enabled = !isNicknameSaving,
                 ) {
-                    Text(if (isNicknameSaving) "변경 중…" else "변경")
+                    Text(if (isNicknameSaving) "변경 중..." else "변경")
                 }
             },
             dismissButton = {
-                Button(
+                OutlinedButton(
                     onClick = { isNicknameDialogOpen = false },
                     enabled = !isNicknameSaving,
                 ) {
                     Text("취소")
                 }
             },
+            shape = RoundedCornerShape(20.dp),
         )
     }
+}
+
+@Composable
+private fun SectionTitle(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = modifier.padding(top = 8.dp),
+    )
+}
+
+@Composable
+private fun InfoListItem(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        supportingContent = {
+            Text(
+                value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        },
+        modifier = modifier,
+    )
 }
