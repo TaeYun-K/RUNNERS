@@ -56,6 +56,11 @@ import com.runners.app.community.viewmodel.CommunityPostDetailViewModel
 import com.runners.app.network.CommunityCommentResult
 import com.runners.app.network.CommunityPostDetailResult
 import com.runners.app.settings.AppSettingsStore
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -321,8 +326,7 @@ fun CommunityPostDetailScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
 
-                                    val updatedAt = data.updatedAt
-                                    if (!updatedAt.isNullOrBlank()) {
+                                    if (shouldShowEditedBadge(createdAt = data.createdAt, updatedAt = data.updatedAt)) {
                                         Text(
                                             text = "  ·  (수정됨)",
                                             style = MaterialTheme.typography.bodySmall,
@@ -552,4 +556,18 @@ private fun CommentItem(
             modifier = Modifier.padding(top = 8.dp),
         )
     }
+}
+
+private fun shouldShowEditedBadge(createdAt: String, updatedAt: String?): Boolean {
+    if (updatedAt.isNullOrBlank()) return false
+    fun parseInstantOrNull(raw: String): Instant? {
+        val text = raw.trim().replace(' ', 'T')
+        return runCatching { OffsetDateTime.parse(text).toInstant() }.getOrNull()
+            ?: runCatching { LocalDateTime.parse(text).atZone(ZoneId.systemDefault()).toInstant() }.getOrNull()
+    }
+
+    val createdInstant = parseInstantOrNull(createdAt) ?: return true
+    val updatedInstant = parseInstantOrNull(updatedAt) ?: return true
+    val deltaSeconds = Duration.between(createdInstant, updatedInstant).seconds
+    return deltaSeconds >= 60
 }
