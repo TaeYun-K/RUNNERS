@@ -147,7 +147,7 @@ public class CommunityCommentService {
         List<CommunityComment> fetched = communityCommentRepository.findForCursor(
                 postId,
                 decodedCursor == null ? null : decodedCursor.createdAt(),
-                decodedCursor == null ? Long.MAX_VALUE : decodedCursor.id(),
+                decodedCursor == null ? 0L : decodedCursor.id(),
                 org.springframework.data.domain.PageRequest.of(0, fetchSize)
         );
 

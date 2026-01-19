@@ -16,10 +16,10 @@ public interface CommunityCommentRepository extends JpaRepository<CommunityComme
             where c.post.id = :postId
               and (
                 :cursorCreatedAt is null
-                or c.createdAt < :cursorCreatedAt
-                or (c.createdAt = :cursorCreatedAt and c.id < :cursorId)
+                or c.createdAt > :cursorCreatedAt
+                or (c.createdAt = :cursorCreatedAt and c.id > :cursorId)
               )
-            order by c.createdAt desc, c.id desc
+            order by c.createdAt asc, c.id asc
             """)
     List<CommunityComment> findForCursor(
             @Param("postId") Long postId,

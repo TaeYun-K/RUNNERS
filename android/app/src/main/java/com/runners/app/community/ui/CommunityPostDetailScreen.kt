@@ -686,7 +686,7 @@ private fun CommentItem(
                 Text(
                     text = buildString {
                         append(createdLabel)
-                        if (shouldShowEditedBadge(comment.createdAt, comment.updatedAt)) {
+                        if (!isDeleted && shouldShowEditedBadge(comment.createdAt, comment.updatedAt)) {
                             append(" (수정됨)")
                         }
                     },
