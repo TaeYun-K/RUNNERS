@@ -287,6 +287,24 @@ object BackendCommunityApi {
         }
     }
 
+    fun deletePost(postId: Long) {
+        require(postId > 0) { "postId must be positive" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId"
+
+        val request = Request.Builder()
+            .url(url)
+            .delete()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Delete community post failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+        }
+    }
+
     fun deleteComment(postId: Long, commentId: Long): DeleteCommunityCommentResult {
         require(postId > 0) { "postId must be positive" }
         require(commentId > 0) { "commentId must be positive" }

@@ -103,7 +103,7 @@ public class CommunityPostService {
 
         // 이미 삭제된 경우
         if (post.getStatus() == CommunityContentStatus.DELETED) {
-            return; // 또는 예외
+            return;
         }
 
         post.markDeleted();

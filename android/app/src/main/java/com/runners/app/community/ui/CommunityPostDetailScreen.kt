@@ -33,6 +33,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +47,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +60,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.runners.app.community.viewmodel.CommunityPostDetailViewModel
 import com.runners.app.network.CommunityCommentResult
 import com.runners.app.network.CommunityPostDetailResult
@@ -72,6 +78,7 @@ fun CommunityPostDetailScreen(
     postId: Long,
     onBack: (CommunityPostDetailResult?) -> Unit,
     onEdit: () -> Unit,
+    onDeleted: (Long) -> Unit,
     currentUserId: Long,
     modifier: Modifier = Modifier,
 ) {
@@ -82,6 +89,8 @@ fun CommunityPostDetailScreen(
             factory = CommunityPostDetailViewModel.Factory(postId = postId),
         )
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
+    val initialDeleteSignal = remember(postId) { uiState.deleteSuccessSignal }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val showTotalDistanceInCommunity =
         AppSettingsStore.showTotalDistanceInCommunityFlow(context)
             .collectAsStateWithLifecycle(initialValue = true)
@@ -91,6 +100,12 @@ fun CommunityPostDetailScreen(
     fun toSecondPrecision(raw: String): String {
         val normalized = raw.replace('T', ' ')
         return normalized.takeIf { it.length >= 19 }?.substring(0, 19) ?: normalized
+    }
+
+    LaunchedEffect(uiState.deleteSuccessSignal) {
+        if (uiState.deleteSuccessSignal > initialDeleteSignal) {
+            onDeleted(postId)
+        }
     }
 
     BackHandler(enabled = true) {
@@ -118,9 +133,22 @@ fun CommunityPostDetailScreen(
                     if (canEdit) {
                         TextButton(
                             onClick = onEdit,
-                            enabled = !uiState.isPostLoading && !uiState.isUpdatingPost,
+                            enabled = !uiState.isPostLoading &&
+                                    !uiState.isUpdatingPost &&
+                                    !uiState.isDeletingPost,
                         ) {
                             Text("수정")
+                        }
+                        TextButton(
+                            onClick = { showDeleteConfirm = true },
+                            enabled = !uiState.isPostLoading &&
+                                    !uiState.isUpdatingPost &&
+                                    !uiState.isDeletingPost,
+                        ) {
+                            Text(
+                                text = "삭제",
+                                color = MaterialTheme.colorScheme.error,
+                            )
                         }
                     }
                 },
@@ -245,6 +273,33 @@ fun CommunityPostDetailScreen(
             }
         },
     ) { padding ->
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("게시글 삭제") },
+                text = { Text("정말 이 게시글을 삭제할까요?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteConfirm = false
+                            viewModel.deletePost()
+                        },
+                        enabled = !uiState.isDeletingPost,
+                    ) {
+                        Text("삭제", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showDeleteConfirm = false },
+                        enabled = !uiState.isDeletingPost,
+                    ) {
+                        Text("취소")
+                    }
+                },
+            )
+        }
+
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
             onRefresh = {

@@ -150,4 +150,10 @@ class CommunityViewModel(
             state.copy(posts = updatedPosts)
         }
     }
+
+    fun deletePost(postId: Long) {
+        _uiState.update { state ->
+            state.copy(posts = state.posts.filterNot { it.postId == postId })
+        }
+    }
 }

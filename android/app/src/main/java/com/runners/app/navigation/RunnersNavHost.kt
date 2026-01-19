@@ -210,6 +210,7 @@ fun RunnersNavHost(
     }
 
     val communityPostStatsUpdateKey = "community:post:statsUpdate"
+    val communityPostDeletedKey = "community:post:deleted"
 
     NavHost(
         navController = navController,
@@ -240,11 +241,21 @@ fun RunnersNavHost(
                     .getStateFlow<CommunityPostStatsUpdate?>(communityPostStatsUpdateKey, null)
                     .collectAsStateWithLifecycle()
                     .value
+            val deletedPostId =
+                entry.savedStateHandle
+                    .getStateFlow<Long?>(communityPostDeletedKey, null)
+                    .collectAsStateWithLifecycle()
+                    .value
 
             LaunchedEffect(statsUpdate) {
                 val update = statsUpdate ?: return@LaunchedEffect
                 communityViewModel.applyPostStatsUpdate(update)
                 entry.savedStateHandle[communityPostStatsUpdateKey] = null
+            }
+            LaunchedEffect(deletedPostId) {
+                val deleted = deletedPostId ?: return@LaunchedEffect
+                communityViewModel.deletePost(deleted)
+                entry.savedStateHandle[communityPostDeletedKey] = null
             }
 
             CommunityScreen(
@@ -287,6 +298,12 @@ fun RunnersNavHost(
                     navController.popBackStack()
                 },
                 onEdit = { navController.navigate(AppRoute.CommunityPostEdit.createRoute(postId)) },
+                onDeleted = { deleted ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(communityPostDeletedKey, deleted)
+                    navController.popBackStack()
+                },
                 currentUserId = session.userId,
             )
         }

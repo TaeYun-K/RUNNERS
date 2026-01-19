@@ -35,6 +35,11 @@ class CommunityRepository {
             )
         }
 
+    suspend fun deletePost(postId: Long) =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.deletePost(postId)
+        }
+
     suspend fun createComment(postId: Long, content: String, parentId: Long? = null): CreateCommunityCommentResult =
         withContext(Dispatchers.IO) {
             BackendCommunityApi.createComment(postId = postId, content = content, parentId = parentId)

@@ -160,6 +160,33 @@ class CommunityPostDetailViewModel(
         }
     }
 
+    fun deletePost() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.isDeletingPost) return@launch
+
+            _uiState.update { it.copy(isDeletingPost = true, deletePostErrorMessage = null) }
+
+            runCatching {
+                repository.deletePost(postId = postId)
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        isDeletingPost = false,
+                        deleteSuccessSignal = it.deleteSuccessSignal + 1L,
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isDeletingPost = false,
+                        deletePostErrorMessage = error.message ?: "게시글을 삭제하지 못했어요",
+                    )
+                }
+            }
+        }
+    }
+
     class Factory(
         private val postId: Long,
         private val repository: CommunityRepository = CommunityRepository(),
@@ -176,4 +203,3 @@ class CommunityPostDetailViewModel(
         }
     }
 }
-
