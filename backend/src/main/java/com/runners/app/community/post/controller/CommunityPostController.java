@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
+import com.runners.app.global.util.SecurityUtils;
 
 @RestController
 @RequestMapping("/community/posts")
@@ -38,7 +38,7 @@ public class CommunityPostController {
             Authentication authentication,
             @Valid @RequestBody CreateCommunityPostRequest request
     ) {
-        Long userId = extractUserId(authentication);
+        Long userId = SecurityUtils.extractUserId(authentication);
         return communityPostService.createPost(userId, request);
     }
 
@@ -50,7 +50,7 @@ public class CommunityPostController {
         @PathVariable Long postId,
         @Valid @RequestBody CreateCommunityPostRequest request
     ) {
-        Long userId = extractUserId(authentication);
+        Long userId = SecurityUtils.extractUserId(authentication);
         return communityPostService.updatePost(userId, postId, request);
     }
 
@@ -64,7 +64,7 @@ public class CommunityPostController {
         Authentication authentication,
         @PathVariable Long postId
     ) {
-        Long userId = extractUserId(authentication);
+        Long userId = SecurityUtils.extractUserId(authentication);
         communityPostService.deletePost(userId, postId);
     }
 
@@ -74,7 +74,7 @@ public class CommunityPostController {
             Authentication authentication,
             @PathVariable Long postId
     ) {
-        Long userId = extractUserId(authentication);
+        Long userId = SecurityUtils.extractUserId(authentication);
         return communityPostService.getPost(userId, postId);
     }
 
@@ -87,17 +87,4 @@ public class CommunityPostController {
         return communityPostService.listPosts(cursor, size);
     }
 
-    // userId 추출 메소드
-    private Long extractUserId(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
-        }
-
-        Long userId;
-        try {
-            return Long.valueOf(authentication.getName());
-        } catch (NumberFormatException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token subject");
-        }
-    }
 }

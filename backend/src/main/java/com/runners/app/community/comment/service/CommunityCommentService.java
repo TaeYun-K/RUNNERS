@@ -40,31 +40,12 @@ public class CommunityCommentService {
 
     @Transactional
     public CreateCommunityCommentResponse createComment(Long authorId, Long postId, CreateCommunityCommentRequest request) {
-        if (postId == null || postId <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid postId");
-        }
-
-        CommunityPost post = communityPostRepository.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
-        if (post.getStatus() == CommunityContentStatus.DELETED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
-        }
+        CommunityPost post = findActivePostOrThrow(postId);
 
         var author = userRepository.findById(authorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        CommunityComment parent = null;
-        if (request.parentId() != null) {
-            parent = communityCommentRepository.findById(request.parentId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent comment not found"));
-
-            if (parent.getStatus() == CommunityContentStatus.DELETED) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent comment not found");
-            }
-            if (!parent.getPost().getId().equals(post.getId())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parent comment does not belong to the post");
-            }
-        }
+        CommunityComment parent = findActiveParentCommentForPostOrThrow(request.parentId(), post);
 
         CommunityComment saved = communityCommentRepository.save(
                 CommunityComment.builder()
@@ -89,23 +70,41 @@ public class CommunityCommentService {
     }
 
     @Transactional
+    public CreateCommunityCommentResponse updateComment(
+        Long editorId,
+        Long postId,
+        Long commentId,
+        CreateCommunityCommentRequest request
+    ) {
+        CommunityPost post = findActivePostOrThrow(postId);
+        CommunityComment comment = findActiveCommentOrThrow(commentId);
+        validateCommentBelongsToPostOrThrow(comment, post.getId(), HttpStatus.BAD_REQUEST, "Comment does not belong to the post");
+        validateAuthorOrThrow(comment, editorId, HttpStatus.FORBIDDEN, "No permission to update comment");
+
+        // 내용 변경
+        comment.updateContent(request.content());
+
+        // JPA dirty checking으로 반영 (명시적으로 save 해도 무방)
+        // communityCommentRepository.save(comment);
+
+        return new CreateCommunityCommentResponse(
+            comment.getId(),
+            post.getId(),
+            comment.getAuthor().getId(),
+            comment.getParent() == null ? null : comment.getParent().getId(),
+            comment.getContent(),
+            post.getCommentCount(),      // 수정은 count 변화 없음
+            comment.getUpdatedAt()
+        );
+    }
+
+
+    @Transactional
     public DeleteCommunityCommentResponse deleteComment(Long requesterId, Long postId, Long commentId) {
-        if (postId == null || postId <= 0 || commentId == null || commentId <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid postId or commentId");
-        }
-
-        CommunityPost post = communityPostRepository.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
-        if (post.getStatus() == CommunityContentStatus.DELETED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
-        }
-
-        CommunityComment comment = communityCommentRepository.findById(commentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
-
-        if (!Objects.equals(comment.getPost().getId(), postId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
-        }
+        validatePositiveIdsOrThrow("Invalid postId or commentId", postId, commentId);
+        CommunityPost post = findActivePostOrThrow(postId);
+        CommunityComment comment = findCommentOrThrow(commentId);
+        validateCommentBelongsToPostOrThrow(comment, postId, HttpStatus.NOT_FOUND, "Comment not found");
         if (comment.getStatus() == CommunityContentStatus.DELETED) {
             return new DeleteCommunityCommentResponse(
                     comment.getId(),
@@ -114,9 +113,7 @@ public class CommunityCommentService {
                     comment.getDeletedAt()
             );
         }
-        if (!Objects.equals(comment.getAuthor().getId(), requesterId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
-        }
+        validateAuthorOrThrow(comment, requesterId, HttpStatus.FORBIDDEN, "Forbidden");
 
         comment.markDeleted();
         post.decreaseCommentCount();
@@ -131,15 +128,7 @@ public class CommunityCommentService {
 
     @Transactional(readOnly = true)
     public CommunityCommentCursorListResponse listComments(Long postId, String cursor, int size) {
-        if (postId == null || postId <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid postId");
-        }
-
-        CommunityPost post = communityPostRepository.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
-        if (post.getStatus() == CommunityContentStatus.DELETED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
-        }
+        findActivePostOrThrow(postId);
 
         int safeSize = Math.min(50, Math.max(1, size));
         Cursor decodedCursor = decodeCursor(cursor);
@@ -180,6 +169,73 @@ public class CommunityCommentService {
         }
 
         return new CommunityCommentCursorListResponse(comments, nextCursor);
+    }
+
+    private void validatePositiveIdOrThrow(Long id, String fieldName) {
+        if (id == null || id <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid " + fieldName);
+        }
+    }
+
+    private void validatePositiveIdsOrThrow(String message, Long... ids) {
+        for (Long id : ids) {
+            if (id == null || id <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+            }
+        }
+    }
+
+    private CommunityPost findActivePostOrThrow(Long postId) {
+        validatePositiveIdOrThrow(postId, "postId");
+        CommunityPost post = communityPostRepository.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+        if (post.getStatus() == CommunityContentStatus.DELETED) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
+        }
+        return post;
+    }
+
+    private CommunityComment findCommentOrThrow(Long commentId) {
+        validatePositiveIdOrThrow(commentId, "commentId");
+        return communityCommentRepository.findById(commentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+    }
+
+    private CommunityComment findActiveCommentOrThrow(Long commentId) {
+        CommunityComment comment = findCommentOrThrow(commentId);
+        if (comment.getStatus() == CommunityContentStatus.DELETED) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
+        }
+        return comment;
+    }
+
+    private CommunityComment findActiveParentCommentForPostOrThrow(Long parentId, CommunityPost post) {
+        if (parentId == null) return null;
+
+        CommunityComment parent = communityCommentRepository.findById(parentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent comment not found"));
+        if (parent.getStatus() == CommunityContentStatus.DELETED) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent comment not found");
+        }
+        validateCommentBelongsToPostOrThrow(parent, post.getId(), HttpStatus.BAD_REQUEST, "Parent comment does not belong to the post");
+        return parent;
+    }
+
+    private void validateCommentBelongsToPostOrThrow(
+            CommunityComment comment,
+            Long postId,
+            HttpStatus status,
+            String message
+    ) {
+        if (!Objects.equals(comment.getPost().getId(), postId)) {
+            throw new ResponseStatusException(status, message);
+        }
+    }
+
+    private void validateAuthorOrThrow(CommunityComment comment, Long userId, HttpStatus status, String message) {
+        if (!Objects.equals(comment.getAuthor().getId(), userId)) {
+            throw new ResponseStatusException(status, message);
+        }
     }
 
     private record Cursor(LocalDateTime createdAt, long id) {}
