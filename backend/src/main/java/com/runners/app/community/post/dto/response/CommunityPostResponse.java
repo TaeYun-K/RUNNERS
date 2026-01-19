@@ -1,13 +1,14 @@
-package com.runners.app.community.comment.dto.response;
+package com.runners.app.community.post.dto.response;
 
 import java.time.LocalDateTime;
 
-public record CreateCommunityCommentResponse(
-        Long commentId,
+public record CommunityPostResponse(
         Long postId,
         Long authorId,
-        Long parentId,
+        String title,
         String content,
+        int viewCount,
+        int recommendCount,
         int commentCount,
         LocalDateTime createdAt
 ) {}

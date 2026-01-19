@@ -3,7 +3,7 @@ package com.runners.app.community.comment.service;
 import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.comment.entity.CommunityComment;
 import com.runners.app.community.comment.dto.request.CreateCommunityCommentRequest;
-import com.runners.app.community.comment.dto.response.CreateCommunityCommentResponse;
+import com.runners.app.community.comment.dto.response.CommunityCommentResponse;
 import com.runners.app.community.comment.dto.response.CommunityCommentCursorListResponse;
 import com.runners.app.community.comment.dto.response.CommunityCommentItemResponse;
 import com.runners.app.community.comment.dto.response.DeleteCommunityCommentResponse;
@@ -39,7 +39,7 @@ public class CommunityCommentService {
     }
 
     @Transactional
-    public CreateCommunityCommentResponse createComment(Long authorId, Long postId, CreateCommunityCommentRequest request) {
+    public CommunityCommentResponse createComment(Long authorId, Long postId, CreateCommunityCommentRequest request) {
         CommunityPost post = findActivePostOrThrow(postId);
 
         var author = userRepository.findById(authorId)
@@ -58,7 +58,7 @@ public class CommunityCommentService {
 
         post.increaseCommentCount();
 
-        return new CreateCommunityCommentResponse(
+        return new CommunityCommentResponse(
                 saved.getId(),
                 post.getId(),
                 author.getId(),
@@ -70,7 +70,7 @@ public class CommunityCommentService {
     }
 
     @Transactional
-    public CreateCommunityCommentResponse updateComment(
+    public CommunityCommentResponse updateComment(
         Long editorId,
         Long postId,
         Long commentId,
@@ -84,10 +84,7 @@ public class CommunityCommentService {
         // 내용 변경
         comment.updateContent(request.content());
 
-        // JPA dirty checking으로 반영 (명시적으로 save 해도 무방)
-        // communityCommentRepository.save(comment);
-
-        return new CreateCommunityCommentResponse(
+        return new CommunityCommentResponse(
             comment.getId(),
             post.getId(),
             comment.getAuthor().getId(),

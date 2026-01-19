@@ -1,7 +1,7 @@
 package com.runners.app.community.post.controller;
 
 import com.runners.app.community.post.dto.request.CreateCommunityPostRequest;
-import com.runners.app.community.post.dto.response.CreateCommunityPostResponse;
+import com.runners.app.community.post.dto.response.CommunityPostResponse;
 import com.runners.app.community.post.dto.response.CommunityPostDetailResponse;
 import com.runners.app.community.post.dto.response.CommunityPostCursorListResponse;
 import com.runners.app.community.post.service.CommunityPostService;
@@ -34,7 +34,7 @@ public class CommunityPostController {
     @Operation(summary = "게시글 작성", description = "JWT로 인증된 사용자가 게시글을 작성")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CreateCommunityPostResponse createPost(
+    public CommunityPostResponse createPost(
             Authentication authentication,
             @Valid @RequestBody CreateCommunityPostRequest request
     ) {
@@ -45,7 +45,7 @@ public class CommunityPostController {
     @Operation(summary = "게시글 수정", description = "JWT로 인증된 사용자가 게시글을 수정")
     @PutMapping("/{postId}")
     @ResponseStatus(HttpStatus.CREATED)
-    public CreateCommunityPostResponse updatePost(
+    public CommunityPostResponse updatePost(
         Authentication authentication,
         @PathVariable Long postId,
         @Valid @RequestBody CreateCommunityPostRequest request

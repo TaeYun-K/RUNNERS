@@ -2,7 +2,7 @@ package com.runners.app.community.comment.controller;
 
 import com.runners.app.community.comment.dto.request.CreateCommunityCommentRequest;
 import com.runners.app.community.comment.dto.response.CommunityCommentCursorListResponse;
-import com.runners.app.community.comment.dto.response.CreateCommunityCommentResponse;
+import com.runners.app.community.comment.dto.response.CommunityCommentResponse;
 import com.runners.app.community.comment.dto.response.DeleteCommunityCommentResponse;
 import com.runners.app.community.comment.service.CommunityCommentService;
 import com.runners.app.global.util.SecurityUtils;
@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/community/posts/{postId}/comments")
@@ -35,7 +34,7 @@ public class CommunityCommentController {
     @Operation(summary = "댓글 작성", description = "JWT로 인증된 사용자가 게시글에 댓글(대댓글 포함)을 작성")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CreateCommunityCommentResponse createComment(
+    public CommunityCommentResponse createComment(
             Authentication authentication,
             @PathVariable Long postId,
             @Valid @RequestBody CreateCommunityCommentRequest request
@@ -47,7 +46,7 @@ public class CommunityCommentController {
     @Operation(summary = "댓글 수정", description = "JWT로 인증된 사용자가 게시글에 댓글(대댓글 포함)을 수정")
     @PutMapping("/{commentId}")
     @ResponseStatus(HttpStatus.OK)
-    public CreateCommunityCommentResponse updateComment(
+    public CommunityCommentResponse updateComment(
         Authentication authentication,
         @PathVariable Long postId,
         @PathVariable Long commentId,

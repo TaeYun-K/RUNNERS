@@ -4,7 +4,7 @@ import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.community.post.dto.request.CreateCommunityPostRequest;
 import com.runners.app.community.post.dto.response.CommunityPostCursorListResponse;
-import com.runners.app.community.post.dto.response.CreateCommunityPostResponse;
+import com.runners.app.community.post.dto.response.CommunityPostResponse;
 import com.runners.app.community.post.dto.response.CommunityPostDetailResponse;
 import com.runners.app.community.post.dto.response.CommunityPostSummaryResponse;
 import com.runners.app.community.post.repository.CommunityPostRepository;
@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -40,7 +39,7 @@ public class CommunityPostService {
     }
 
     @Transactional
-    public CreateCommunityPostResponse createPost(Long authorId, CreateCommunityPostRequest request) {
+    public CommunityPostResponse createPost(Long authorId, CreateCommunityPostRequest request) {
         var author = userRepository.findById(authorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
@@ -52,7 +51,7 @@ public class CommunityPostService {
                         .build()
         );
 
-        return new CreateCommunityPostResponse(
+        return new CommunityPostResponse(
                 saved.getId(),
                 author.getId(),
                 saved.getTitle(),
@@ -65,7 +64,7 @@ public class CommunityPostService {
     }
 
     @Transactional
-    public CreateCommunityPostResponse updatePost(Long authorId, Long postId, CreateCommunityPostRequest request) {
+    public CommunityPostResponse updatePost(Long authorId, Long postId, CreateCommunityPostRequest request) {
         var author = userRepository.findById(authorId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
@@ -79,7 +78,7 @@ public class CommunityPostService {
 
         post.updateContent(request.title(), request.content());
 
-        return new CreateCommunityPostResponse(
+        return new CommunityPostResponse(
             post.getId(),
             author.getId(),
             post.getTitle(),
