@@ -1,11 +1,11 @@
 package com.runners.app.community.comment.service;
 
+import com.runners.app.community.comment.dto.response.CommunityCommentMutationResponse;
 import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.comment.entity.CommunityComment;
 import com.runners.app.community.comment.dto.request.CreateCommunityCommentRequest;
 import com.runners.app.community.comment.dto.response.CommunityCommentResponse;
 import com.runners.app.community.comment.dto.response.CommunityCommentCursorListResponse;
-import com.runners.app.community.comment.dto.response.CommunityCommentItemResponse;
 import com.runners.app.community.comment.dto.response.DeleteCommunityCommentResponse;
 import com.runners.app.community.comment.repository.CommunityCommentRepository;
 import com.runners.app.community.post.entity.CommunityPost;
@@ -39,7 +39,7 @@ public class CommunityCommentService {
     }
 
     @Transactional
-    public CommunityCommentResponse createComment(Long authorId, Long postId, CreateCommunityCommentRequest request) {
+    public CommunityCommentMutationResponse createComment(Long authorId, Long postId, CreateCommunityCommentRequest request) {
         CommunityPost post = findActivePostOrThrow(postId);
 
         var author = userRepository.findById(authorId)
@@ -58,19 +58,27 @@ public class CommunityCommentService {
 
         post.increaseCommentCount();
 
-        return new CommunityCommentResponse(
-                saved.getId(),
-                post.getId(),
-                author.getId(),
-                parent == null ? null : parent.getId(),
-                saved.getContent(),
-                post.getCommentCount(),
-                saved.getCreatedAt()
+        var comment = new CommunityCommentResponse(
+            saved.getId(),
+            post.getId(),
+            author.getId(),
+            author.getDisplayName(),
+            author.getPicture(),
+            author.getTotalDistanceKm(),
+            parent == null ? null : parent.getId(),
+            saved.getContent(),
+            saved.getCreatedAt(),
+            saved.getUpdatedAt()
+        );
+
+        return new CommunityCommentMutationResponse(
+            comment,
+            post.getCommentCount()
         );
     }
 
     @Transactional
-    public CommunityCommentResponse updateComment(
+    public CommunityCommentMutationResponse updateComment(
         Long editorId,
         Long postId,
         Long commentId,
@@ -84,15 +92,20 @@ public class CommunityCommentService {
         // 내용 변경
         comment.updateContent(request.content());
 
-        return new CommunityCommentResponse(
+        var updated = new CommunityCommentResponse(
             comment.getId(),
             post.getId(),
             comment.getAuthor().getId(),
+            comment.getAuthor().getDisplayName(),
+            comment.getAuthor().getPicture(),
+            comment.getAuthor().getTotalDistanceKm(),
             comment.getParent() == null ? null : comment.getParent().getId(),
             comment.getContent(),
-            post.getCommentCount(),      // 수정은 count 변화 없음
+            comment.getCreatedAt(),
             comment.getUpdatedAt()
         );
+
+        return new CommunityCommentMutationResponse(updated, post.getCommentCount());
     }
 
 
@@ -141,12 +154,13 @@ public class CommunityCommentService {
         boolean hasNext = fetched.size() > safeSize;
         List<CommunityComment> pageItems = hasNext ? fetched.subList(0, safeSize) : fetched;
 
-        List<CommunityCommentItemResponse> comments = pageItems.stream()
+        List<CommunityCommentResponse> comments = pageItems.stream()
                 .map(comment -> {
                     boolean isDeleted = comment.getStatus() == CommunityContentStatus.DELETED;
                     String content = isDeleted ? "삭제된 댓글입니다" : comment.getContent();
-                    return new CommunityCommentItemResponse(
+                    return new CommunityCommentResponse(
                             comment.getId(),
+                            postId,
                             comment.getAuthor().getId(),
                             comment.getAuthor().getDisplayName(),
                             comment.getAuthor().getPicture(),

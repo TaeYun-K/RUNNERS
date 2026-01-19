@@ -25,12 +25,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RemoveRedEye
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
@@ -96,6 +99,7 @@ fun CommunityPostDetailScreen(
             .collectAsStateWithLifecycle(initialValue = true)
             .value
     val pullToRefreshState = rememberPullToRefreshState()
+    var menuOpenedCommentId by remember { mutableStateOf<Long?>(null) }
 
     fun toSecondPrecision(raw: String): String {
         val normalized = raw.replace('T', ' ')
@@ -482,19 +486,45 @@ fun CommunityPostDetailScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             style = MaterialTheme.typography.bodyMedium,
                                         )
-                                    } else {
-                                        uiState.comments.forEach { comment ->
+                                     } else {
+                                         uiState.comments.forEach { comment ->
                                             CommentItem(
                                                 comment = comment,
+                                                currentUserId = currentUserId,
+                                                menuExpanded = menuOpenedCommentId == comment.commentId,
+                                                onMenuExpandedChange = { expanded ->
+                                                    menuOpenedCommentId = if (expanded) comment.commentId else null
+                                                },
+                                                isEditing = uiState.editingCommentId == comment.commentId,
+                                                editingDraft = uiState.editingCommentDraft,
+                                                onEditingDraftChange = viewModel::onEditingCommentDraftChange,
+                                                onEditClick = {
+                                                    menuOpenedCommentId = null
+                                                    viewModel.startEditingComment(
+                                                        commentId = comment.commentId,
+                                                        initialContent = comment.content,
+                                                    )
+                                                },
+                                                onEditCancel = viewModel::cancelEditingComment,
+                                                onEditSave = viewModel::submitEditingComment,
+                                                isEditSaving = uiState.isUpdatingComment,
                                                 showTotalDistance = showTotalDistanceInCommunity,
                                                 toSecondPrecision = ::toSecondPrecision,
                                             )
+                                         }
+
+                                        if (uiState.updateCommentErrorMessage != null) {
+                                            Text(
+                                                text = uiState.updateCommentErrorMessage!!,
+                                                color = MaterialTheme.colorScheme.error,
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
                                         }
 
-                                        if (uiState.commentsErrorMessage != null) {
-                                            Text(
-                                                text = uiState.commentsErrorMessage!!,
-                                                color = MaterialTheme.colorScheme.error,
+                                         if (uiState.commentsErrorMessage != null) {
+                                             Text(
+                                                 text = uiState.commentsErrorMessage!!,
+                                                 color = MaterialTheme.colorScheme.error,
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
                                         }
@@ -554,10 +584,23 @@ private fun CommonPostStat(
 @Composable
 private fun CommentItem(
     comment: CommunityCommentResult,
+    currentUserId: Long,
+    menuExpanded: Boolean,
+    onMenuExpandedChange: (Boolean) -> Unit,
+    isEditing: Boolean,
+    editingDraft: String,
+    onEditingDraftChange: (String) -> Unit,
+    onEditClick: () -> Unit,
+    onEditCancel: () -> Unit,
+    onEditSave: () -> Unit,
+    isEditSaving: Boolean,
     showTotalDistance: Boolean,
     toSecondPrecision: (String) -> String,
     modifier: Modifier = Modifier,
 ) {
+    val isDeleted = comment.content == "삭제된 댓글입니다"
+    val canManage = !isDeleted && comment.authorId == currentUserId
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -582,7 +625,7 @@ private fun CommentItem(
                 )
             }
 
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -607,7 +650,7 @@ private fun CommentItem(
                 Text(
                     text = buildString {
                         append(createdLabel)
-                        if (!updatedLabel.isNullOrBlank() && updatedLabel != createdLabel) {
+                        if (shouldShowEditedBadge(comment.createdAt, comment.updatedAt)) {
                             append(" (수정됨)")
                         }
                     },
@@ -615,14 +658,72 @@ private fun CommentItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+
+            if (canManage) {
+                Box {
+                    IconButton(onClick = { onMenuExpandedChange(!menuExpanded) }) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreVert,
+                            contentDescription = "More",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { onMenuExpandedChange(false) },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("수정") },
+                            onClick = {
+                                onMenuExpandedChange(false)
+                                onEditClick()
+                            },
+                        )
+                    }
+                }
+            }
         }
 
-        Text(
-            text = comment.content,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(start = 38.dp),
-        )
+        if (isEditing) {
+            Column(modifier = Modifier.padding(start = 38.dp)) {
+                OutlinedTextField(
+                    value = editingDraft,
+                    onValueChange = onEditingDraftChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    enabled = !isEditSaving,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(
+                        onClick = onEditCancel,
+                        enabled = !isEditSaving,
+                    ) {
+                        Text("취소")
+                    }
+                    TextButton(
+                        onClick = onEditSave,
+                        enabled = !isEditSaving && editingDraft.trim().isNotBlank(),
+                    ) {
+                        Text(if (isEditSaving) "저장 중..." else "저장")
+                    }
+                }
+            }
+        } else {
+            Text(
+                text = comment.content,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 38.dp),
+            )
+        }
 
         HorizontalDivider(
             color = MaterialTheme.colorScheme.outlineVariant,
@@ -642,5 +743,5 @@ private fun shouldShowEditedBadge(createdAt: String, updatedAt: String?): Boolea
     val createdInstant = parseInstantOrNull(createdAt) ?: return true
     val updatedInstant = parseInstantOrNull(updatedAt) ?: return true
     val deltaSeconds = Duration.between(createdInstant, updatedInstant).seconds
-    return deltaSeconds >= 60
+    return deltaSeconds > 0
 }

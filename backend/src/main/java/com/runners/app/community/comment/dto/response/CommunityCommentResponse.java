@@ -6,9 +6,12 @@ public record CommunityCommentResponse(
         Long commentId,
         Long postId,
         Long authorId,
+        String authorName,
+        String authorPicture,
+        Double authorTotalDistanceKm,
         Long parentId,
         String content,
-        int commentCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {}
 

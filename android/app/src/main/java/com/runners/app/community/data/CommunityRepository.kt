@@ -4,7 +4,7 @@ import com.runners.app.network.BackendCommunityApi
 import com.runners.app.network.CommunityPostCursorListResult
 import com.runners.app.network.CommunityPostDetailResult
 import com.runners.app.network.CreateCommunityPostResult
-import com.runners.app.network.CreateCommunityCommentResult
+import com.runners.app.network.CommunityCommentMutationResult
 import com.runners.app.network.DeleteCommunityCommentResult
 import com.runners.app.network.CommunityCommentCursorListResult
 import kotlinx.coroutines.Dispatchers
@@ -40,9 +40,14 @@ class CommunityRepository {
             BackendCommunityApi.deletePost(postId)
         }
 
-    suspend fun createComment(postId: Long, content: String, parentId: Long? = null): CreateCommunityCommentResult =
+    suspend fun createComment(postId: Long, content: String, parentId: Long? = null): CommunityCommentMutationResult =
         withContext(Dispatchers.IO) {
             BackendCommunityApi.createComment(postId = postId, content = content, parentId = parentId)
+        }
+
+    suspend fun updateComment(postId: Long, commentId: Long, content: String): CommunityCommentMutationResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.updateComment(postId = postId, commentId = commentId, content = content)
         }
 
     suspend fun deleteComment(postId: Long, commentId: Long): DeleteCommunityCommentResult =

@@ -71,6 +71,68 @@ class CommunityPostDetailViewModel(
         }
     }
 
+    fun startEditingComment(commentId: Long, initialContent: String) {
+        val state = _uiState.value
+        if (state.isUpdatingComment) return
+        _uiState.update {
+            it.copy(
+                editingCommentId = commentId,
+                editingCommentDraft = initialContent,
+                updateCommentErrorMessage = null,
+            )
+        }
+    }
+
+    fun cancelEditingComment() {
+        val state = _uiState.value
+        if (state.isUpdatingComment) return
+        _uiState.update {
+            it.copy(
+                editingCommentId = null,
+                editingCommentDraft = "",
+                updateCommentErrorMessage = null,
+            )
+        }
+    }
+
+    fun onEditingCommentDraftChange(value: String) {
+        _uiState.update { it.copy(editingCommentDraft = value, updateCommentErrorMessage = null) }
+    }
+
+    fun submitEditingComment() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.isUpdatingComment) return@launch
+
+            val commentId = state.editingCommentId ?: return@launch
+            val content = state.editingCommentDraft.trim()
+            if (content.isBlank()) return@launch
+
+            _uiState.update { it.copy(isUpdatingComment = true, updateCommentErrorMessage = null) }
+
+            runCatching {
+                repository.updateComment(postId = postId, commentId = commentId, content = content)
+            }.onSuccess { result ->
+                _uiState.update {
+                    it.copy(
+                        post = it.post?.copy(commentCount = result.commentCount),
+                        editingCommentId = null,
+                        editingCommentDraft = "",
+                        isUpdatingComment = false,
+                    )
+                }
+                loadComments(reset = true)
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        updateCommentErrorMessage = error.message ?: "댓글을 수정하지 못했어요",
+                        isUpdatingComment = false,
+                    )
+                }
+            }
+        }
+    }
+
     private suspend fun loadPost() {
         val state = _uiState.value
         if (state.isPostLoading) return

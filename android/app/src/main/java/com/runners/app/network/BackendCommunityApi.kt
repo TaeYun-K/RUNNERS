@@ -55,6 +55,7 @@ data class CommunityPostDetailResult(
 
 data class CommunityCommentResult(
     val commentId: Long,
+    val postId: Long,
     val authorId: Long,
     val authorName: String?,
     val authorPicture: String?,
@@ -65,14 +66,9 @@ data class CommunityCommentResult(
     val updatedAt: String?,
 )
 
-data class CreateCommunityCommentResult(
-    val commentId: Long,
-    val postId: Long,
-    val authorId: Long,
-    val parentId: Long?,
-    val content: String,
+data class CommunityCommentMutationResult(
+    val comment: CommunityCommentResult,
     val commentCount: Int,
-    val createdAt: String,
 )
 
 data class DeleteCommunityCommentResult(
@@ -89,6 +85,23 @@ data class CommunityCommentCursorListResult(
 
 object BackendCommunityApi {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+
+    private fun parseCommentAuthorTotalDistanceKm(json: JSONObject): Double? =
+        json.optDouble("authorTotalDistanceKm", Double.NaN).takeIf { !it.isNaN() }
+
+    private fun parseCommunityComment(json: JSONObject): CommunityCommentResult =
+        CommunityCommentResult(
+            commentId = json.getLong("commentId"),
+            postId = json.getLong("postId"),
+            authorId = json.getLong("authorId"),
+            authorName = json.optString("authorName").takeIf { it.isNotBlank() },
+            authorPicture = json.optString("authorPicture").takeIf { it.isNotBlank() },
+            authorTotalDistanceKm = parseCommentAuthorTotalDistanceKm(json),
+            parentId = json.optLong("parentId", -1L).takeIf { it > 0 },
+            content = json.optString("content"),
+            createdAt = json.optString("createdAt"),
+            updatedAt = json.optString("updatedAt").takeIf { it.isNotBlank() && it != "null" },
+        )
 
     fun listPosts(cursor: String?, size: Int = 20): CommunityPostCursorListResult {
         val baseUrl = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts"
@@ -214,7 +227,7 @@ object BackendCommunityApi {
         }
     }
 
-    fun createComment(postId: Long, content: String, parentId: Long? = null): CreateCommunityCommentResult {
+    fun createComment(postId: Long, content: String, parentId: Long? = null): CommunityCommentMutationResult {
         require(postId > 0) { "postId must be positive" }
         val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/comments"
 
@@ -237,14 +250,9 @@ object BackendCommunityApi {
             }
 
             val json = JSONObject(responseBody)
-            return CreateCommunityCommentResult(
-                commentId = json.getLong("commentId"),
-                postId = json.getLong("postId"),
-                authorId = json.getLong("authorId"),
-                parentId = json.optLong("parentId", -1L).takeIf { it > 0 },
-                content = json.getString("content"),
+            return CommunityCommentMutationResult(
+                comment = parseCommunityComment(json.getJSONObject("comment")),
                 commentCount = json.optInt("commentCount", 0),
-                createdAt = json.optString("createdAt"),
             )
         }
     }
@@ -332,6 +340,39 @@ object BackendCommunityApi {
         }
     }
 
+    fun updateComment(postId: Long, commentId: Long, content: String): CommunityCommentMutationResult {
+        require(postId > 0) { "postId must be positive" }
+        require(commentId > 0) { "commentId must be positive" }
+        require(content.isNotBlank()) { "content must not be blank" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/comments/$commentId"
+
+        val bodyJson =
+            JSONObject()
+                .put("content", content)
+                .put("parentId", JSONObject.NULL)
+
+        val requestBody = bodyJson.toString().toRequestBody(jsonMediaType)
+
+        val request = Request.Builder()
+            .url(url)
+            .put(requestBody)
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Update community comment failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return CommunityCommentMutationResult(
+                comment = parseCommunityComment(json.getJSONObject("comment")),
+                commentCount = json.optInt("commentCount", 0),
+            )
+        }
+    }
+
     fun listComments(postId: Long, cursor: String?, size: Int = 20): CommunityCommentCursorListResult {
         require(postId > 0) { "postId must be positive" }
 
@@ -361,16 +402,14 @@ object BackendCommunityApi {
                     val result = ArrayList<CommunityCommentResult>(array.length())
                     for (i in 0 until array.length()) {
                         val item = array.getJSONObject(i)
-                        val commentAuthorTotalDistanceKm =
-                            item.optDouble("authorTotalDistanceKm", Double.NaN)
-                                .takeIf { !it.isNaN() }
                         result.add(
                             CommunityCommentResult(
                                 commentId = item.getLong("commentId"),
+                                postId = item.getLong("postId"),
                                 authorId = item.getLong("authorId"),
                                 authorName = item.optString("authorName").takeIf { it.isNotBlank() },
                                 authorPicture = item.optString("authorPicture").takeIf { it.isNotBlank() },
-                                authorTotalDistanceKm = commentAuthorTotalDistanceKm,
+                                authorTotalDistanceKm = parseCommentAuthorTotalDistanceKm(item),
                                 parentId = item.optLong("parentId", -1L).takeIf { it > 0 },
                                 content = item.optString("content"),
                                 createdAt = item.optString("createdAt"),
