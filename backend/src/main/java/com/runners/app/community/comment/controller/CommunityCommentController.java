@@ -64,7 +64,7 @@ public class CommunityCommentController {
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size
     ) {
-        Long userId = SecurityUtils.extractUserId(authentication);
+        SecurityUtils.extractUserId(authentication);
         return communityCommentService.listComments(postId, cursor, size);
     }
 
