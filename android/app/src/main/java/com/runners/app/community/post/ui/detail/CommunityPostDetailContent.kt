@@ -178,7 +178,7 @@ internal fun CommunityPostDetailContent(
                     .windowInsetsPadding(
                         imeInsets.only(WindowInsetsSides.Bottom),
                     )
-                    .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 0.dp),
+                    .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 0.dp),
             )
         },
     ) { innerPadding ->
