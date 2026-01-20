@@ -50,6 +50,8 @@ public class AuthService {
             User user = existingBySub.get();
             user.updateProfile(name, picture);
             ensureNickname(user);
+            // 닉네임/프로필 변경이 트랜잭션에 반영되도록 명시적으로 save
+            userRepository.save(user);
             String accessToken = jwtService.createAccessToken(user);
             String refreshToken = jwtService.createRefreshToken(user);
             refreshTokenService.save(user.getId(), refreshToken, jwtService.refreshTokenTtl());
@@ -68,6 +70,8 @@ public class AuthService {
             userRepository.save(user); // 변경감지로도 OK
             // ⚠️ 이 케이스는 설계 선택: email 가입 + google 연동을 허용할지 여부에 따라 달라짐
             ensureNickname(user);
+            // ensureNickname에서 닉네임이 채워진 경우도 DB에 확실히 반영
+            userRepository.save(user);
             String accessToken = jwtService.createAccessToken(user);
             String refreshToken = jwtService.createRefreshToken(user);
             refreshTokenService.save(user.getId(), refreshToken, jwtService.refreshTokenTtl());
