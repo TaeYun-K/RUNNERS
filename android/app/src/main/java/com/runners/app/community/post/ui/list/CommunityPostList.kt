@@ -37,6 +37,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.runners.app.network.CommunityPostSummaryResult
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.util.Locale
 
 @Composable
@@ -228,8 +233,7 @@ private fun PostCard(
 
                 Spacer(Modifier.weight(1f))
 
-                val dateLabel =
-                    post.createdAt.takeIf { it.length >= 10 }?.substring(0, 10) ?: post.createdAt
+                val dateLabel = formatCreatedAtForList(post.createdAt)
                 if (dateLabel.isNotBlank()) {
                     Text(
                         text = dateLabel,
@@ -288,3 +292,21 @@ private fun StatItem(
 
 private fun formatKm(km: Double): String =
     String.format(Locale.getDefault(), "%.1fkm", km.coerceAtLeast(0.0))
+
+private fun formatCreatedAtForList(createdAt: String): String {
+    fun parseInstantOrNull(raw: String): Instant? {
+        val text = raw.trim().replace(' ', 'T')
+        return runCatching { OffsetDateTime.parse(text).toInstant() }.getOrNull()
+            ?: runCatching {
+                LocalDateTime.parse(text).atZone(ZoneId.systemDefault()).toInstant()
+            }.getOrNull()
+    }
+
+    val fallback = createdAt.takeIf { it.length >= 10 }?.substring(0, 10) ?: createdAt
+    val createdInstant = parseInstantOrNull(createdAt) ?: return fallback
+
+    val minutes = Duration.between(createdInstant, Instant.now()).toMinutes()
+    if (minutes < 0) return fallback
+    if (minutes < 60) return if (minutes == 0L) "방금 전" else "${minutes}분 전"
+    return fallback
+}
