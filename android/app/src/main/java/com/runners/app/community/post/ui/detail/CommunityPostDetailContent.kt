@@ -25,11 +25,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RemoveRedEye
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -84,6 +87,7 @@ internal fun CommunityPostDetailContent(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var menuOpenedCommentId by remember { mutableStateOf<Long?>(null) }
     var expandedThreadRootIds by remember { mutableStateOf(setOf<Long>()) }
+    var postMenuExpanded by remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
 
     val threadedComments = remember(uiState.comments) { threadCommunityComments(uiState.comments) }
@@ -113,27 +117,48 @@ internal fun CommunityPostDetailContent(
                     }
                 },
                 actions = {
-                    val canEdit = uiState.post?.authorId == currentUserId
-                    if (canEdit) {
-                        TextButton(
-                            onClick = onEdit,
-                            enabled = !uiState.isPostLoading &&
-                                !uiState.isUpdatingPost &&
-                                !uiState.isDeletingPost,
-                        ) {
-                            Text("수정")
-                        }
-                        TextButton(
-                            onClick = { showDeleteConfirm = true },
-                            enabled = !uiState.isPostLoading &&
-                                !uiState.isUpdatingPost &&
-                                !uiState.isDeletingPost,
-                        ) {
-                            Text(
-                                text = "삭제",
-                                color = MaterialTheme.colorScheme.error,
+                    val canManage = uiState.post?.authorId == currentUserId
+                    val canClick =
+                        !uiState.isPostLoading &&
+                            !uiState.isUpdatingPost &&
+                            !uiState.isDeletingPost
+
+                    IconButton(
+                        onClick = { postMenuExpanded = true },
+                        enabled = canClick,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreVert,
+                            contentDescription = "More",
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = postMenuExpanded,
+                        onDismissRequest = { postMenuExpanded = false },
+                    ) {
+                        if (canManage) {
+                            DropdownMenuItem(
+                                text = { Text("수정") },
+                                onClick = {
+                                    postMenuExpanded = false
+                                    onEdit()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("삭제") },
+                                onClick = {
+                                    postMenuExpanded = false
+                                    showDeleteConfirm = true
+                                },
                             )
                         }
+
+                        DropdownMenuItem(
+                            text = { Text("신고 (준비중)") },
+                            enabled = false,
+                            onClick = { postMenuExpanded = false },
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -259,16 +284,41 @@ internal fun CommunityPostDetailContent(
                             }
 
                             item(key = "author") {
-                                Row(
+                                Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     CommunityAuthorLine(
                                         nickname = data.authorName ?: "익명",
                                         totalDistanceKm = data.authorTotalDistanceKm,
                                         showTotalDistance = showTotalDistance,
                                     )
+
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val createdLabel = remember(data.createdAt) {
+                                            toSecondPrecision(data.createdAt)
+                                        }
+                                        val showEdited = remember(data.createdAt, data.updatedAt) {
+                                            shouldShowEditedBadge(
+                                                createdAt = data.createdAt,
+                                                updatedAt = data.updatedAt,
+                                            )
+                                        }
+
+                                        Text(
+                                            text = createdLabel,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+
+                                        if (showEdited) {
+                                            Text(
+                                                text = "  ·  (수정됨)",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
@@ -291,33 +341,6 @@ internal fun CommunityPostDetailContent(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        val createdLabel = remember(data.createdAt) {
-                                            toSecondPrecision(
-                                                data.createdAt
-                                            )
-                                        }
-                                        val showEdited = remember(data.createdAt, data.updatedAt) {
-                                            shouldShowEditedBadge(
-                                                createdAt = data.createdAt,
-                                                updatedAt = data.updatedAt
-                                            )
-                                        }
-                                        Text(
-                                            text = createdLabel,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-
-                                        if (showEdited) {
-                                            Text(
-                                                text = "  ·  (수정됨)",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                        }
-                                    }
-
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                                         verticalAlignment = Alignment.CenterVertically,
