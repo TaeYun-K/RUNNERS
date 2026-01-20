@@ -17,8 +17,9 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -121,9 +122,15 @@ internal fun CommunityPostDetailCommentComposer(
                         ),
                     )
 
-                    IconButton(
+                    FilledIconButton(
                         onClick = onSubmit,
                         enabled = canSubmit,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                         modifier = Modifier.size(44.dp),
                     ) {
                         if (isSubmitting) {
@@ -137,9 +144,6 @@ internal fun CommunityPostDetailCommentComposer(
                                 imageVector = Icons.AutoMirrored.Filled.Send,
                                 contentDescription = "댓글 작성",
                                 modifier = Modifier.size(20.dp),
-                                tint =
-                                    if (canSubmit) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
