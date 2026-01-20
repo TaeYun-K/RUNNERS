@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +22,18 @@ public class CommunityCommentRecommendController {
 
     public CommunityCommentRecommendController(CommunityCommentRecommendService communityCommentRecommendService) {
         this.communityCommentRecommendService = communityCommentRecommendService;
+    }
+
+    @Operation(summary = "댓글 추천 여부 조회", description = "JWT로 인증된 사용자의 댓글 추천(좋아요) 여부를 조회합니다")
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    public CommunityCommentRecommendResponse getRecommendStatus(
+            Authentication authentication,
+            @PathVariable Long postId,
+            @PathVariable Long commentId
+    ) {
+        Long userId = SecurityUtils.extractUserId(authentication);
+        return communityCommentRecommendService.getRecommendStatus(userId, postId, commentId);
     }
 
     @Operation(summary = "댓글 추천", description = "JWT로 인증된 사용자가 댓글을 추천(좋아요)합니다 (idempotent)")
@@ -47,4 +60,3 @@ public class CommunityCommentRecommendController {
         return communityCommentRecommendService.unrecommend(userId, postId, commentId);
     }
 }
-

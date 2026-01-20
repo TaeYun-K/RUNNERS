@@ -30,6 +30,21 @@ public class CommunityCommentRecommendService {
         this.userRepository = userRepository;
     }
 
+    @Transactional(readOnly = true)
+    public CommunityCommentRecommendResponse getRecommendStatus(Long userId, Long postId, Long commentId) {
+        CommunityComment comment = communityCommentRepository.findById(commentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+        if (comment.getStatus() == CommunityContentStatus.DELETED || !comment.getPost().getId().equals(postId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
+        }
+
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        boolean recommended = communityCommentRecommendRepository.existsById(new CommunityCommentRecommendId(comment.getId(), userId));
+        return new CommunityCommentRecommendResponse(postId, comment.getId(), recommended, comment.getRecommendCount());
+    }
+
     @Transactional
     public CommunityCommentRecommendResponse recommend(Long userId, Long postId, Long commentId) {
         CommunityComment comment = communityCommentRepository.findByIdForUpdate(commentId)
