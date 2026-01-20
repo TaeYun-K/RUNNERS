@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -65,6 +67,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import com.runners.app.community.viewmodel.CommunityPostDetailViewModel
 import com.runners.app.network.CommunityCommentResult
 import com.runners.app.network.CommunityPostDetailResult
@@ -100,6 +104,7 @@ fun CommunityPostDetailScreen(
             .value
     val pullToRefreshState = rememberPullToRefreshState()
     var menuOpenedCommentId by remember { mutableStateOf<Long?>(null) }
+    val imeOffset = rememberImeBottomOffset()
 
     fun toSecondPrecision(raw: String): String {
         val normalized = raw.replace('T', ' ')
@@ -119,6 +124,7 @@ fun CommunityPostDetailScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = {
@@ -161,116 +167,121 @@ fun CommunityPostDetailScreen(
                 ),
             )
         },
+
         bottomBar = {
-            Card(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars)),
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = imeOffset),
             ) {
-                Column(
+                Card(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 ) {
-                    val canSubmit = uiState.canSubmitComment
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                     ) {
-                        // 사용자 아바타
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = "U",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
+                        val canSubmit = uiState.canSubmitComment
 
-                        OutlinedTextField(
-                            value = uiState.commentDraft,
-                            onValueChange = viewModel::onCommentDraftChange,
-                            placeholder = {
-                                Text(
-                                    "댓글을 입력하세요...",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                )
-                            },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            enabled = !uiState.isSubmittingComment,
-                            shape = RoundedCornerShape(24.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            ),
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (canSubmit) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                            contentAlignment = Alignment.Center,
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            IconButton(
-                                onClick = viewModel::submitComment,
-                                enabled = canSubmit,
-                                modifier = Modifier.size(44.dp),
+                            // 사용자 아바타
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center,
                             ) {
-                                if (uiState.isSubmittingComment) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                Text(
+                                    text = "U",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                            }
+
+                            OutlinedTextField(
+                                value = uiState.commentDraft,
+                                onValueChange = viewModel::onCommentDraftChange,
+                                placeholder = {
+                                    Text(
+                                        "댓글을 입력하세요...",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Send,
-                                        contentDescription = "댓글 작성",
-                                        modifier = Modifier.size(20.dp),
-                                        tint = if (canSubmit) MaterialTheme.colorScheme.onPrimary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                enabled = !uiState.isSubmittingComment,
+                                shape = RoundedCornerShape(24.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                ),
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (canSubmit) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                IconButton(
+                                    onClick = viewModel::submitComment,
+                                    enabled = canSubmit,
+                                    modifier = Modifier.size(44.dp),
+                                ) {
+                                    if (uiState.isSubmittingComment) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(18.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.Send,
+                                            contentDescription = "댓글 작성",
+                                            modifier = Modifier.size(20.dp),
+                                            tint = if (canSubmit) MaterialTheme.colorScheme.onPrimary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    if (uiState.submitCommentErrorMessage != null) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                        ) {
-                            Text(
-                                text = uiState.submitCommentErrorMessage!!,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            )
+                        if (uiState.submitCommentErrorMessage != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                ),
+                                shape = RoundedCornerShape(6.dp),
+                            ) {
+                                Text(
+                                    text = uiState.submitCommentErrorMessage!!,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                )
+                            }
                         }
                     }
                 }
@@ -588,6 +599,18 @@ fun CommunityPostDetailScreen(
         )
     }
 }
+
+@Composable
+private fun rememberImeBottomOffset(): Dp {
+    val density = LocalDensity.current
+
+    val imeBottomPx = WindowInsets.ime.getBottom(density)
+    val navBottomPx = WindowInsets.navigationBars.getBottom(density)
+
+    val offsetPx = (imeBottomPx - navBottomPx).coerceAtLeast(0)
+    return with(density) { offsetPx.toDp() }
+}
+
 
 @Composable
 private fun CommonPostStat(

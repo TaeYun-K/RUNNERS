@@ -30,6 +30,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.runners.app.navigation.shouldShowBottomBar
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +45,8 @@ class MainActivity : ComponentActivity() {
 				val context = LocalContext.current
 				val scope = rememberCoroutineScope()
 				val navController = rememberNavController()
+				val navBackStackEntry by navController.currentBackStackEntryAsState()
+				val currentRoute = navBackStackEntry?.destination?.route
 
 				LaunchedEffect(Unit) {
 					AuthTokenStore.load(context)
@@ -79,7 +83,11 @@ class MainActivity : ComponentActivity() {
 
 				Scaffold(
 					modifier = Modifier.fillMaxSize(),
-					bottomBar = { if (session != null) RunnersBottomBar(navController) },
+					bottomBar = {
+						if (session != null && shouldShowBottomBar(currentRoute)) {
+							RunnersBottomBar(navController)
+						}
+					},
 				) { innerPadding ->
 					if (session == null) {
 						LoginScreen(

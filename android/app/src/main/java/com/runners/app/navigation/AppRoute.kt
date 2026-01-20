@@ -14,3 +14,12 @@ sealed class AppRoute(val route: String) {
     data object MyPage : AppRoute("mypage")
 }
 
+fun shouldShowBottomBar(currentRoute: String?): Boolean {
+    if (currentRoute == null) return true
+
+    return when {
+        currentRoute.startsWith("community/create") -> false
+        currentRoute.startsWith("community/posts/") -> false // detail, edit 모두 포함
+        else -> true
+    }
+}
