@@ -12,12 +12,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsRun
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
@@ -71,69 +69,18 @@ fun RecordsDashboardScreen(
 
         RunningCalendarCard(runs = runs)
 
-        // 메인 통계 카드
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-            ),
-            shape = RoundedCornerShape(20.dp),
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(Blue40, Blue60)
-                            )
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsRun,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "총 누적 거리",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = totalDistanceKm?.let { String.format(Locale.US, "%.1f km", it) } ?: "0.0 km",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = if (runs.isEmpty()) "헬스 커넥트 연동 후 기록이 표시됩니다" else "이번 달 달력에서 날짜별 기록을 확인하세요",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
-                )
-            }
-        }
-
         // 통계 그리드
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            StatCard(
+                icon = Icons.Default.DirectionsRun,
+                label = "총 누적 거리",
+                value = totalDistanceKm?.let { String.format(Locale.US, "%.1f km", it) } ?: "0.0 km",
+                gradientColors = listOf(Blue40, Blue60),
+                modifier = Modifier.weight(1f),
+            )
             StatCard(
                 icon = Icons.Default.Schedule,
                 label = "총 시간",
@@ -141,13 +88,6 @@ fun RecordsDashboardScreen(
                 gradientColors = listOf(Teal40, Teal60),
                 modifier = Modifier.weight(1f),
             )
-            StatCard(
-                icon = Icons.Default.Speed,
-                label = "평균 페이스",
-                value = avgPaceText,
-                gradientColors = listOf(Blue40, Blue60),
-                modifier = Modifier.weight(1f),
-            )
         }
 
         Row(
@@ -155,13 +95,10 @@ fun RecordsDashboardScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             StatCard(
-                icon = Icons.Default.LocalFireDepartment,
-                label = "소모 칼로리",
-                value = "—",
-                gradientColors = listOf(
-                    Color(0xFFFF6B6B),
-                    Color(0xFFFF8E8E),
-                ),
+                icon = Icons.Default.Speed,
+                label = "평균 페이스",
+                value = avgPaceText,
+                gradientColors = listOf(Teal40, Teal60),
                 modifier = Modifier.weight(1f),
             )
             StatCard(
@@ -175,8 +112,6 @@ fun RecordsDashboardScreen(
                 modifier = Modifier.weight(1f),
             )
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         // 안내 카드
         Card(
