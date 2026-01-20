@@ -18,11 +18,12 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -104,7 +105,6 @@ fun CommunityPostDetailScreen(
             .value
     val pullToRefreshState = rememberPullToRefreshState()
     var menuOpenedCommentId by remember { mutableStateOf<Long?>(null) }
-    val imeOffset = rememberImeBottomOffset()
 
     fun toSecondPrecision(raw: String): String {
         val normalized = raw.replace('T', ' ')
@@ -172,7 +172,11 @@ fun CommunityPostDetailScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = imeOffset),
+                    .windowInsetsPadding(
+                        WindowInsets.ime
+                            .union(WindowInsets.navigationBars)
+                            .only(WindowInsetsSides.Bottom)
+                    )
             ) {
                 Card(
                     modifier = Modifier
@@ -362,99 +366,107 @@ fun CommunityPostDetailScreen(
                 else -> {
                     val data = uiState.post
                     if (data != null) {
-                        Column(
+                        LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
                             // 제목
-                            Text(
-                                text = data.title,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
-
-                            // 작성자 정보
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                CommunityAuthorLine(
-                                    nickname = data.authorName ?: "익명",
-                                    totalDistanceKm = data.authorTotalDistanceKm,
-                                    showTotalDistance = showTotalDistanceInCommunity,
+                            item(key = "title") {
+                                Text(
+                                    text = data.title,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                 )
                             }
 
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            // 작성자 정보
+                            item(key = "author") {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    CommunityAuthorLine(
+                                        nickname = data.authorName ?: "익명",
+                                        totalDistanceKm = data.authorTotalDistanceKm,
+                                        showTotalDistance = showTotalDistanceInCommunity,
+                                    )
+                                }
+                            }
+
+                            item(key = "divider-author") {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            }
 
                             // 본문
-                            Text(
-                                text = data.content,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.5f,
-                                modifier = Modifier.padding(vertical = 8.dp),
-                            )
+                            item(key = "content") {
+                                Text(
+                                    text = data.content,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.5f,
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                )
+                            }
 
                             // 날짜 + 통계
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    val createdLabel = toSecondPrecision(data.createdAt)
-                                    Text(
-                                        text = createdLabel,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-
-                                    if (shouldShowEditedBadge(createdAt = data.createdAt, updatedAt = data.updatedAt)) {
+                            item(key = "meta") {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val createdLabel = remember(data.createdAt) { toSecondPrecision(data.createdAt) }
+                                        val showEdited = remember(data.createdAt, data.updatedAt) {
+                                            shouldShowEditedBadge(createdAt = data.createdAt, updatedAt = data.updatedAt)
+                                        }
                                         Text(
-                                            text = "  ·  (수정됨)",
+                                            text = createdLabel,
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
+
+                                        if (showEdited) {
+                                            Text(
+                                                text = "  ·  (수정됨)",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
                                     }
-                                }
 
-                                HorizontalDivider(
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                )
+                                    HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    )
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    CommonPostStat(
-                                        icon = Icons.Outlined.ThumbUp,
-                                        text = "추천 ${data.recommendCount}",
-                                        iconColor = MaterialTheme.colorScheme.primary,
-                                    )
-                                    CommonPostStat(
-                                        icon = Icons.Outlined.ChatBubbleOutline,
-                                        text = "댓글 ${data.commentCount}",
-                                        iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    CommonPostStat(
-                                        icon = Icons.Outlined.RemoveRedEye,
-                                        text = "조회수 ${data.viewCount}",
-                                        iconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        CommonPostStat(
+                                            icon = Icons.Outlined.ThumbUp,
+                                            text = "추천 ${data.recommendCount}",
+                                            iconColor = MaterialTheme.colorScheme.primary,
+                                        )
+                                        CommonPostStat(
+                                            icon = Icons.Outlined.ChatBubbleOutline,
+                                            text = "댓글 ${data.commentCount}",
+                                            iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        CommonPostStat(
+                                            icon = Icons.Outlined.RemoveRedEye,
+                                            text = "조회수 ${data.viewCount}",
+                                            iconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        )
+                                    }
                                 }
                             }
 
-                            // 댓글 섹션
-                            Column (
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
+                            item(key = "comments-header") {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -472,16 +484,25 @@ fun CommunityPostDetailScreen(
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }
-                                if (uiState.commentsErrorMessage != null && uiState.comments.isEmpty()) {
-                                    Text(
-                                        text = uiState.commentsErrorMessage!!,
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
-                                    TextButton(onClick = viewModel::refresh) {
-                                        Text("다시 시도")
+                            }
+
+                            when {
+                                uiState.commentsErrorMessage != null && uiState.comments.isEmpty() -> {
+                                    item(key = "comments-error") {
+                                        Text(
+                                            text = uiState.commentsErrorMessage!!,
+                                            color = MaterialTheme.colorScheme.error,
+                                        )
                                     }
-                                } else {
-                                    if (uiState.comments.isEmpty() && uiState.isCommentsLoading) {
+                                    item(key = "comments-retry") {
+                                        TextButton(onClick = viewModel::refresh) {
+                                            Text("다시 시도")
+                                        }
+                                    }
+                                }
+
+                                uiState.comments.isEmpty() && uiState.isCommentsLoading -> {
+                                    item(key = "comments-loading") {
                                         Box(
                                             Modifier.fillMaxWidth(),
                                             contentAlignment = Alignment.Center,
@@ -491,67 +512,84 @@ fun CommunityPostDetailScreen(
                                                 strokeWidth = 2.dp,
                                             )
                                         }
-                                    } else if (uiState.comments.isEmpty()) {
+                                    }
+                                }
+
+                                uiState.comments.isEmpty() -> {
+                                    item(key = "comments-empty") {
                                         Text(
                                             text = "아직 댓글이 없어요. 첫 댓글을 남겨보세요!",
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             style = MaterialTheme.typography.bodyMedium,
                                         )
-                                     } else {
-                                        uiState.comments.forEach { comment ->
-                                            CommentItem(
-                                                comment = comment,
-                                                currentUserId = currentUserId,
-                                                menuExpanded = menuOpenedCommentId == comment.commentId,
-                                                onMenuExpandedChange = { expanded ->
-                                                    menuOpenedCommentId = if (expanded) comment.commentId else null
-                                                },
-                                                isEditing = uiState.editingCommentId == comment.commentId,
-                                                editingDraft = uiState.editingCommentDraft,
-                                                onEditingDraftChange = viewModel::onEditingCommentDraftChange,
-                                                onEditClick = {
-                                                    menuOpenedCommentId = null
-                                                    viewModel.startEditingComment(
-                                                        commentId = comment.commentId,
-                                                        initialContent = comment.content,
-                                                    )
-                                                },
-                                                onDeleteClick = {
-                                                    menuOpenedCommentId = null
-                                                    viewModel.requestDeleteComment(comment.commentId)
-                                                },
-                                                onEditCancel = viewModel::cancelEditingComment,
-                                                onEditSave = viewModel::submitEditingComment,
-                                                isEditSaving = uiState.isUpdatingComment,
-                                                showTotalDistance = showTotalDistanceInCommunity,
-                                                toSecondPrecision = ::toSecondPrecision,
-                                            )
-                                        }
+                                    }
+                                }
 
-                                        if (uiState.updateCommentErrorMessage != null) {
+                                else -> {
+                                    items(
+                                        items = uiState.comments,
+                                        key = { it.commentId },
+                                    ) { comment ->
+                                        CommentItem(
+                                            comment = comment,
+                                            currentUserId = currentUserId,
+                                            menuExpanded = menuOpenedCommentId == comment.commentId,
+                                            onMenuExpandedChange = { expanded ->
+                                                menuOpenedCommentId = if (expanded) comment.commentId else null
+                                            },
+                                            isEditing = uiState.editingCommentId == comment.commentId,
+                                            editingDraft = uiState.editingCommentDraft,
+                                            onEditingDraftChange = viewModel::onEditingCommentDraftChange,
+                                            onEditClick = {
+                                                menuOpenedCommentId = null
+                                                viewModel.startEditingComment(
+                                                    commentId = comment.commentId,
+                                                    initialContent = comment.content,
+                                                )
+                                            },
+                                            onDeleteClick = {
+                                                menuOpenedCommentId = null
+                                                viewModel.requestDeleteComment(comment.commentId)
+                                            },
+                                            onEditCancel = viewModel::cancelEditingComment,
+                                            onEditSave = viewModel::submitEditingComment,
+                                            isEditSaving = uiState.isUpdatingComment,
+                                            showTotalDistance = showTotalDistanceInCommunity,
+                                            toSecondPrecision = ::toSecondPrecision,
+                                        )
+                                    }
+
+                                    if (uiState.updateCommentErrorMessage != null) {
+                                        item(key = "comments-update-error") {
                                             Text(
                                                 text = uiState.updateCommentErrorMessage!!,
                                                 color = MaterialTheme.colorScheme.error,
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
                                         }
-                                        if (uiState.deleteCommentErrorMessage != null) {
+                                    }
+                                    if (uiState.deleteCommentErrorMessage != null) {
+                                        item(key = "comments-delete-error") {
                                             Text(
                                                 text = uiState.deleteCommentErrorMessage!!,
                                                 color = MaterialTheme.colorScheme.error,
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
                                         }
+                                    }
 
-                                        if (uiState.commentsErrorMessage != null) {
+                                    if (uiState.commentsErrorMessage != null) {
+                                        item(key = "comments-more-error") {
                                             Text(
                                                 text = uiState.commentsErrorMessage!!,
-                                                 color = MaterialTheme.colorScheme.error,
+                                                color = MaterialTheme.colorScheme.error,
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
                                         }
+                                    }
 
-                                        if (uiState.commentsNextCursor != null) {
+                                    if (uiState.commentsNextCursor != null) {
+                                        item(key = "comments-more") {
                                             TextButton(
                                                 onClick = viewModel::loadMoreComments,
                                                 enabled = !uiState.isCommentsLoading,
@@ -567,7 +605,9 @@ fun CommunityPostDetailScreen(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            item(key = "bottom-spacer") {
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
                         }
                     }
                 }
@@ -601,16 +641,14 @@ fun CommunityPostDetailScreen(
 }
 
 @Composable
-private fun rememberImeBottomOffset(): Dp {
+private fun bottomInsetDp(): Dp {
     val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    val navBottom = WindowInsets.navigationBars.getBottom(density)
 
-    val imeBottomPx = WindowInsets.ime.getBottom(density)
-    val navBottomPx = WindowInsets.navigationBars.getBottom(density)
-
-    val offsetPx = (imeBottomPx - navBottomPx).coerceAtLeast(0)
-    return with(density) { offsetPx.toDp() }
+    val bottomPx = if (imeBottom > navBottom) imeBottom else navBottom
+    return with(density) { bottomPx.toDp() }
 }
-
 
 @Composable
 private fun CommonPostStat(
@@ -659,6 +697,13 @@ private fun CommentItem(
 ) {
     val isDeleted = comment.content == "삭제된 댓글입니다"
     val canManage = !isDeleted && comment.authorId == currentUserId
+    val createdLabel = remember(comment.createdAt) { toSecondPrecision(comment.createdAt) }
+    val updatedLabel = remember(comment.updatedAt) {
+        comment.updatedAt?.let(toSecondPrecision)
+    }
+    val showEdited = remember(comment.createdAt, comment.updatedAt, isDeleted) {
+        !isDeleted && shouldShowEditedBadge(comment.createdAt, comment.updatedAt)
+    }
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -703,13 +748,10 @@ private fun CommentItem(
                         )
                     }
                 }
-
-                val createdLabel = toSecondPrecision(comment.createdAt)
-                val updatedLabel = comment.updatedAt?.let(toSecondPrecision)
                 Text(
                     text = buildString {
                         append(createdLabel)
-                        if (!isDeleted && shouldShowEditedBadge(comment.createdAt, comment.updatedAt)) {
+                        if (showEdited) {
                             append(" (수정됨)")
                         }
                     },
