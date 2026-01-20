@@ -38,9 +38,21 @@ import com.runners.app.ui.theme.Blue40
 import com.runners.app.ui.theme.Blue60
 import com.runners.app.ui.theme.Teal40
 import com.runners.app.ui.theme.Teal60
+import java.util.Locale
 
 @Composable
-fun RecordsDashboardScreen(modifier: Modifier = Modifier) {
+fun RecordsDashboardScreen(
+    runs: List<RunRecordUiModel> = emptyList(),
+    modifier: Modifier = Modifier,
+) {
+    val totalDistanceKm = runs.sumOf { it.distanceKm }.takeIf { it > 0.0 }
+    val totalDurationMinutes = runs.sumOf { it.durationMinutes ?: 0L }.takeIf { it > 0L }
+    val runCount = runs.size
+    val avgPaceText = formatPaceMinutesPerKm(
+        distanceKm = totalDistanceKm,
+        totalMinutes = totalDurationMinutes,
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -56,6 +68,8 @@ fun RecordsDashboardScreen(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
         )
+
+        RunningCalendarCard(runs = runs)
 
         // 메인 통계 카드
         Card(
@@ -99,7 +113,7 @@ fun RecordsDashboardScreen(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "0.0 km",
+                    text = totalDistanceKm?.let { String.format(Locale.US, "%.1f km", it) } ?: "0.0 km",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -108,7 +122,7 @@ fun RecordsDashboardScreen(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "헬스 커넥트 연동 후 기록이 표시됩니다",
+                    text = if (runs.isEmpty()) "헬스 커넥트 연동 후 기록이 표시됩니다" else "이번 달 달력에서 날짜별 기록을 확인하세요",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
                 )
@@ -123,14 +137,14 @@ fun RecordsDashboardScreen(modifier: Modifier = Modifier) {
             StatCard(
                 icon = Icons.Default.Schedule,
                 label = "총 시간",
-                value = "0시간",
+                value = totalDurationMinutes?.let { formatTotalTime(it) } ?: "0시간",
                 gradientColors = listOf(Teal40, Teal60),
                 modifier = Modifier.weight(1f),
             )
             StatCard(
                 icon = Icons.Default.Speed,
                 label = "평균 페이스",
-                value = "-'--\"",
+                value = avgPaceText,
                 gradientColors = listOf(Blue40, Blue60),
                 modifier = Modifier.weight(1f),
             )
@@ -143,7 +157,7 @@ fun RecordsDashboardScreen(modifier: Modifier = Modifier) {
             StatCard(
                 icon = Icons.Default.LocalFireDepartment,
                 label = "소모 칼로리",
-                value = "0 kcal",
+                value = "—",
                 gradientColors = listOf(
                     Color(0xFFFF6B6B),
                     Color(0xFFFF8E8E),
@@ -153,7 +167,7 @@ fun RecordsDashboardScreen(modifier: Modifier = Modifier) {
             StatCard(
                 icon = Icons.Default.DirectionsRun,
                 label = "러닝 횟수",
-                value = "0회",
+                value = "${runCount}회",
                 gradientColors = listOf(
                     Color(0xFF4CAF50),
                     Color(0xFF81C784),
@@ -183,13 +197,27 @@ fun RecordsDashboardScreen(modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "마이페이지에서 헬스 커넥트를 연동하면 러닝 기록이 자동으로 동기화됩니다. 스마트워치나 다른 피트니스 앱의 기록도 함께 볼 수 있어요.",
+                    text = "마이페이지에서 헬스 커넥트를 연동하면 러닝 기록이 자동으로 동기화됩니다. (칼로리/심박 등은 추후 지원)",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                 )
             }
         }
     }
+}
+
+private fun formatTotalTime(totalMinutes: Long): String {
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return if (hours > 0) "${hours}시간 ${minutes}분" else "${minutes}분"
+}
+
+private fun formatPaceMinutesPerKm(distanceKm: Double?, totalMinutes: Long?): String {
+    if (distanceKm == null || totalMinutes == null || distanceKm <= 0.0 || totalMinutes <= 0L) return "-'--\""
+    val minutesPerKm = totalMinutes.toDouble() / distanceKm
+    val wholeMinutes = minutesPerKm.toInt()
+    val seconds = ((minutesPerKm - wholeMinutes) * 60).toInt().coerceIn(0, 59)
+    return String.format(Locale.US, "%d'%02d\"", wholeMinutes, seconds)
 }
 
 @Composable

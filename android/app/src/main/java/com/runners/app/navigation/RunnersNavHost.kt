@@ -32,6 +32,7 @@ import com.runners.app.mypage.MyPageScreen
 import com.runners.app.network.GoogleLoginResult
 import com.runners.app.network.BackendUserApi
 import com.runners.app.records.RecordsDashboardScreen
+import com.runners.app.records.RunRecordUiModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -59,6 +60,7 @@ fun RunnersNavHost(
     var monthDistanceKm by remember { mutableStateOf<Double?>(null) }
     var firstRunDate by remember { mutableStateOf<LocalDate?>(null) }
     var recentRuns by remember { mutableStateOf<List<RecentRunUiModel>>(emptyList()) }
+    var allRuns by remember { mutableStateOf<List<RunRecordUiModel>>(emptyList()) }
     var lastSyncedTotalDistanceKm by remember { mutableStateOf<Double?>(null) }
 
     LaunchedEffect(providerPackage) {
@@ -67,6 +69,7 @@ fun RunnersNavHost(
         monthDistanceKm = null
         firstRunDate = null
         recentRuns = emptyList()
+        allRuns = emptyList()
 
         runCatching {
             val client = HealthConnectRepository.getClient(context, providerPackage)
@@ -79,6 +82,7 @@ fun RunnersNavHost(
                 val monthKm: Double?,
                 val firstDate: LocalDate?,
                 val recentRuns: List<RecentRunUiModel>,
+                val runs: List<RunRecordUiModel>,
             )
 
             val stats = withContext(Dispatchers.IO) {
@@ -150,6 +154,7 @@ fun RunnersNavHost(
                 var monthKm = 0.0
 
                 val recent = ArrayList<RecentRunUiModel>(5)
+                val runs = ArrayList<RunRecordUiModel>(sessions.size)
                 val firstDate = sessions.minByOrNull { it.startTime }?.startTime?.atZone(zoneId)?.toLocalDate()
 
                 for ((index, session) in sessions.withIndex()) {
@@ -162,6 +167,16 @@ fun RunnersNavHost(
                     totalKm += distanceKm
                     if (session.startTime >= weekStartInstant) weekKm += distanceKm
                     if (session.startTime >= monthStartInstant) monthKm += distanceKm
+
+                    runs.add(
+                        RunRecordUiModel(
+                            date = sessionDate,
+                            startTime = session.startTime,
+                            endTime = session.endTime,
+                            distanceKm = distanceKm,
+                            durationMinutes = durationMinutes,
+                        )
+                    )
 
                     if (index < 5) {
                         recent.add(
@@ -180,6 +195,7 @@ fun RunnersNavHost(
                     monthKm = monthKm,
                     firstDate = firstDate,
                     recentRuns = recent,
+                    runs = runs,
                 )
             }
 
@@ -188,6 +204,7 @@ fun RunnersNavHost(
             monthDistanceKm = stats.monthKm
             firstRunDate = stats.firstDate
             recentRuns = stats.recentRuns
+            allRuns = stats.runs
         }
     }
 
@@ -234,7 +251,7 @@ fun RunnersNavHost(
                 onPopularPostClick = { navController.navigate(AppRoute.Community.route) },
             )
         }
-        composable(AppRoute.Records.route) { RecordsDashboardScreen() }
+        composable(AppRoute.Records.route) { RecordsDashboardScreen(runs = allRuns) }
         composable(AppRoute.Community.route) { entry ->
             val statsUpdate =
                 entry.savedStateHandle
