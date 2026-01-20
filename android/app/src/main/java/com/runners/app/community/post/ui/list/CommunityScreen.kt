@@ -15,6 +15,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.runners.app.community.post.ui.components.CommunityHeader
+import com.runners.app.community.post.ui.components.InfiniteScrollHandler
+import com.runners.app.community.post.ui.list.CommunityPostList
 import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.settings.AppSettingsStore
 
