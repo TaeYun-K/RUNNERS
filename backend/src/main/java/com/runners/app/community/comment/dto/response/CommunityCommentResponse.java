@@ -11,7 +11,7 @@ public record CommunityCommentResponse(
         Double authorTotalDistanceKm,
         Long parentId,
         String content,
+        int recommendCount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {}
-

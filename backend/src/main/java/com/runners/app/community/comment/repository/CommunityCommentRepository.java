@@ -3,11 +3,23 @@ package com.runners.app.community.comment.repository;
 import com.runners.app.community.comment.entity.CommunityComment;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 public interface CommunityCommentRepository extends JpaRepository<CommunityComment, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select c from CommunityComment c
+            join fetch c.author a
+            left join fetch c.parent p
+            where c.id = :commentId
+            """)
+    Optional<CommunityComment> findByIdForUpdate(@Param("commentId") Long commentId);
 
     @Query("""
             select c from CommunityComment c

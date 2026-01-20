@@ -3,6 +3,7 @@ package com.runners.app.community.comment.data
 import com.runners.app.network.BackendCommunityApi
 import com.runners.app.network.CommunityCommentCursorListResult
 import com.runners.app.network.CommunityCommentMutationResult
+import com.runners.app.network.CommunityCommentRecommendResult
 import com.runners.app.network.DeleteCommunityCommentResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,5 +28,14 @@ class CommunityCommentRepository {
         withContext(Dispatchers.IO) {
             BackendCommunityApi.listComments(postId = postId, cursor = cursor, size = size)
         }
-}
 
+    suspend fun recommendComment(postId: Long, commentId: Long): CommunityCommentRecommendResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.recommendComment(postId = postId, commentId = commentId)
+        }
+
+    suspend fun unrecommendComment(postId: Long, commentId: Long): CommunityCommentRecommendResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.unrecommendComment(postId = postId, commentId = commentId)
+        }
+}

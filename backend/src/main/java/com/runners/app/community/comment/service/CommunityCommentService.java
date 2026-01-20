@@ -67,6 +67,7 @@ public class CommunityCommentService {
             author.getTotalDistanceKm(),
             parent == null ? null : parent.getId(),
             saved.getContent(),
+            saved.getRecommendCount(),
             saved.getCreatedAt(),
             saved.getUpdatedAt()
         );
@@ -101,6 +102,7 @@ public class CommunityCommentService {
             comment.getAuthor().getTotalDistanceKm(),
             comment.getParent() == null ? null : comment.getParent().getId(),
             comment.getContent(),
+            comment.getRecommendCount(),
             comment.getCreatedAt(),
             comment.getUpdatedAt()
         );
@@ -158,18 +160,19 @@ public class CommunityCommentService {
                 .map(comment -> {
                     boolean isDeleted = comment.getStatus() == CommunityContentStatus.DELETED;
                     String content = isDeleted ? "삭제된 댓글입니다" : comment.getContent();
-                    return new CommunityCommentResponse(
-                            comment.getId(),
-                            postId,
-                            comment.getAuthor().getId(),
-                            comment.getAuthor().getDisplayName(),
-                            comment.getAuthor().getPicture(),
-                            comment.getAuthor().getTotalDistanceKm(),
-                            comment.getParent() == null ? null : comment.getParent().getId(),
-                            content,
-                            comment.getCreatedAt(),
-                            comment.getUpdatedAt()
-                    );
+                     return new CommunityCommentResponse(
+                             comment.getId(),
+                             postId,
+                             comment.getAuthor().getId(),
+                             comment.getAuthor().getDisplayName(),
+                             comment.getAuthor().getPicture(),
+                             comment.getAuthor().getTotalDistanceKm(),
+                             comment.getParent() == null ? null : comment.getParent().getId(),
+                             content,
+                             comment.getRecommendCount(),
+                             comment.getCreatedAt(),
+                             comment.getUpdatedAt()
+                     );
                 })
                 .toList();
 

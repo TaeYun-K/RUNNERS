@@ -53,6 +53,12 @@ data class CommunityPostDetailResult(
     val updatedAt: String?,
 )
 
+data class CommunityPostRecommendResult(
+    val postId: Long,
+    val recommended: Boolean,
+    val recommendCount: Int,
+)
+
 data class CommunityCommentResult(
     val commentId: Long,
     val postId: Long,
@@ -64,6 +70,13 @@ data class CommunityCommentResult(
     val content: String,
     val createdAt: String,
     val updatedAt: String?,
+)
+
+data class CommunityCommentRecommendResult(
+    val postId: Long,
+    val commentId: Long,
+    val recommended: Boolean,
+    val recommendCount: Int,
 )
 
 data class CommunityCommentMutationResult(
@@ -310,6 +323,112 @@ object BackendCommunityApi {
             if (!response.isSuccessful) {
                 throw IllegalStateException("Delete community post failed: HTTP ${response.code} ${responseBody.take(300)}")
             }
+        }
+    }
+
+    fun recommendPost(postId: Long): CommunityPostRecommendResult {
+        require(postId > 0) { "postId must be positive" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/recommend"
+        val requestBody = "{}".toRequestBody(jsonMediaType)
+
+        val request = Request.Builder()
+            .url(url)
+            .put(requestBody)
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Recommend community post failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return CommunityPostRecommendResult(
+                postId = json.getLong("postId"),
+                recommended = json.optBoolean("recommended", true),
+                recommendCount = json.optInt("recommendCount", 0),
+            )
+        }
+    }
+
+    fun unrecommendPost(postId: Long): CommunityPostRecommendResult {
+        require(postId > 0) { "postId must be positive" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/recommend"
+
+        val request = Request.Builder()
+            .url(url)
+            .delete()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Unrecommend community post failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return CommunityPostRecommendResult(
+                postId = json.getLong("postId"),
+                recommended = json.optBoolean("recommended", false),
+                recommendCount = json.optInt("recommendCount", 0),
+            )
+        }
+    }
+
+    fun recommendComment(postId: Long, commentId: Long): CommunityCommentRecommendResult {
+        require(postId > 0) { "postId must be positive" }
+        require(commentId > 0) { "commentId must be positive" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/comments/$commentId/recommend"
+        val requestBody = "{}".toRequestBody(jsonMediaType)
+
+        val request = Request.Builder()
+            .url(url)
+            .put(requestBody)
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Recommend community comment failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return CommunityCommentRecommendResult(
+                postId = json.getLong("postId"),
+                commentId = json.getLong("commentId"),
+                recommended = json.optBoolean("recommended", true),
+                recommendCount = json.optInt("recommendCount", 0),
+            )
+        }
+    }
+
+    fun unrecommendComment(postId: Long, commentId: Long): CommunityCommentRecommendResult {
+        require(postId > 0) { "postId must be positive" }
+        require(commentId > 0) { "commentId must be positive" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/comments/$commentId/recommend"
+
+        val request = Request.Builder()
+            .url(url)
+            .delete()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Unrecommend community comment failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return CommunityCommentRecommendResult(
+                postId = json.getLong("postId"),
+                commentId = json.getLong("commentId"),
+                recommended = json.optBoolean("recommended", false),
+                recommendCount = json.optInt("recommendCount", 0),
+            )
         }
     }
 

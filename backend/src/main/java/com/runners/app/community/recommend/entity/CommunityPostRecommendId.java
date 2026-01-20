@@ -1,4 +1,4 @@
-package com.runners.app.community.recommend;
+package com.runners.app.community.recommend.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

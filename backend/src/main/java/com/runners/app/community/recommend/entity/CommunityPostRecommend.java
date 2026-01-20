@@ -1,4 +1,4 @@
-package com.runners.app.community.recommend;
+package com.runners.app.community.recommend.entity;
 
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.user.entity.User;

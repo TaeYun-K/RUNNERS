@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
         name = "community_comments",
         indexes = {
                 @Index(name = "idx_community_comments_post_id_created_at", columnList = "post_id,created_at"),
-                @Index(name = "idx_community_comments_parent_id_created_at", columnList = "parent_id,created_at")
+                @Index(name = "idx_community_comments_parent_id_created_at", columnList = "parent_id,created_at"),
+                @Index(name = "idx_community_comments_recommend_count_created_at", columnList = "recommend_count,created_at")
         }
 )
 @Getter
@@ -46,6 +47,9 @@ public class CommunityComment {
     @Column(nullable = false, length = 20)
     private CommunityContentStatus status;
 
+    @Column(name = "recommend_count", nullable = false)
+    private int recommendCount;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -75,5 +79,13 @@ public class CommunityComment {
     public void markDeleted() {
         status = CommunityContentStatus.DELETED;
         deletedAt = LocalDateTime.now();
+    }
+
+    public void increaseRecommendCount() {
+        recommendCount++;
+    }
+
+    public void decreaseRecommendCount() {
+        recommendCount = Math.max(0, recommendCount - 1);
     }
 }

@@ -3,6 +3,7 @@ package com.runners.app.community.post.data
 import com.runners.app.network.BackendCommunityApi
 import com.runners.app.network.CommunityPostCursorListResult
 import com.runners.app.network.CommunityPostDetailResult
+import com.runners.app.network.CommunityPostRecommendResult
 import com.runners.app.network.CreateCommunityPostResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -36,5 +37,14 @@ class CommunityPostRepository {
         withContext(Dispatchers.IO) {
             BackendCommunityApi.deletePost(postId)
         }
-}
 
+    suspend fun recommendPost(postId: Long): CommunityPostRecommendResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.recommendPost(postId)
+        }
+
+    suspend fun unrecommendPost(postId: Long): CommunityPostRecommendResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.unrecommendPost(postId)
+        }
+}
