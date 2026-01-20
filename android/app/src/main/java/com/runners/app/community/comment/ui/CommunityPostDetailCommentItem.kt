@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -43,6 +45,8 @@ internal fun CommunityPostDetailCommentItem(
     onEditingDraftChange: (String) -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onReplyClick: () -> Unit,
+    onLikeClick: () -> Unit,
     onEditCancel: () -> Unit,
     onEditSave: () -> Unit,
     isEditSaving: Boolean,
@@ -110,34 +114,77 @@ internal fun CommunityPostDetailCommentItem(
                 )
             }
 
-            if (canManage) {
-                Box {
-                    IconButton(onClick = { onMenuExpandedChange(!menuExpanded) }) {
+            if (!isDeleted) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    IconButton(
+                        onClick = onReplyClick,
+                        enabled = !isEditing,
+                        modifier = Modifier.size(32.dp),
+                    ) {
                         Icon(
-                            imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = "More",
+                            imageVector = Icons.Outlined.ChatBubbleOutline,
+                            contentDescription = "Reply",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
 
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { onMenuExpandedChange(false) },
+                    IconButton(
+                        onClick = onLikeClick,
+                        enabled = !isEditing,
+                        modifier = Modifier.size(32.dp),
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("수정") },
-                            onClick = {
-                                onMenuExpandedChange(false)
-                                onEditClick()
-                            },
+                        Icon(
+                            imageVector = Icons.Outlined.ThumbUp,
+                            contentDescription = "Recommend",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
                         )
-                        DropdownMenuItem(
-                            text = { Text("삭제") },
-                            onClick = {
-                                onMenuExpandedChange(false)
-                                onDeleteClick()
-                            },
-                        )
+                    }
+
+                    Box {
+                        IconButton(
+                            modifier = Modifier.size(32.dp),
+                            onClick = { onMenuExpandedChange(!menuExpanded) }) {
+                            Icon(
+                                imageVector = Icons.Outlined.MoreVert,
+                                contentDescription = "More",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { onMenuExpandedChange(false) },
+                        ) {
+                            if (!canManage) {
+                                DropdownMenuItem(
+                                    text = { Text("본인 댓글만 수정/삭제 가능") },
+                                    enabled = false,
+                                    onClick = { onMenuExpandedChange(false) },
+                                )
+                                return@DropdownMenu
+                            }
+
+                            DropdownMenuItem(
+                                text = { Text("수정") },
+                                onClick = {
+                                    onMenuExpandedChange(false)
+                                    onEditClick()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("삭제") },
+                                onClick = {
+                                    onMenuExpandedChange(false)
+                                    onDeleteClick()
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -189,4 +236,3 @@ internal fun CommunityPostDetailCommentItem(
         )
     }
 }
-

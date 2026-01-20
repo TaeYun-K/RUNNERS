@@ -55,6 +55,7 @@ import com.runners.app.community.comment.ui.CommunityPostDetailCommentComposer
 import com.runners.app.community.comment.ui.CommunityPostDetailCommentItem
 import com.runners.app.community.post.state.CommunityPostDetailUiState
 import com.runners.app.community.post.ui.components.CommunityAuthorLine
+import com.runners.app.network.CommunityCommentResult
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +67,8 @@ internal fun CommunityPostDetailContent(
     onEdit: () -> Unit,
     onRefresh: () -> Unit,
     onCommentDraftChange: (String) -> Unit,
+    onStartReply: (commentId: Long, authorName: String?) -> Unit,
+    onCancelReply: () -> Unit,
     onSubmitComment: () -> Unit,
     onStartEditingComment: (commentId: Long, initialContent: String) -> Unit,
     onCancelEditingComment: () -> Unit,
@@ -80,7 +83,17 @@ internal fun CommunityPostDetailContent(
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var menuOpenedCommentId by remember { mutableStateOf<Long?>(null) }
+    var expandedThreadRootIds by remember { mutableStateOf(setOf<Long>()) }
     val pullToRefreshState = rememberPullToRefreshState()
+
+    val threadedComments = remember(uiState.comments) { threadCommunityComments(uiState.comments) }
+    val descendantCountByRootId = remember(uiState.comments) { buildDescendantCountByRootId(uiState.comments) }
+    val visibleThreadedComments =
+        remember(threadedComments, expandedThreadRootIds) {
+            threadedComments.filter { item ->
+                item.depth == 0 || expandedThreadRootIds.contains(item.rootId)
+            }
+        }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -136,6 +149,9 @@ internal fun CommunityPostDetailContent(
             CommunityPostDetailCommentComposer(
                 value = uiState.commentDraft,
                 onValueChange = onCommentDraftChange,
+                replyTargetCommentId = uiState.replyTargetCommentId,
+                replyTargetAuthorName = uiState.replyTargetAuthorName,
+                onCancelReply = onCancelReply,
                 canSubmit = uiState.canSubmitComment,
                 isSubmitting = uiState.isSubmittingComment,
                 submitErrorMessage = uiState.submitCommentErrorMessage,
@@ -327,15 +343,6 @@ internal fun CommunityPostDetailContent(
                                 }
                             }
 
-                            item(key = "comments-title") {
-                                Text(
-                                    text = "댓글",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-
                             when {
                                 uiState.commentsErrorMessage != null && uiState.comments.isEmpty() -> {
                                     item(key = "comments-error") {
@@ -377,36 +384,65 @@ internal fun CommunityPostDetailContent(
 
                                 else -> {
                                     items(
-                                        items = uiState.comments,
-                                        key = { it.commentId },
+                                        items = visibleThreadedComments,
+                                        key = { it.comment.commentId },
                                     ) { comment ->
+                                        val depthIndent = (comment.depth * 16).dp
                                         CommunityPostDetailCommentItem(
-                                            comment = comment,
+                                            comment = comment.comment,
                                             currentUserId = currentUserId,
-                                            menuExpanded = menuOpenedCommentId == comment.commentId,
+                                            menuExpanded = menuOpenedCommentId == comment.comment.commentId,
                                             onMenuExpandedChange = { expanded ->
                                                 menuOpenedCommentId =
-                                                    if (expanded) comment.commentId else null
+                                                    if (expanded) comment.comment.commentId else null
                                             },
-                                            isEditing = uiState.editingCommentId == comment.commentId,
+                                            isEditing = uiState.editingCommentId == comment.comment.commentId,
                                             editingDraft = uiState.editingCommentDraft,
                                             onEditingDraftChange = onEditingCommentDraftChange,
                                             onEditClick = {
                                                 menuOpenedCommentId = null
                                                 onStartEditingComment(
-                                                    comment.commentId,
-                                                    comment.content,
+                                                    comment.comment.commentId,
+                                                    comment.comment.content,
                                                 )
                                             },
                                             onDeleteClick = {
                                                 menuOpenedCommentId = null
-                                                onRequestDeleteComment(comment.commentId)
+                                                onRequestDeleteComment(comment.comment.commentId)
                                             },
+                                            onReplyClick = {
+                                                onStartReply(comment.comment.commentId, comment.comment.authorName)
+                                            },
+                                            onLikeClick = {},
                                             onEditCancel = onCancelEditingComment,
                                             onEditSave = onSubmitEditingComment,
                                             isEditSaving = uiState.isUpdatingComment,
                                             showTotalDistance = showTotalDistance,
+                                            modifier = Modifier.padding(start = depthIndent),
                                         )
+
+                                        if (comment.depth == 0) {
+                                            val replyCount = descendantCountByRootId[comment.rootId] ?: 0
+                                            if (replyCount > 0) {
+                                                val isExpanded = expandedThreadRootIds.contains(comment.rootId)
+                                                TextButton(
+                                                    onClick = {
+                                                        expandedThreadRootIds =
+                                                            if (isExpanded) expandedThreadRootIds - comment.rootId
+                                                            else expandedThreadRootIds + comment.rootId
+                                                    },
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(start = 38.dp),
+                                                ) {
+                                                    Text(
+                                                        text =
+                                                            if (isExpanded) "답글 숨기기"
+                                                            else "답글 ${replyCount}개 보기",
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
 
                                     if (uiState.updateCommentErrorMessage != null) {
@@ -488,4 +524,102 @@ internal fun CommunityPostDetailContent(
             },
         )
     }
+}
+
+private data class ThreadedCommunityComment(
+    val comment: CommunityCommentResult,
+    val depth: Int,
+    val rootId: Long,
+)
+
+private fun threadCommunityComments(comments: List<CommunityCommentResult>): List<ThreadedCommunityComment> {
+    if (comments.isEmpty()) return emptyList()
+
+    val indexByCommentId = HashMap<Long, Int>(comments.size)
+    val commentById = HashMap<Long, CommunityCommentResult>(comments.size)
+    for ((index, comment) in comments.withIndex()) {
+        indexByCommentId[comment.commentId] = index
+        commentById[comment.commentId] = comment
+    }
+
+    val childrenByParentId = HashMap<Long, MutableList<CommunityCommentResult>>()
+    for (comment in comments) {
+        val parentId = comment.parentId ?: continue
+        childrenByParentId.getOrPut(parentId) { ArrayList() }.add(comment)
+    }
+
+    fun findRootId(comment: CommunityCommentResult): Long {
+        var current = comment
+        while (true) {
+            val parentId = current.parentId ?: return current.commentId
+            val parent = commentById[parentId] ?: return current.commentId
+            current = parent
+        }
+    }
+
+    val roots =
+        comments
+            .filter { it.parentId == null || commentById[it.parentId] == null }
+            .sortedBy { indexByCommentId[it.commentId] ?: Int.MAX_VALUE }
+
+    val result = ArrayList<ThreadedCommunityComment>(comments.size)
+    val visited = HashSet<Long>(comments.size)
+
+    fun visit(comment: CommunityCommentResult, depth: Int, rootId: Long) {
+        if (!visited.add(comment.commentId)) return
+        result.add(ThreadedCommunityComment(comment = comment, depth = depth, rootId = rootId))
+        val children =
+            childrenByParentId[comment.commentId]
+                ?.sortedBy { child -> indexByCommentId[child.commentId] ?: Int.MAX_VALUE }
+                .orEmpty()
+        for (child in children) {
+            visit(child, depth + 1, rootId)
+        }
+    }
+
+    for (root in roots) {
+        val rootId = findRootId(root)
+        visit(root, depth = 0, rootId = rootId)
+    }
+
+    // Fallback: include comments that couldn't be threaded (cycles, missing roots).
+    if (result.size != comments.size) {
+        val leftovers =
+            comments
+                .filterNot { visited.contains(it.commentId) }
+                .sortedBy { indexByCommentId[it.commentId] ?: Int.MAX_VALUE }
+        for (comment in leftovers) {
+            val rootId = findRootId(comment)
+            visit(comment, depth = 0, rootId = rootId)
+        }
+    }
+
+    return result
+}
+
+private fun buildDescendantCountByRootId(comments: List<CommunityCommentResult>): Map<Long, Int> {
+    if (comments.isEmpty()) return emptyMap()
+
+    val commentById = HashMap<Long, CommunityCommentResult>(comments.size)
+    for (comment in comments) {
+        commentById[comment.commentId] = comment
+    }
+
+    fun rootIdOf(comment: CommunityCommentResult): Long {
+        var current = comment
+        while (true) {
+            val parentId = current.parentId ?: return current.commentId
+            val parent = commentById[parentId] ?: return current.commentId
+            current = parent
+        }
+    }
+
+    val counts = HashMap<Long, Int>()
+    for (comment in comments) {
+        if (comment.parentId == null) continue
+        val rootId = rootIdOf(comment)
+        counts[rootId] = (counts[rootId] ?: 0) + 1
+    }
+
+    return counts
 }

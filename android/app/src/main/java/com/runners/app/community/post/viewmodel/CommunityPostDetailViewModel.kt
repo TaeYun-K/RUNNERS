@@ -48,6 +48,38 @@ class CommunityPostDetailViewModel(
         }
     }
 
+    fun startReply(commentId: Long, authorName: String?) {
+        val state = _uiState.value
+        if (state.isSubmittingComment || state.isDeletingComment || state.isUpdatingComment) return
+
+        _uiState.update {
+            it.copy(
+                commentState = it.commentState.copy(
+                    replyTargetCommentId = commentId,
+                    replyTargetAuthorName = authorName,
+                    submitCommentErrorMessage = null,
+                    editingCommentId = null,
+                    editingCommentDraft = "",
+                    updateCommentErrorMessage = null,
+                ),
+            )
+        }
+    }
+
+    fun cancelReply() {
+        val state = _uiState.value
+        if (state.isSubmittingComment) return
+        _uiState.update {
+            it.copy(
+                commentState = it.commentState.copy(
+                    replyTargetCommentId = null,
+                    replyTargetAuthorName = null,
+                    submitCommentErrorMessage = null,
+                ),
+            )
+        }
+    }
+
     fun submitComment() {
         viewModelScope.launch {
             val state = _uiState.value
@@ -66,14 +98,22 @@ class CommunityPostDetailViewModel(
             }
 
             runCatching {
-                commentRepository.createComment(postId = postId, content = content, parentId = null)
+                commentRepository.createComment(
+                    postId = postId,
+                    content = content,
+                    parentId = state.replyTargetCommentId,
+                )
             }.onSuccess { result ->
                 _uiState.update {
                     it.copy(
                         postState = it.postState.copy(
                             post = it.postState.post?.copy(commentCount = result.commentCount),
                         ),
-                        commentState = it.commentState.copy(commentDraft = ""),
+                        commentState = it.commentState.copy(
+                            commentDraft = "",
+                            replyTargetCommentId = null,
+                            replyTargetAuthorName = null,
+                        ),
                     )
                 }
                 loadComments(reset = true)
@@ -104,6 +144,8 @@ class CommunityPostDetailViewModel(
                     editingCommentId = commentId,
                     editingCommentDraft = initialContent,
                     updateCommentErrorMessage = null,
+                    replyTargetCommentId = null,
+                    replyTargetAuthorName = null,
                 ),
             )
         }

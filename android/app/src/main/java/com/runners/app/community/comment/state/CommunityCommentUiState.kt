@@ -8,6 +8,8 @@ data class CommunityCommentUiState(
     val isCommentsLoading: Boolean = false,
     val commentsErrorMessage: String? = null,
     val commentDraft: String = "",
+    val replyTargetCommentId: Long? = null,
+    val replyTargetAuthorName: String? = null,
     val isSubmittingComment: Boolean = false,
     val submitCommentErrorMessage: String? = null,
     val editingCommentId: Long? = null,
@@ -18,4 +20,3 @@ data class CommunityCommentUiState(
     val isDeletingComment: Boolean = false,
     val deleteCommentErrorMessage: String? = null,
 )
-

@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +35,9 @@ import androidx.compose.ui.unit.dp
 internal fun CommunityPostDetailCommentComposer(
     value: String,
     onValueChange: (String) -> Unit,
+    replyTargetCommentId: Long?,
+    replyTargetAuthorName: String?,
+    onCancelReply: () -> Unit,
     canSubmit: Boolean,
     isSubmitting: Boolean,
     submitErrorMessage: String?,
@@ -54,6 +58,28 @@ internal fun CommunityPostDetailCommentComposer(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
+                if (replyTargetCommentId != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = "${replyTargetAuthorName ?: "익명"}님에게 답글 작성 중",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        TextButton(
+                            onClick = onCancelReply,
+                            enabled = !isSubmitting,
+                        ) {
+                            Text("취소")
+                        }
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -79,7 +105,7 @@ internal fun CommunityPostDetailCommentComposer(
                         onValueChange = onValueChange,
                         placeholder = {
                             Text(
-                                "댓글을 입력하세요...",
+                                if (replyTargetCommentId != null) "답글을 입력하세요..." else "댓글을 입력하세요...",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             )
                         },
@@ -140,4 +166,3 @@ internal fun CommunityPostDetailCommentComposer(
         }
     }
 }
-

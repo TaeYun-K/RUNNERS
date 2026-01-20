@@ -54,6 +54,8 @@ internal fun CommunityPostDetailRoute(
         onEdit = onEdit,
         onRefresh = viewModel::refresh,
         onCommentDraftChange = viewModel::onCommentDraftChange,
+        onStartReply = viewModel::startReply,
+        onCancelReply = viewModel::cancelReply,
         onSubmitComment = viewModel::submitComment,
         onStartEditingComment = viewModel::startEditingComment,
         onCancelEditingComment = viewModel::cancelEditingComment,

@@ -33,6 +33,8 @@ data class CommunityPostDetailUiState(
     val isCommentsLoading get() = commentState.isCommentsLoading
     val commentsErrorMessage get() = commentState.commentsErrorMessage
     val commentDraft get() = commentState.commentDraft
+    val replyTargetCommentId get() = commentState.replyTargetCommentId
+    val replyTargetAuthorName get() = commentState.replyTargetAuthorName
     val isSubmittingComment get() = commentState.isSubmittingComment
     val submitCommentErrorMessage get() = commentState.submitCommentErrorMessage
     val editingCommentId get() = commentState.editingCommentId
