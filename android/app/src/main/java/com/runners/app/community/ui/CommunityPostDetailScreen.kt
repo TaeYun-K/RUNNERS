@@ -1,10 +1,12 @@
 package com.runners.app.community.ui
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -68,8 +71,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
 import com.runners.app.community.viewmodel.CommunityPostDetailViewModel
 import com.runners.app.network.CommunityCommentResult
 import com.runners.app.network.CommunityPostDetailResult
@@ -124,7 +125,7 @@ fun CommunityPostDetailScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets(0),
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
                 title = {
@@ -169,14 +170,17 @@ fun CommunityPostDetailScreen(
         },
 
         bottomBar = {
+            val isSamsung = remember { Build.MANUFACTURER.equals("samsung", ignoreCase = true) }
+            val imeInsets =
+                if (isSamsung) WindowInsets.ime.exclude(WindowInsets.navigationBars) else WindowInsets.ime
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(
-                        WindowInsets.ime
-                            .union(WindowInsets.navigationBars)
-                            .only(WindowInsetsSides.Bottom)
+                        imeInsets.only(WindowInsetsSides.Bottom),
                     )
+                    .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 0.dp),
             ) {
                 Card(
                     modifier = Modifier
@@ -291,7 +295,7 @@ fun CommunityPostDetailScreen(
                 }
             }
         },
-    ) { padding ->
+    ) { innerPadding  ->
         if (showDeleteConfirm) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
@@ -327,9 +331,7 @@ fun CommunityPostDetailScreen(
                 }
             },
             state = pullToRefreshState,
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
         ) {
             when {
                 uiState.isPostLoading && uiState.post == null -> {
@@ -369,7 +371,13 @@ fun CommunityPostDetailScreen(
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                .padding(innerPadding),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 12.dp,
+                                bottom = 12.dp,
+                            ),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
                             // 제목
@@ -640,15 +648,6 @@ fun CommunityPostDetailScreen(
     }
 }
 
-@Composable
-private fun bottomInsetDp(): Dp {
-    val density = LocalDensity.current
-    val imeBottom = WindowInsets.ime.getBottom(density)
-    val navBottom = WindowInsets.navigationBars.getBottom(density)
-
-    val bottomPx = if (imeBottom > navBottom) imeBottom else navBottom
-    return with(density) { bottomPx.toDp() }
-}
 
 @Composable
 private fun CommonPostStat(
