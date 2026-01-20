@@ -354,6 +354,31 @@ object BackendCommunityApi {
         }
     }
 
+    fun getPostRecommendStatus(postId: Long): CommunityPostRecommendResult {
+        require(postId > 0) { "postId must be positive" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/recommend"
+
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Fetch community post recommend status failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return CommunityPostRecommendResult(
+                postId = json.getLong("postId"),
+                recommended = json.optBoolean("recommended", false),
+                recommendCount = json.optInt("recommendCount", 0),
+            )
+        }
+    }
+
     fun unrecommendPost(postId: Long): CommunityPostRecommendResult {
         require(postId > 0) { "postId must be positive" }
 
@@ -402,6 +427,33 @@ object BackendCommunityApi {
                 postId = json.getLong("postId"),
                 commentId = json.getLong("commentId"),
                 recommended = json.optBoolean("recommended", true),
+                recommendCount = json.optInt("recommendCount", 0),
+            )
+        }
+    }
+
+    fun getCommentRecommendStatus(postId: Long, commentId: Long): CommunityCommentRecommendResult {
+        require(postId > 0) { "postId must be positive" }
+        require(commentId > 0) { "commentId must be positive" }
+
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId/comments/$commentId/recommend"
+
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Fetch community comment recommend status failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            return CommunityCommentRecommendResult(
+                postId = json.getLong("postId"),
+                commentId = json.getLong("commentId"),
+                recommended = json.optBoolean("recommended", false),
                 recommendCount = json.optInt("recommendCount", 0),
             )
         }

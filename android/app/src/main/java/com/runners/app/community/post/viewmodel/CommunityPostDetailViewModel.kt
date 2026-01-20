@@ -119,6 +119,7 @@ class CommunityPostDetailViewModel(
                                 },
                             recommendedCommentIds =
                                 if (result.recommended) it.commentState.recommendedCommentIds + commentId else it.commentState.recommendedCommentIds - commentId,
+                            checkedRecommendCommentIds = it.commentState.checkedRecommendCommentIds + commentId,
                             recommendingCommentIds = it.commentState.recommendingCommentIds - commentId,
                         ),
                     )
@@ -127,6 +128,7 @@ class CommunityPostDetailViewModel(
                 _uiState.update {
                     it.copy(
                         commentState = it.commentState.copy(
+                            checkedRecommendCommentIds = it.commentState.checkedRecommendCommentIds + commentId,
                             recommendingCommentIds = it.commentState.recommendingCommentIds - commentId,
                             recommendCommentErrorMessage = error.message ?: "댓글 추천을 처리하지 못했어요",
                         ),
@@ -419,6 +421,27 @@ class CommunityPostDetailViewModel(
                     ),
                 )
             }
+
+            runCatching {
+                postRepository.getPostRecommendStatus(postId)
+            }.onSuccess { status ->
+                _uiState.update {
+                    it.copy(
+                        postState = it.postState.copy(
+                            isPostRecommended = status.recommended,
+                            post = it.postState.post?.copy(recommendCount = status.recommendCount),
+                        ),
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        postState = it.postState.copy(
+                            togglePostRecommendErrorMessage = error.message ?: "추천 상태를 불러오지 못했어요",
+                        ),
+                    )
+                }
+            }
         }.onFailure { error ->
             _uiState.update {
                 it.copy(
@@ -442,6 +465,8 @@ class CommunityPostDetailViewModel(
                     isCommentsLoading = true,
                     commentsErrorMessage = null,
                     recommendCommentErrorMessage = null,
+                    recommendedCommentIds = if (reset) emptySet() else it.commentState.recommendedCommentIds,
+                    checkedRecommendCommentIds = if (reset) emptySet() else it.commentState.checkedRecommendCommentIds,
                 ),
             )
         }
@@ -460,6 +485,11 @@ class CommunityPostDetailViewModel(
                     ),
                 )
             }
+
+            val newComments = result.comments
+            viewModelScope.launch {
+                fetchRecommendStatusesForComments(newComments)
+            }
         }.onFailure { error ->
             _uiState.update {
                 it.copy(
@@ -468,6 +498,57 @@ class CommunityPostDetailViewModel(
                         isCommentsLoading = false,
                     ),
                 )
+            }
+        }
+    }
+
+    private suspend fun fetchRecommendStatusesForComments(comments: List<com.runners.app.network.CommunityCommentResult>) {
+        if (comments.isEmpty()) return
+
+        for (comment in comments) {
+            val commentId = comment.commentId
+            val state = _uiState.value
+
+            if (state.commentState.checkedRecommendCommentIds.contains(commentId)) continue
+            if (comment.content == "삭제된 댓글입니다") {
+                _uiState.update {
+                    it.copy(
+                        commentState = it.commentState.copy(
+                            checkedRecommendCommentIds = it.commentState.checkedRecommendCommentIds + commentId,
+                        ),
+                    )
+                }
+                continue
+            }
+
+            runCatching {
+                commentRepository.getCommentRecommendStatus(postId = postId, commentId = commentId)
+            }.onSuccess { status ->
+                _uiState.update {
+                    it.copy(
+                        commentState = it.commentState.copy(
+                            checkedRecommendCommentIds = it.commentState.checkedRecommendCommentIds + commentId,
+                            recommendedCommentIds =
+                                if (status.recommended) it.commentState.recommendedCommentIds + commentId else it.commentState.recommendedCommentIds - commentId,
+                            comments =
+                                it.commentState.comments.map { existing ->
+                                    if (existing.commentId == commentId) {
+                                        existing.copy(recommendCount = status.recommendCount)
+                                    } else {
+                                        existing
+                                    }
+                                },
+                        ),
+                    )
+                }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(
+                        commentState = it.commentState.copy(
+                            checkedRecommendCommentIds = it.commentState.checkedRecommendCommentIds + commentId,
+                        ),
+                    )
+                }
             }
         }
     }

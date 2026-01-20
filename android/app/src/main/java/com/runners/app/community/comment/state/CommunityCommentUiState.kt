@@ -8,6 +8,7 @@ data class CommunityCommentUiState(
     val isCommentsLoading: Boolean = false,
     val commentsErrorMessage: String? = null,
     val recommendedCommentIds: Set<Long> = emptySet(),
+    val checkedRecommendCommentIds: Set<Long> = emptySet(),
     val recommendingCommentIds: Set<Long> = emptySet(),
     val recommendCommentErrorMessage: String? = null,
     val commentDraft: String = "",

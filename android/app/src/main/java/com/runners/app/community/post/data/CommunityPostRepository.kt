@@ -43,6 +43,11 @@ class CommunityPostRepository {
             BackendCommunityApi.recommendPost(postId)
         }
 
+    suspend fun getPostRecommendStatus(postId: Long): CommunityPostRecommendResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.getPostRecommendStatus(postId)
+        }
+
     suspend fun unrecommendPost(postId: Long): CommunityPostRecommendResult =
         withContext(Dispatchers.IO) {
             BackendCommunityApi.unrecommendPost(postId)
