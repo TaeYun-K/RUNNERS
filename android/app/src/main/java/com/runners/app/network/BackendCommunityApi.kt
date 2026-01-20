@@ -68,6 +68,7 @@ data class CommunityCommentResult(
     val authorTotalDistanceKm: Double?,
     val parentId: Long?,
     val content: String,
+    val recommendCount: Int,
     val createdAt: String,
     val updatedAt: String?,
 )
@@ -112,6 +113,7 @@ object BackendCommunityApi {
             authorTotalDistanceKm = parseCommentAuthorTotalDistanceKm(json),
             parentId = json.optLong("parentId", -1L).takeIf { it > 0 },
             content = json.optString("content"),
+            recommendCount = json.optInt("recommendCount", 0),
             createdAt = json.optString("createdAt"),
             updatedAt = json.optString("updatedAt").takeIf { it.isNotBlank() && it != "null" },
         )
@@ -531,6 +533,7 @@ object BackendCommunityApi {
                                 authorTotalDistanceKm = parseCommentAuthorTotalDistanceKm(item),
                                 parentId = item.optLong("parentId", -1L).takeIf { it > 0 },
                                 content = item.optString("content"),
+                                recommendCount = item.optInt("recommendCount", 0),
                                 createdAt = item.optString("createdAt"),
                                 updatedAt = item.optString("updatedAt").takeIf { it.isNotBlank() && it != "null" },
                             )

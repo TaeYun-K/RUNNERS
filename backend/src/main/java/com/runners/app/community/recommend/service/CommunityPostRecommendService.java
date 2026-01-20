@@ -49,6 +49,7 @@ public class CommunityPostRecommendService {
 
         communityPostRecommendRepository.save(
                 CommunityPostRecommend.builder()
+                        .id(id)
                         .post(post)
                         .user(user)
                         .build()
@@ -81,4 +82,3 @@ public class CommunityPostRecommendService {
         return new CommunityPostRecommendResponse(post.getId(), false, post.getRecommendCount());
     }
 }
-

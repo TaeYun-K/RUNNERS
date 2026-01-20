@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.ThumbUp
@@ -47,6 +48,7 @@ internal fun CommunityPostDetailCommentItem(
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onReplyClick: () -> Unit,
+    isRecommended: Boolean,
     onLikeClick: () -> Unit,
     onEditCancel: () -> Unit,
     onEditSave: () -> Unit,
@@ -131,7 +133,7 @@ internal fun CommunityPostDetailCommentItem(
                     if (!isReply) {
                         IconButton(
                             onClick = onReplyClick,
-                            enabled = !isEditing,
+                            enabled = !isEditing && !isEditSaving,
                             modifier = Modifier.size(32.dp),
                         ) {
                             Icon(
@@ -145,16 +147,21 @@ internal fun CommunityPostDetailCommentItem(
 
                     IconButton(
                         onClick = onLikeClick,
-                        enabled = !isEditing,
+                        enabled = !isEditing && !isEditSaving,
                         modifier = Modifier.size(32.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.ThumbUp,
+                            imageVector = if (isRecommended) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
                             contentDescription = "Recommend",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (isRecommended) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp),
                         )
                     }
+                    Text(
+                        text = comment.recommendCount.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
                     Box {
                         IconButton(

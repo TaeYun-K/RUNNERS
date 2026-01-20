@@ -37,6 +37,105 @@ class CommunityPostDetailViewModel(
         }
     }
 
+    fun togglePostRecommend() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.isTogglingPostRecommend || state.isPostLoading) return@launch
+
+            _uiState.update {
+                it.copy(
+                    postState = it.postState.copy(
+                        isTogglingPostRecommend = true,
+                        togglePostRecommendErrorMessage = null,
+                    ),
+                )
+            }
+
+            val currentlyRecommended = state.isPostRecommended
+            runCatching {
+                if (currentlyRecommended) {
+                    postRepository.unrecommendPost(postId)
+                } else {
+                    postRepository.recommendPost(postId)
+                }
+            }.onSuccess { result ->
+                _uiState.update {
+                    it.copy(
+                        postState = it.postState.copy(
+                            post = it.postState.post?.copy(recommendCount = result.recommendCount),
+                            isPostRecommended = result.recommended,
+                            isTogglingPostRecommend = false,
+                        ),
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        postState = it.postState.copy(
+                            isTogglingPostRecommend = false,
+                            togglePostRecommendErrorMessage = error.message ?: "추천을 처리하지 못했어요",
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    fun toggleCommentRecommend(commentId: Long) {
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.isSubmittingComment || state.isUpdatingComment || state.isDeletingComment) return@launch
+            if (commentId <= 0) return@launch
+            if (state.commentState.recommendingCommentIds.contains(commentId)) return@launch
+
+            val currentlyRecommended = state.commentState.recommendedCommentIds.contains(commentId)
+
+            _uiState.update {
+                it.copy(
+                    commentState = it.commentState.copy(
+                        recommendingCommentIds = it.commentState.recommendingCommentIds + commentId,
+                        recommendCommentErrorMessage = null,
+                    ),
+                )
+            }
+
+            runCatching {
+                if (currentlyRecommended) {
+                    commentRepository.unrecommendComment(postId = postId, commentId = commentId)
+                } else {
+                    commentRepository.recommendComment(postId = postId, commentId = commentId)
+                }
+            }.onSuccess { result ->
+                _uiState.update {
+                    it.copy(
+                        commentState = it.commentState.copy(
+                            comments =
+                                it.commentState.comments.map { comment ->
+                                    if (comment.commentId == commentId) {
+                                        comment.copy(recommendCount = result.recommendCount)
+                                    } else {
+                                        comment
+                                    }
+                                },
+                            recommendedCommentIds =
+                                if (result.recommended) it.commentState.recommendedCommentIds + commentId else it.commentState.recommendedCommentIds - commentId,
+                            recommendingCommentIds = it.commentState.recommendingCommentIds - commentId,
+                        ),
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        commentState = it.commentState.copy(
+                            recommendingCommentIds = it.commentState.recommendingCommentIds - commentId,
+                            recommendCommentErrorMessage = error.message ?: "댓글 추천을 처리하지 못했어요",
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
     fun onCommentDraftChange(value: String) {
         _uiState.update {
             it.copy(
@@ -342,6 +441,7 @@ class CommunityPostDetailViewModel(
                 commentState = it.commentState.copy(
                     isCommentsLoading = true,
                     commentsErrorMessage = null,
+                    recommendCommentErrorMessage = null,
                 ),
             )
         }

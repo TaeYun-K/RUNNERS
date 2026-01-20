@@ -12,6 +12,9 @@ data class CommunityPostDetailPostUiState(
     val isDeletingPost: Boolean = false,
     val deletePostErrorMessage: String? = null,
     val deleteSuccessSignal: Long = 0L,
+    val isPostRecommended: Boolean = false,
+    val isTogglingPostRecommend: Boolean = false,
+    val togglePostRecommendErrorMessage: String? = null,
 )
 
 data class CommunityPostDetailUiState(
@@ -27,11 +30,15 @@ data class CommunityPostDetailUiState(
     val isDeletingPost: Boolean get() = postState.isDeletingPost
     val deletePostErrorMessage: String? get() = postState.deletePostErrorMessage
     val deleteSuccessSignal: Long get() = postState.deleteSuccessSignal
+    val isPostRecommended: Boolean get() = postState.isPostRecommended
+    val isTogglingPostRecommend: Boolean get() = postState.isTogglingPostRecommend
+    val togglePostRecommendErrorMessage: String? get() = postState.togglePostRecommendErrorMessage
 
     val comments get() = commentState.comments
     val commentsNextCursor get() = commentState.commentsNextCursor
     val isCommentsLoading get() = commentState.isCommentsLoading
     val commentsErrorMessage get() = commentState.commentsErrorMessage
+    val recommendCommentErrorMessage get() = commentState.recommendCommentErrorMessage
     val commentDraft get() = commentState.commentDraft
     val replyTargetCommentId get() = commentState.replyTargetCommentId
     val replyTargetAuthorName get() = commentState.replyTargetAuthorName

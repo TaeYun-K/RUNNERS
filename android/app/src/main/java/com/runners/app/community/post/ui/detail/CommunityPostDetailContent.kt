@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RemoveRedEye
@@ -69,6 +70,7 @@ internal fun CommunityPostDetailContent(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onRefresh: () -> Unit,
+    onTogglePostRecommend: () -> Unit,
     onCommentDraftChange: (String) -> Unit,
     onStartReply: (commentId: Long, authorName: String?) -> Unit,
     onCancelReply: () -> Unit,
@@ -80,6 +82,7 @@ internal fun CommunityPostDetailContent(
     onRequestDeleteComment: (Long) -> Unit,
     onCancelDeleteComment: () -> Unit,
     onConfirmDeleteComment: () -> Unit,
+    onToggleCommentRecommend: (Long) -> Unit,
     onLoadMoreComments: () -> Unit,
     onDeletePost: () -> Unit,
     modifier: Modifier = Modifier,
@@ -337,11 +340,17 @@ internal fun CommunityPostDetailContent(
                                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        CommunityPostDetailCommonPostStat(
-                                            icon = Icons.Outlined.ThumbUp,
-                                            text = "추천 ${data.recommendCount}",
-                                            iconColor = MaterialTheme.colorScheme.primary,
-                                        )
+                                        TextButton(
+                                            onClick = onTogglePostRecommend,
+                                            enabled = !uiState.isTogglingPostRecommend,
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                                        ) {
+                                            CommunityPostDetailCommonPostStat(
+                                                icon = if (uiState.isPostRecommended) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+                                                text = "추천 ${data.recommendCount}",
+                                                iconColor = MaterialTheme.colorScheme.primary,
+                                            )
+                                        }
                                         CommunityPostDetailCommonPostStat(
                                             icon = Icons.Outlined.ChatBubbleOutline,
                                             text = "댓글 ${data.commentCount}",
@@ -355,6 +364,14 @@ internal fun CommunityPostDetailContent(
                                     }
 
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                                    if (uiState.togglePostRecommendErrorMessage != null) {
+                                        Text(
+                                            text = uiState.togglePostRecommendErrorMessage!!,
+                                            color = MaterialTheme.colorScheme.error,
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                    }
                                 }
                             }
 
@@ -403,6 +420,10 @@ internal fun CommunityPostDetailContent(
                                         key = { it.comment.commentId },
                                     ) { comment ->
                                         val depthIndent = (comment.depth * 16).dp
+                                        val isRecommended =
+                                            uiState.commentState.recommendedCommentIds.contains(comment.comment.commentId)
+                                        val isRecommendLoading =
+                                            uiState.commentState.recommendingCommentIds.contains(comment.comment.commentId)
                                         CommunityPostDetailCommentItem(
                                             comment = comment.comment,
                                             isReply = comment.depth > 0,
@@ -429,15 +450,25 @@ internal fun CommunityPostDetailContent(
                                             onReplyClick = {
                                                 onStartReply(comment.comment.commentId, comment.comment.authorName)
                                             },
-                                            onLikeClick = {},
+                                            isRecommended = isRecommended,
+                                            onLikeClick = { onToggleCommentRecommend(comment.comment.commentId) },
                                             onEditCancel = onCancelEditingComment,
                                             onEditSave = onSubmitEditingComment,
-                                            isEditSaving = uiState.isUpdatingComment,
+                                            isEditSaving = uiState.isUpdatingComment || isRecommendLoading,
                                             showTotalDistance = showTotalDistance,
                                             modifier = Modifier.padding(start = depthIndent),
                                         )
                                     }
 
+                                    if (uiState.recommendCommentErrorMessage != null) {
+                                        item(key = "comments-recommend-error") {
+                                            Text(
+                                                text = uiState.recommendCommentErrorMessage!!,
+                                                color = MaterialTheme.colorScheme.error,
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
+                                        }
+                                    }
                                     if (uiState.updateCommentErrorMessage != null) {
                                         item(key = "comments-update-error") {
                                             Text(
