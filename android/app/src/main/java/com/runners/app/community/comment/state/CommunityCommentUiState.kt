@@ -1,12 +1,8 @@
-package com.runners.app.community.state
+package com.runners.app.community.comment.state
 
 import com.runners.app.network.CommunityCommentResult
-import com.runners.app.network.CommunityPostDetailResult
 
-data class CommunityPostDetailUiState(
-    val post: CommunityPostDetailResult? = null,
-    val isPostLoading: Boolean = false,
-    val postErrorMessage: String? = null,
+data class CommunityCommentUiState(
     val comments: List<CommunityCommentResult> = emptyList(),
     val commentsNextCursor: String? = null,
     val isCommentsLoading: Boolean = false,
@@ -21,12 +17,5 @@ data class CommunityPostDetailUiState(
     val deleteCommentTargetId: Long? = null,
     val isDeletingComment: Boolean = false,
     val deleteCommentErrorMessage: String? = null,
-    val isUpdatingPost: Boolean = false,
-    val updatePostErrorMessage: String? = null,
-    val isDeletingPost: Boolean = false,
-    val deletePostErrorMessage: String? = null,
-    val deleteSuccessSignal: Long = 0L,
-) {
-    val isRefreshing: Boolean get() = isPostLoading || isCommentsLoading
-    val canSubmitComment: Boolean get() = commentDraft.trim().isNotBlank() && !isSubmittingComment
-}
+)
+

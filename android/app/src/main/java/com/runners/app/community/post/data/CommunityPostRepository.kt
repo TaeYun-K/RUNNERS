@@ -1,16 +1,13 @@
-package com.runners.app.community.data
+package com.runners.app.community.post.data
 
 import com.runners.app.network.BackendCommunityApi
 import com.runners.app.network.CommunityPostCursorListResult
 import com.runners.app.network.CommunityPostDetailResult
 import com.runners.app.network.CreateCommunityPostResult
-import com.runners.app.network.CommunityCommentMutationResult
-import com.runners.app.network.DeleteCommunityCommentResult
-import com.runners.app.network.CommunityCommentCursorListResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class CommunityRepository {
+class CommunityPostRepository {
     suspend fun listPosts(cursor: String?, size: Int = 20): CommunityPostCursorListResult =
         withContext(Dispatchers.IO) {
             BackendCommunityApi.listPosts(cursor = cursor, size = size)
@@ -39,24 +36,5 @@ class CommunityRepository {
         withContext(Dispatchers.IO) {
             BackendCommunityApi.deletePost(postId)
         }
-
-    suspend fun createComment(postId: Long, content: String, parentId: Long? = null): CommunityCommentMutationResult =
-        withContext(Dispatchers.IO) {
-            BackendCommunityApi.createComment(postId = postId, content = content, parentId = parentId)
-        }
-
-    suspend fun updateComment(postId: Long, commentId: Long, content: String): CommunityCommentMutationResult =
-        withContext(Dispatchers.IO) {
-            BackendCommunityApi.updateComment(postId = postId, commentId = commentId, content = content)
-        }
-
-    suspend fun deleteComment(postId: Long, commentId: Long): DeleteCommunityCommentResult =
-        withContext(Dispatchers.IO) {
-            BackendCommunityApi.deleteComment(postId = postId, commentId = commentId)
-        }
-
-    suspend fun listComments(postId: Long, cursor: String?, size: Int = 20): CommunityCommentCursorListResult =
-        withContext(Dispatchers.IO) {
-            BackendCommunityApi.listComments(postId = postId, cursor = cursor, size = size)
-        }
 }
+

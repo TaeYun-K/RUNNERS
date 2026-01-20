@@ -1,4 +1,4 @@
-package com.runners.app.community.ui
+package com.runners.app.community.post.ui
 
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -71,7 +71,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.runners.app.community.viewmodel.CommunityPostDetailViewModel
+import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel
 import com.runners.app.network.CommunityCommentResult
 import com.runners.app.network.CommunityPostDetailResult
 import com.runners.app.settings.AppSettingsStore

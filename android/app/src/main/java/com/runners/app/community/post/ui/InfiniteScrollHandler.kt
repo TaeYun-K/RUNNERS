@@ -1,4 +1,4 @@
-package com.runners.app.community.ui
+package com.runners.app.community.post.ui
 
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
@@ -28,4 +28,3 @@ fun InfiniteScrollHandler(
             .collect { onLoadMore() }
     }
 }
-

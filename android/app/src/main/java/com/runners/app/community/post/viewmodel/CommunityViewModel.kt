@@ -1,10 +1,10 @@
-package com.runners.app.community.viewmodel
+package com.runners.app.community.post.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.runners.app.community.data.CommunityRepository
-import com.runners.app.community.state.CommunityPostStatsUpdate
-import com.runners.app.community.state.CommunityUiState
+import com.runners.app.community.post.data.CommunityPostRepository
+import com.runners.app.community.post.state.CommunityPostStatsUpdate
+import com.runners.app.community.post.state.CommunityUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class CommunityViewModel(
-    private val repository: CommunityRepository = CommunityRepository(),
+    private val repository: CommunityPostRepository = CommunityPostRepository(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CommunityUiState())
     val uiState: StateFlow<CommunityUiState> = _uiState.asStateFlow()

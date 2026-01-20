@@ -1,4 +1,4 @@
-package com.runners.app.community.state
+package com.runners.app.community.post.state
 
 import com.runners.app.network.CommunityPostSummaryResult
 

@@ -1,4 +1,4 @@
-package com.runners.app.community.state
+package com.runners.app.community.post.state
 
 import java.io.Serializable
 
@@ -8,4 +8,3 @@ data class CommunityPostStatsUpdate(
     val recommendCount: Int,
     val commentCount: Int,
 ) : Serializable
-

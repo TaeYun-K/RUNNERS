@@ -1,4 +1,4 @@
-package com.runners.app.community.ui
+package com.runners.app.community.post.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,7 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.runners.app.community.viewmodel.CommunityViewModel
+import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.settings.AppSettingsStore
 
 @OptIn(ExperimentalMaterial3Api::class)

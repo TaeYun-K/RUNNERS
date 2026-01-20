@@ -1,4 +1,4 @@
-package com.runners.app.community.ui
+package com.runners.app.community.post.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,7 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.runners.app.community.viewmodel.CommunityPostDetailViewModel
+import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

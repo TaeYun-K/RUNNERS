@@ -1,4 +1,4 @@
-package com.runners.app.community.ui
+package com.runners.app.community.post.ui
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -42,4 +42,3 @@ fun CommunityAuthorLine(
 
 private fun formatKm(km: Double): String =
     String.format(Locale.getDefault(), "%.1fkm", km.coerceAtLeast(0.0))
-
