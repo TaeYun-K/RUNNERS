@@ -37,6 +37,7 @@ import com.runners.app.network.CommunityCommentResult
 @Composable
 internal fun CommunityPostDetailCommentItem(
     comment: CommunityCommentResult,
+    isReply: Boolean,
     currentUserId: Long,
     menuExpanded: Boolean,
     onMenuExpandedChange: (Boolean) -> Unit,
@@ -68,6 +69,14 @@ internal fun CommunityPostDetailCommentItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            if (isReply) {
+                Text(
+                    text = "↳",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .size(28.dp)
@@ -119,17 +128,19 @@ internal fun CommunityPostDetailCommentItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    IconButton(
-                        onClick = onReplyClick,
-                        enabled = !isEditing,
-                        modifier = Modifier.size(32.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ChatBubbleOutline,
-                            contentDescription = "Reply",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp),
-                        )
+                    if (!isReply) {
+                        IconButton(
+                            onClick = onReplyClick,
+                            enabled = !isEditing,
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.ChatBubbleOutline,
+                                contentDescription = "Reply",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                     }
 
                     IconButton(

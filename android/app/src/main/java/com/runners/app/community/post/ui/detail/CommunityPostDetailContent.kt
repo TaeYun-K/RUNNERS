@@ -86,18 +86,10 @@ internal fun CommunityPostDetailContent(
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var menuOpenedCommentId by remember { mutableStateOf<Long?>(null) }
-    var expandedThreadRootIds by remember { mutableStateOf(setOf<Long>()) }
     var postMenuExpanded by remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
 
     val threadedComments = remember(uiState.comments) { threadCommunityComments(uiState.comments) }
-    val descendantCountByRootId = remember(uiState.comments) { buildDescendantCountByRootId(uiState.comments) }
-    val visibleThreadedComments =
-        remember(threadedComments, expandedThreadRootIds) {
-            threadedComments.filter { item ->
-                item.depth == 0 || expandedThreadRootIds.contains(item.rootId)
-            }
-        }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -407,12 +399,13 @@ internal fun CommunityPostDetailContent(
 
                                 else -> {
                                     items(
-                                        items = visibleThreadedComments,
+                                        items = threadedComments,
                                         key = { it.comment.commentId },
                                     ) { comment ->
                                         val depthIndent = (comment.depth * 16).dp
                                         CommunityPostDetailCommentItem(
                                             comment = comment.comment,
+                                            isReply = comment.depth > 0,
                                             currentUserId = currentUserId,
                                             menuExpanded = menuOpenedCommentId == comment.comment.commentId,
                                             onMenuExpandedChange = { expanded ->
@@ -443,29 +436,6 @@ internal fun CommunityPostDetailContent(
                                             showTotalDistance = showTotalDistance,
                                             modifier = Modifier.padding(start = depthIndent),
                                         )
-
-                                        if (comment.depth == 0) {
-                                            val replyCount = descendantCountByRootId[comment.rootId] ?: 0
-                                            if (replyCount > 0) {
-                                                val isExpanded = expandedThreadRootIds.contains(comment.rootId)
-                                                TextButton(
-                                                    onClick = {
-                                                        expandedThreadRootIds =
-                                                            if (isExpanded) expandedThreadRootIds - comment.rootId
-                                                            else expandedThreadRootIds + comment.rootId
-                                                    },
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(start = 38.dp),
-                                                ) {
-                                                    Text(
-                                                        text =
-                                                            if (isExpanded) "답글 숨기기"
-                                                            else "답글 ${replyCount}개 보기",
-                                                    )
-                                                }
-                                            }
-                                        }
                                     }
 
                                     if (uiState.updateCommentErrorMessage != null) {
@@ -552,7 +522,6 @@ internal fun CommunityPostDetailContent(
 private data class ThreadedCommunityComment(
     val comment: CommunityCommentResult,
     val depth: Int,
-    val rootId: Long,
 )
 
 private fun threadCommunityComments(comments: List<CommunityCommentResult>): List<ThreadedCommunityComment> {
@@ -571,15 +540,6 @@ private fun threadCommunityComments(comments: List<CommunityCommentResult>): Lis
         childrenByParentId.getOrPut(parentId) { ArrayList() }.add(comment)
     }
 
-    fun findRootId(comment: CommunityCommentResult): Long {
-        var current = comment
-        while (true) {
-            val parentId = current.parentId ?: return current.commentId
-            val parent = commentById[parentId] ?: return current.commentId
-            current = parent
-        }
-    }
-
     val roots =
         comments
             .filter { it.parentId == null || commentById[it.parentId] == null }
@@ -588,21 +548,20 @@ private fun threadCommunityComments(comments: List<CommunityCommentResult>): Lis
     val result = ArrayList<ThreadedCommunityComment>(comments.size)
     val visited = HashSet<Long>(comments.size)
 
-    fun visit(comment: CommunityCommentResult, depth: Int, rootId: Long) {
+    fun visit(comment: CommunityCommentResult, depth: Int) {
         if (!visited.add(comment.commentId)) return
-        result.add(ThreadedCommunityComment(comment = comment, depth = depth, rootId = rootId))
+        result.add(ThreadedCommunityComment(comment = comment, depth = depth))
         val children =
             childrenByParentId[comment.commentId]
                 ?.sortedBy { child -> indexByCommentId[child.commentId] ?: Int.MAX_VALUE }
                 .orEmpty()
         for (child in children) {
-            visit(child, depth + 1, rootId)
+            visit(child, depth + 1)
         }
     }
 
     for (root in roots) {
-        val rootId = findRootId(root)
-        visit(root, depth = 0, rootId = rootId)
+        visit(root, depth = 0)
     }
 
     // Fallback: include comments that couldn't be threaded (cycles, missing roots).
@@ -612,37 +571,9 @@ private fun threadCommunityComments(comments: List<CommunityCommentResult>): Lis
                 .filterNot { visited.contains(it.commentId) }
                 .sortedBy { indexByCommentId[it.commentId] ?: Int.MAX_VALUE }
         for (comment in leftovers) {
-            val rootId = findRootId(comment)
-            visit(comment, depth = 0, rootId = rootId)
+            visit(comment, depth = 0)
         }
     }
 
     return result
-}
-
-private fun buildDescendantCountByRootId(comments: List<CommunityCommentResult>): Map<Long, Int> {
-    if (comments.isEmpty()) return emptyMap()
-
-    val commentById = HashMap<Long, CommunityCommentResult>(comments.size)
-    for (comment in comments) {
-        commentById[comment.commentId] = comment
-    }
-
-    fun rootIdOf(comment: CommunityCommentResult): Long {
-        var current = comment
-        while (true) {
-            val parentId = current.parentId ?: return current.commentId
-            val parent = commentById[parentId] ?: return current.commentId
-            current = parent
-        }
-    }
-
-    val counts = HashMap<Long, Int>()
-    for (comment in comments) {
-        if (comment.parentId == null) continue
-        val rootId = rootIdOf(comment)
-        counts[rootId] = (counts[rootId] ?: 0) + 1
-    }
-
-    return counts
 }
