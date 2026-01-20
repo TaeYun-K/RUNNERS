@@ -1,4 +1,4 @@
-package com.runners.app.community.post.ui
+package com.runners.app.community.post.ui.list
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,7 +17,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.runners.app.community.post.ui.components.CommunityHeader
 import com.runners.app.community.post.ui.components.InfiniteScrollHandler
-import com.runners.app.community.post.ui.list.CommunityPostList
 import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.settings.AppSettingsStore
 

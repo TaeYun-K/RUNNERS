@@ -16,10 +16,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.health.connect.client.records.ExerciseSessionRecord
-import com.runners.app.community.post.ui.CommunityCreatePostScreen
-import com.runners.app.community.post.ui.CommunityPostEditScreen
-import com.runners.app.community.post.ui.CommunityPostDetailScreen
-import com.runners.app.community.post.ui.CommunityScreen
+import com.runners.app.community.post.ui.create.CommunityCreatePostScreen
+import com.runners.app.community.post.ui.edit.CommunityPostEditScreen
+import com.runners.app.community.post.ui.detail.CommunityPostDetailScreen
+import com.runners.app.community.post.ui.list.CommunityScreen
 import com.runners.app.community.post.state.CommunityPostStatsUpdate
 import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel

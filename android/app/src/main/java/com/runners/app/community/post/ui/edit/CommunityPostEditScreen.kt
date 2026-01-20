@@ -1,4 +1,4 @@
-package com.runners.app.community.post.ui
+package com.runners.app.community.post.ui.edit
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

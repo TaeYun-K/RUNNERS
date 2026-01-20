@@ -1,4 +1,4 @@
-package com.runners.app.community.post.ui
+package com.runners.app.community.post.ui.detail
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
