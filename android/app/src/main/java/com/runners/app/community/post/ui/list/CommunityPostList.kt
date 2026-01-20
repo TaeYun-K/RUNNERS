@@ -90,7 +90,7 @@ fun CommunityPostList(
         else -> {
             LazyColumn(
                 state = listState,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = modifier.fillMaxSize(),
             ) {
                 items(posts, key = { it.postId }) { post ->
@@ -174,19 +174,19 @@ private fun PostCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // 제목
             Text(
                 text = post.title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
@@ -197,9 +197,9 @@ private fun PostCard(
             if (!post.contentPreview.isNullOrBlank()) {
                 Text(
                     text = post.contentPreview,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -208,24 +208,6 @@ private fun PostCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // 아바타
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = (post.authorName?.firstOrNull() ?: "?").toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
-
-                Spacer(Modifier.width(8.dp))
-
                 Text(
                     text = post.authorName ?: "익명",
                     style = MaterialTheme.typography.bodySmall,
@@ -260,7 +242,7 @@ private fun PostCard(
             // 통계
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 StatItem(
                     icon = Icons.Outlined.ThumbUp,
@@ -293,7 +275,7 @@ private fun StatItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(12.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
