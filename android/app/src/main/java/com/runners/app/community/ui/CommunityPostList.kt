@@ -263,16 +263,16 @@ private fun PostCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 StatItem(
-                    icon = Icons.Outlined.RemoveRedEye,
-                    count = post.viewCount,
-                )
-                StatItem(
                     icon = Icons.Outlined.ThumbUp,
                     count = post.recommendCount,
                 )
                 StatItem(
                     icon = Icons.Outlined.ChatBubbleOutline,
                     count = post.commentCount,
+                )
+                StatItem(
+                    icon = Icons.Outlined.RemoveRedEye,
+                    count = post.viewCount,
                 )
             }
         }
