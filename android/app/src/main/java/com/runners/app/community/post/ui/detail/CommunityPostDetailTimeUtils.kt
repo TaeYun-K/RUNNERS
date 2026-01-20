@@ -8,7 +8,8 @@ import java.time.ZoneId
 
 internal fun toSecondPrecision(raw: String): String {
     val normalized = raw.replace('T', ' ')
-    return normalized.takeIf { it.length >= 19 }?.substring(0, 19) ?: normalized
+    // Show up to minute precision: "yyyy-MM-dd HH:mm"
+    return normalized.takeIf { it.length >= 16 }?.substring(0, 16) ?: normalized
 }
 
 internal fun shouldShowEditedBadge(createdAt: String, updatedAt: String?): Boolean {
@@ -25,4 +26,3 @@ internal fun shouldShowEditedBadge(createdAt: String, updatedAt: String?): Boole
     val deltaSeconds = Duration.between(createdInstant, updatedInstant).seconds
     return deltaSeconds > 0
 }
-
