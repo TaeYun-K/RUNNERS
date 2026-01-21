@@ -264,8 +264,30 @@ fun RunnersNavHost(
                     recentRuns = recentRuns,
                     popularPosts = popularPosts,
                 ),
-                onOpenCommunity = { navController.navigate(AppRoute.Community.route) },
-                onPopularPostClick = { navController.navigate(AppRoute.Community.route) },
+                onOpenCommunity = {
+                    navController.navigate(
+                        route = AppRoute.Community.route,
+                        navOptions = androidx.navigation.navOptions {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        },
+                    )
+                },
+                onPopularPostClick = {
+                    navController.navigate(
+                        route = AppRoute.Community.route,
+                        navOptions = androidx.navigation.navOptions {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        },
+                    )
+                },
                 onRecentRunClick = { date ->
                     navController.navigate(
                         route = AppRoute.Records.createRoute(date),
