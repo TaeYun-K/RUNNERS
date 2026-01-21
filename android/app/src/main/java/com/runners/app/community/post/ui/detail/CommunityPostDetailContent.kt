@@ -55,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.runners.app.ads.InlineBannerAd
 import com.runners.app.community.comment.ui.CommunityPostDetailCommentComposer
 import com.runners.app.community.comment.ui.CommunityPostDetailCommentItem
 import com.runners.app.community.post.state.CommunityPostDetailUiState
@@ -373,6 +374,11 @@ internal fun CommunityPostDetailContent(
                                         )
                                     }
                                 }
+                            }
+
+                            item(key = "detail-inline-banner-ad") {
+                                InlineBannerAd()
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             }
 
                             when {

@@ -46,18 +46,31 @@ fun CommunityTopBannerAd(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
-            text = "광고",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         AdaptiveBannerAd(
             adUnitId = adUnitId,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(2.dp))
+    }
+}
+
+@Composable
+fun InlineBannerAd(
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val adUnitId = context.getString(R.string.admob_banner_ad_unit_id)
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+    ) {
+        AdaptiveBannerAd(
+            adUnitId = adUnitId,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -92,9 +105,10 @@ private fun AdaptiveBannerAd(
 
     val logTag = "AdMobBanner"
 
-    val adView = remember(adUnitId) {
+    val adView = remember(adUnitId, adSize) {
         AdView(context).apply {
             setAdUnitId(adUnitId)
+            setAdSize(adSize)
             adListener = object : AdListener() {
                 override fun onAdLoaded() {
                     isLoaded = true
@@ -111,10 +125,9 @@ private fun AdaptiveBannerAd(
         }
     }
 
-    LaunchedEffect(adSize, adRequest) {
+    LaunchedEffect(adView, adRequest) {
         isLoaded = false
         statusText = "광고 로딩중…"
-        adView.setAdSize(adSize)
         adView.loadAd(adRequest)
     }
 
