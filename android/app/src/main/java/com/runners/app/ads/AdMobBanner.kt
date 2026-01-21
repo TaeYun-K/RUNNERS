@@ -1,15 +1,14 @@
 package com.runners.app.ads
 
 import android.util.Log
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -100,7 +99,6 @@ private fun AdaptiveBannerAd(
     val adHeightDp = with(density) { adSize.getHeightInPixels(context).toDp() }
 
     val adRequest = remember { AdRequest.Builder().build() }
-    var statusText by remember { mutableStateOf("광고 로딩중…") }
     var isLoaded by remember { mutableStateOf(false) }
 
     val logTag = "AdMobBanner"
@@ -112,13 +110,11 @@ private fun AdaptiveBannerAd(
             adListener = object : AdListener() {
                 override fun onAdLoaded() {
                     isLoaded = true
-                    statusText = ""
                     Log.d(logTag, "Banner loaded")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     isLoaded = false
-                    statusText = "광고 로드 실패: ${error.code}"
                     Log.w(logTag, "Banner failed to load: $error")
                 }
             }
@@ -127,7 +123,6 @@ private fun AdaptiveBannerAd(
 
     LaunchedEffect(adView, adRequest) {
         isLoaded = false
-        statusText = "광고 로딩중…"
         adView.loadAd(adRequest)
     }
 
@@ -147,31 +142,21 @@ private fun AdaptiveBannerAd(
         }
     }
 
-    AndroidView(
-        factory = { adView },
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .height(adHeightDp)
             .onSizeChanged { containerWidthPx = it.width },
-    )
-
-    if (!isLoaded) {
-        Column(
-            modifier = modifier
+    ) {
+        Spacer(
+            modifier = Modifier
                 .fillMaxWidth()
                 .height(adHeightDp)
-                .padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.padding(bottom = 8.dp),
-                strokeWidth = 2.dp,
-            )
-            Text(
-                text = statusText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+                .background(MaterialTheme.colorScheme.surface),
+        )
+        AndroidView(
+            factory = { adView },
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
