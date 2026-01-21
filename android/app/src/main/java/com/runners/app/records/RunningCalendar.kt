@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.runners.app.records
 
 import androidx.compose.foundation.background
@@ -13,37 +15,51 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.DirectionsWalk
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import java.time.Instant
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.ceil
 
 @Composable
 fun RunningCalendarCard(
     runs: List<RunRecordUiModel>,
+    loadDetails: (suspend (RunRecordUiModel) -> RunRecordDetails)? = null,
     modifier: Modifier = Modifier,
 ) {
     val runsByDate = remember(runs) { runs.groupBy { it.date } }
@@ -55,32 +71,78 @@ fun RunningCalendarCard(
     val monthDays = remember(month) { computeMonthCells(month) }
     val monthTotals = remember(runsByDate, month) { computeMonthTotals(runsByDate, month) }
     val maxDistanceKm = remember(monthTotals) { monthTotals.values.maxOrNull() ?: 0.0 }
+    val zoneId = remember { ZoneId.systemDefault() }
+    val detailsCache = remember { mutableStateMapOf<String, RunRecordDetails>() }
+    val bringDetailsIntoViewRequester = remember { BringIntoViewRequester() }
+    val cardShape = RoundedCornerShape(22.dp)
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(elevation = 2.dp, shape = cardShape),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(20.dp),
+        shape = cardShape,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Row(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                shape = RoundedCornerShape(18.dp),
+                color = Color.Transparent,
             ) {
-                Text(
-                    text = "${month.year}년 ${month.monthValue}월",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { month = month.minusMonths(1) }) {
-                    Icon(imageVector = Icons.Outlined.ChevronLeft, contentDescription = "이전 달")
-                }
-                IconButton(onClick = { month = month.plusMonths(1) }) {
-                    Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = "다음 달")
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
+                                )
+                            )
+                        )
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${month.year}년 ${month.monthValue}월",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            val selected = selectedDate
+                            if (selected != null) {
+                                val dayRuns = runsByDate[selected].orEmpty()
+                                val distanceKm = dayRuns.sumOf { it.distanceKm }
+                                val count = dayRuns.size
+                                Text(
+                                    text = "${selected.monthValue}/${selected.dayOfMonth} · ${formatKm(distanceKm)} · ${count}회",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            } else {
+                                Text(
+                                    text = "날짜를 눌러 기록을 확인하세요",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        IconButton(onClick = { month = month.minusMonths(1) }) {
+                            Icon(imageVector = Icons.Outlined.ChevronLeft, contentDescription = "이전 달")
+                        }
+                        IconButton(onClick = { month = month.plusMonths(1) }) {
+                            Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = "다음 달")
+                        }
+                    }
                 }
             }
 
@@ -132,18 +194,140 @@ fun RunningCalendarCard(
             val selected = selectedDate
             if (selected != null) {
                 val dayRuns = runsByDate[selected].orEmpty()
-                val distanceKm = dayRuns.sumOf { it.distanceKm }
-                val count = dayRuns.size
+                    .sortedByDescending { it.startTime }
+                LaunchedEffect(selected) {
+                    bringDetailsIntoViewRequester.bringIntoView()
+                }
+
+                DayRunsList(
+                    date = selected,
+                    runs = dayRuns,
+                    zoneId = zoneId,
+                    detailsCache = detailsCache,
+                    loadDetails = loadDetails,
+                    modifier = Modifier.bringIntoViewRequester(bringDetailsIntoViewRequester),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayRunsList(
+    date: LocalDate,
+    runs: List<RunRecordUiModel>,
+    zoneId: ZoneId,
+    detailsCache: MutableMap<String, RunRecordDetails>,
+    loadDetails: (suspend (RunRecordUiModel) -> RunRecordDetails)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (runs.isEmpty()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ) {
                 Text(
-                    text = "${selected.monthValue}/${selected.dayOfMonth} · ${formatKm(distanceKm)} · ${count}회",
+                    text = "${date.monthValue}/${date.dayOfMonth} 러닝 기록이 없어요",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                )
+            }
+            return
+        }
+
+        for (run in runs) {
+            DayRunRow(
+                run = run,
+                zoneId = zoneId,
+                detailsCache = detailsCache,
+                loadDetails = loadDetails,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DayRunRow(
+    run: RunRecordUiModel,
+    zoneId: ZoneId,
+    detailsCache: MutableMap<String, RunRecordDetails>,
+    loadDetails: (suspend (RunRecordUiModel) -> RunRecordDetails)?,
+    modifier: Modifier = Modifier,
+) {
+    val start = run.startTime.toLocalTimeText(zoneId)
+    val end = run.endTime.toLocalTimeText(zoneId)
+    val durationText = run.durationMinutes?.let { formatMinutes(it) } ?: "—"
+    val key = remember(run) { run.cacheKey() }
+    val details = detailsCache[key]
+
+    androidx.compose.runtime.LaunchedEffect(key, loadDetails) {
+        val loader = loadDetails ?: return@LaunchedEffect
+        if (detailsCache.containsKey(key)) return@LaunchedEffect
+        val loaded = runCatching { loader(run) }.getOrElse { RunRecordDetails() }
+        detailsCache[key] = loaded
+    }
+
+    val detailChips = buildRunDetailChips(details)
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = "$start ~ $end",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "$durationText · ${formatKm(run.distanceKm)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
+                if (detailChips.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        for (chip in detailChips) {
+                            InfoChip(
+                                icon = chip.icon,
+                                text = chip.text,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+            ) {
                 Text(
-                    text = "날짜를 누르면 해당 날짜 기록을 확인할 수 있어요",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = "${formatKmCompact(run.distanceKm)} km",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                 )
             }
         }
@@ -228,6 +412,40 @@ private fun CalendarDayCell(
     }
 }
 
+private data class DetailChip(val icon: androidx.compose.ui.graphics.vector.ImageVector, val text: String)
+
+@Composable
+private fun InfoChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+        tonalElevation = 1.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
 private fun computeMonthCells(month: YearMonth): List<LocalDate?> {
     val first = month.atDay(1)
     val offset = (first.dayOfWeek.value - DayOfWeek.MONDAY.value).let { if (it < 0) it + 7 else it }
@@ -268,4 +486,37 @@ private fun formatKmCompact(km: Double): String {
     } else {
         String.format(Locale.US, "%.0f", km)
     }
+}
+
+private fun RunRecordUiModel.cacheKey(): String {
+    return "${startTime.toEpochMilli()}-${endTime.toEpochMilli()}-${dataOriginPackageName.lowercase(Locale.US)}"
+}
+
+private fun buildRunDetailChips(details: RunRecordDetails?): List<DetailChip> {
+    if (details == null) return emptyList()
+
+    val chips = ArrayList<DetailChip>(3)
+    details.caloriesKcal?.let { kcal ->
+        if (kcal > 0.0) chips.add(DetailChip(Icons.Outlined.LocalFireDepartment, String.format(Locale.US, "%.0f kcal", kcal)))
+    }
+    if (details.avgHeartRateBpm != null || details.maxHeartRateBpm != null) {
+        val avg = details.avgHeartRateBpm?.toString() ?: "-"
+        val max = details.maxHeartRateBpm?.toString() ?: "-"
+        chips.add(DetailChip(Icons.Outlined.FavoriteBorder, "${avg}/${max} bpm"))
+    }
+    details.cadenceSpm?.let { spm ->
+        if (spm > 0) chips.add(DetailChip(Icons.Outlined.DirectionsWalk, "${spm} spm"))
+    }
+    return chips
+}
+
+private fun Instant.toLocalTimeText(zoneId: ZoneId): String {
+    val formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.KOREAN)
+    return atZone(zoneId).toLocalTime().format(formatter)
+}
+
+private fun formatMinutes(totalMinutes: Long): String {
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return if (hours > 0) "${hours}시간 ${minutes}분" else "${minutes}분"
 }

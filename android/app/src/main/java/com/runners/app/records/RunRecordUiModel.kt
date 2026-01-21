@@ -7,7 +7,7 @@ data class RunRecordUiModel(
     val date: LocalDate,
     val startTime: Instant,
     val endTime: Instant,
+    val dataOriginPackageName: String,
     val distanceKm: Double,
     val durationMinutes: Long?,
 )
-

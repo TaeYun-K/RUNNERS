@@ -51,7 +51,7 @@ fun HealthConnectSection() {
                 message = null
                 isSuccess = false
                 try {
-                    val missing = HealthConnectRepository.requiredPermissions - granted
+                    val missing = HealthConnectRepository.requestedPermissions - granted
                     missingPermissions = missing
                     if (missing.isNotEmpty()) {
                         val labels = missing.map { HealthConnectRepository.requiredPermissionLabels[it] ?: it }
@@ -78,12 +78,12 @@ fun HealthConnectSection() {
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            text = "러닝 거리/기록을 가져오려면 Health Connect 권한이 필요해요.",
+            text = "러닝 기록(거리/시간)과 칼로리/심박/케이던스를 가져오려면 Health Connect 권한이 필요해요.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "버튼을 누르면 Health Connect 권한 화면이 열리고, 운동 세션/거리 접근을 허용해야 해요.",
+            text = "기본은 운동 세션/거리 권한만으로도 보여줄 수 있고, 과거 데이터/칼로리/심박/걸음수 권한을 추가로 허용하면 더 많은 기록을 볼 수 있어요.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -100,7 +100,10 @@ fun HealthConnectSection() {
                             isSuccess = false
                             try {
                                 val client = HealthConnectRepository.getClient(context)
-                                val hasAll = HealthConnectRepository.hasAllPermissions(client)
+                                val hasAll = HealthConnectRepository.hasAllPermissions(
+                                    client = client,
+                                    permissions = HealthConnectRepository.requestedPermissions,
+                                )
                                 if (hasAll) {
                                     val runningCount = withContext(Dispatchers.IO) {
                                         HealthConnectRepository.readRunningSessionCount(client)
@@ -109,8 +112,8 @@ fun HealthConnectSection() {
                                     message = "이미 권한이 있어요. 러닝 기록 ${runningCount}개를 읽었어요."
                                     isSuccess = true
                                 } else {
-                                    missingPermissions = HealthConnectRepository.requiredPermissions
-                                    permissionsLauncher.launch(HealthConnectRepository.requiredPermissions)
+                                    missingPermissions = HealthConnectRepository.requestedPermissions
+                                    permissionsLauncher.launch(HealthConnectRepository.requestedPermissions)
                                 }
                             } catch (e: Exception) {
                                 message = e.message ?: "Health Connect 처리 중 오류가 발생했어요."
@@ -147,7 +150,7 @@ fun HealthConnectSection() {
 
         if (missingPermissions.isNotEmpty()) {
             OutlinedButton(
-                onClick = { permissionsLauncher.launch(HealthConnectRepository.requiredPermissions) },
+                onClick = { permissionsLauncher.launch(HealthConnectRepository.requestedPermissions) },
                 enabled = !isWorking,
                 modifier = Modifier
                     .fillMaxWidth()

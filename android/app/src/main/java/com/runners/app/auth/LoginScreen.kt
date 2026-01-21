@@ -184,65 +184,65 @@ fun LoginScreen(
                         }
                     }
 
-                    // 카카오 로그인 버튼
-                    Button(
-                        onClick = onKakaoLogin,
-                        enabled = false,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFEE500),
-                            contentColor = Color(0xFF191919),
-                            disabledContainerColor = Color(0xFFFEE500).copy(alpha = 0.4f),
-                            disabledContentColor = Color(0xFF191919).copy(alpha = 0.4f),
-                        ),
-                    ) {
-                        ProviderMark(
-                            letter = "K",
-                            backgroundColor = Color(0xFF191919).copy(alpha = 0.1f),
-                            contentColor = Color(0xFF191919).copy(alpha = 0.6f),
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("카카오로 시작하기", fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(
-                            "준비 중",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF191919).copy(alpha = 0.5f),
-                        )
-                    }
+//                    // 카카오 로그인 버튼
+//                    Button(
+//                        onClick = onKakaoLogin,
+//                        enabled = false,
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(56.dp),
+//                        shape = RoundedCornerShape(16.dp),
+//                        colors = ButtonDefaults.buttonColors(
+//                            containerColor = Color(0xFFFEE500),
+//                            contentColor = Color(0xFF191919),
+//                            disabledContainerColor = Color(0xFFFEE500).copy(alpha = 0.4f),
+//                            disabledContentColor = Color(0xFF191919).copy(alpha = 0.4f),
+//                        ),
+//                    ) {
+//                        ProviderMark(
+//                            letter = "K",
+//                            backgroundColor = Color(0xFF191919).copy(alpha = 0.1f),
+//                            contentColor = Color(0xFF191919).copy(alpha = 0.6f),
+//                        )
+//                        Spacer(modifier = Modifier.width(12.dp))
+//                        Text("카카오로 시작하기", fontWeight = FontWeight.SemiBold)
+//                        Spacer(modifier = Modifier.weight(1f))
+//                        Text(
+//                            "준비 중",
+//                            style = MaterialTheme.typography.labelSmall,
+//                            color = Color(0xFF191919).copy(alpha = 0.5f),
+//                        )
+//                    }
 
-                    // 네이버 로그인 버튼
-                    Button(
-                        onClick = onNaverLogin,
-                        enabled = false,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF03C75A),
-                            contentColor = Color.White,
-                            disabledContainerColor = Color(0xFF03C75A).copy(alpha = 0.4f),
-                            disabledContentColor = Color.White.copy(alpha = 0.5f),
-                        ),
-                    ) {
-                        ProviderMark(
-                            letter = "N",
-                            backgroundColor = Color.White.copy(alpha = 0.2f),
-                            contentColor = Color.White.copy(alpha = 0.7f),
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("네이버로 시작하기", fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(
-                            "준비 중",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.6f),
-                        )
-                    }
+//                    // 네이버 로그인 버튼
+//                    Button(
+//                        onClick = onNaverLogin,
+//                        enabled = false,
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(56.dp),
+//                        shape = RoundedCornerShape(16.dp),
+//                        colors = ButtonDefaults.buttonColors(
+//                            containerColor = Color(0xFF03C75A),
+//                            contentColor = Color.White,
+//                            disabledContainerColor = Color(0xFF03C75A).copy(alpha = 0.4f),
+//                            disabledContentColor = Color.White.copy(alpha = 0.5f),
+//                        ),
+//                    ) {
+//                        ProviderMark(
+//                            letter = "N",
+//                            backgroundColor = Color.White.copy(alpha = 0.2f),
+//                            contentColor = Color.White.copy(alpha = 0.7f),
+//                        )
+//                        Spacer(modifier = Modifier.width(12.dp))
+//                        Text("네이버로 시작하기", fontWeight = FontWeight.SemiBold)
+//                        Spacer(modifier = Modifier.weight(1f))
+//                        Text(
+//                            "준비 중",
+//                            style = MaterialTheme.typography.labelSmall,
+//                            color = Color.White.copy(alpha = 0.6f),
+//                        )
+//                    }
                 }
 
                 val shownError = backendErrorMessage ?: errorMessage

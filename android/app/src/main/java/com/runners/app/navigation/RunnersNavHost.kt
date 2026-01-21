@@ -73,8 +73,16 @@ fun RunnersNavHost(
 
         runCatching {
             val client = HealthConnectRepository.getClient(context, providerPackage)
-            val hasAllPermissions = HealthConnectRepository.hasAllPermissions(client)
-            if (!hasAllPermissions) return@runCatching
+            val hasCorePermissions = HealthConnectRepository.hasAllPermissions(
+                client = client,
+                permissions = HealthConnectRepository.corePermissions,
+            )
+            if (!hasCorePermissions) return@runCatching
+
+            val hasHistoryPermission = HealthConnectRepository.hasAllPermissions(
+                client = client,
+                permissions = HealthConnectRepository.historyPermission,
+            )
 
             data class Stats(
                 val totalKm: Double?,
@@ -95,9 +103,16 @@ fun RunnersNavHost(
                 val weekStartInstant = weekStart.atStartOfDay(zoneId).toInstant()
                 val monthStartInstant = monthStart.atStartOfDay(zoneId).toInstant()
 
+                val sinceInstant =
+                    if (hasHistoryPermission) {
+                        Instant.EPOCH
+                    } else {
+                        nowInstant.minus(Duration.ofDays(30))
+                    }
+
                 val allSessions = HealthConnectRepository.readRunningSessions(
                     client = client,
-                    since = Instant.EPOCH,
+                    since = sinceInstant,
                     until = nowInstant,
                     maxRecords = 1000,
                 )
@@ -173,6 +188,7 @@ fun RunnersNavHost(
                             date = sessionDate,
                             startTime = session.startTime,
                             endTime = session.endTime,
+                            dataOriginPackageName = session.metadata.dataOrigin.packageName,
                             distanceKm = distanceKm,
                             durationMinutes = durationMinutes,
                         )
@@ -251,7 +267,7 @@ fun RunnersNavHost(
                 onPopularPostClick = { navController.navigate(AppRoute.Community.route) },
             )
         }
-        composable(AppRoute.Records.route) { RecordsDashboardScreen(runs = allRuns) }
+        composable(AppRoute.Records.route) { RecordsDashboardScreen(runs = allRuns, providerPackage = providerPackage) }
         composable(AppRoute.Community.route) { entry ->
             val statsUpdate =
                 entry.savedStateHandle

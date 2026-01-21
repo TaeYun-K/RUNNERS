@@ -22,27 +22,41 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.health.connect.client.records.metadata.DataOrigin
+import com.runners.app.healthconnect.HealthConnectRepository
 import com.runners.app.ui.theme.Blue40
 import com.runners.app.ui.theme.Blue60
 import com.runners.app.ui.theme.Teal40
 import com.runners.app.ui.theme.Teal60
+import java.time.Duration
 import java.util.Locale
 
 @Composable
 fun RecordsDashboardScreen(
     runs: List<RunRecordUiModel> = emptyList(),
+    providerPackage: String? = null,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+
     val totalDistanceKm = runs.sumOf { it.distanceKm }.takeIf { it > 0.0 }
     val totalDurationMinutes = runs.sumOf { it.durationMinutes ?: 0L }.takeIf { it > 0L }
     val runCount = runs.size
@@ -50,6 +64,71 @@ fun RecordsDashboardScreen(
         distanceKm = totalDistanceKm,
         totalMinutes = totalDurationMinutes,
     )
+
+    var canLoadDetails by remember { mutableStateOf(false) }
+
+    LaunchedEffect(providerPackage) {
+        canLoadDetails = false
+        runCatching {
+            val client = HealthConnectRepository.getClient(context, providerPackage)
+            canLoadDetails = HealthConnectRepository.hasAllPermissions(
+                client = client,
+                permissions = HealthConnectRepository.optionalDetailPermissions,
+            )
+        }
+    }
+
+    val loadDetails: (suspend (RunRecordUiModel) -> RunRecordDetails)? =
+        if (!canLoadDetails) {
+            null
+        } else {
+            { run ->
+                val client = HealthConnectRepository.getClient(context, providerPackage)
+                val origin = DataOrigin(run.dataOriginPackageName)
+                val caloriesKcal = runCatching {
+                    HealthConnectRepository.caloriesKcalForSession(
+                        client = client,
+                        since = run.startTime,
+                        until = run.endTime,
+                        dataOrigin = origin,
+                    )
+                }.getOrNull()
+
+                val heartRate = runCatching {
+                    HealthConnectRepository.heartRateSummaryForSession(
+                        client = client,
+                        since = run.startTime,
+                        until = run.endTime,
+                        dataOrigin = origin,
+                    )
+                }.getOrNull()
+
+                val steps = runCatching {
+                    HealthConnectRepository.stepsForSession(
+                        client = client,
+                        since = run.startTime,
+                        until = run.endTime,
+                        dataOrigin = origin,
+                    )
+                }.getOrNull()
+
+                val durationMinutes = run.durationMinutes
+                    ?: Duration.between(run.startTime, run.endTime).toMinutes().takeIf { it > 0 }
+
+                val cadenceSpm = if (steps != null && durationMinutes != null && durationMinutes > 0) {
+                    (steps.toDouble() / durationMinutes.toDouble()).toInt().takeIf { it > 0 }
+                } else {
+                    null
+                }
+
+                RunRecordDetails(
+                    caloriesKcal = caloriesKcal?.takeIf { it > 0.0 },
+                    avgHeartRateBpm = heartRate?.avgBpm,
+                    maxHeartRateBpm = heartRate?.maxBpm,
+                    cadenceSpm = cadenceSpm,
+                )
+            }
+        }
 
     Column(
         modifier = modifier
@@ -67,7 +146,10 @@ fun RecordsDashboardScreen(
             color = MaterialTheme.colorScheme.onBackground,
         )
 
-        RunningCalendarCard(runs = runs)
+        RunningCalendarCard(
+            runs = runs,
+            loadDetails = loadDetails,
+        )
 
         // 통계 그리드
         Row(
@@ -132,7 +214,7 @@ fun RecordsDashboardScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "마이페이지에서 헬스 커넥트를 연동하면 러닝 기록이 자동으로 동기화됩니다. (칼로리/심박 등은 추후 지원)",
+                    text = "마이페이지에서 헬스 커넥트를 연동하면 러닝 기록이 자동으로 동기화됩니다.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                 )
@@ -163,12 +245,13 @@ private fun StatCard(
     gradientColors: List<Color>,
     modifier: Modifier = Modifier,
 ) {
+    val shape = RoundedCornerShape(18.dp)
     Card(
-        modifier = modifier,
+        modifier = modifier.shadow(elevation = 2.dp, shape = shape),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        shape = RoundedCornerShape(16.dp),
+        shape = shape,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
@@ -177,36 +260,44 @@ private fun StatCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        brush = Brush.linearGradient(gradientColors)
-                    ),
-                contentAlignment = Alignment.Center,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp),
+                Surface(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    color = Color.Transparent,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(brush = Brush.linearGradient(gradientColors))
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
