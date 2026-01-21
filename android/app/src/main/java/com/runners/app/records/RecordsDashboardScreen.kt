@@ -47,12 +47,14 @@ import com.runners.app.ui.theme.Blue60
 import com.runners.app.ui.theme.Teal40
 import com.runners.app.ui.theme.Teal60
 import java.time.Duration
+import java.time.LocalDate
 import java.util.Locale
 
 @Composable
 fun RecordsDashboardScreen(
     runs: List<RunRecordUiModel> = emptyList(),
     providerPackage: String? = null,
+    initialSelectedDate: LocalDate? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -149,6 +151,7 @@ fun RecordsDashboardScreen(
         RunningCalendarCard(
             runs = runs,
             loadDetails = loadDetails,
+            initialSelectedDate = initialSelectedDate,
         )
 
         // 통계 그리드

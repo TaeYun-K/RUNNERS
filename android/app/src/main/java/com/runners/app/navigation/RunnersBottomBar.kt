@@ -53,7 +53,9 @@ fun RunnersBottomBar(navController: NavHostController) {
             val selected =
                 currentDestination?.hierarchy?.any { destination ->
                     val route = destination.route ?: return@any false
-                    route == item.route.route || route.startsWith("${item.route.route}/")
+                    route == item.route.route ||
+                        route.startsWith("${item.route.route}/") ||
+                        route.startsWith("${item.route.route}?")
                 } == true
 
             NavigationBarItem(

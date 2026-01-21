@@ -265,9 +265,29 @@ fun RunnersNavHost(
                 ),
                 onOpenCommunity = { navController.navigate(AppRoute.Community.route) },
                 onPopularPostClick = { navController.navigate(AppRoute.Community.route) },
+                onRecentRunClick = { date ->
+                    navController.navigate(AppRoute.Records.createRoute(date))
+                },
             )
         }
-        composable(AppRoute.Records.route) { RecordsDashboardScreen(runs = allRuns, providerPackage = providerPackage) }
+        composable(
+            route = AppRoute.Records.routeWithDate,
+            arguments = listOf(
+                navArgument(AppRoute.Records.dateArg) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { entry ->
+            val dateArg = entry.arguments?.getString(AppRoute.Records.dateArg)
+            val initialDate = dateArg?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            RecordsDashboardScreen(
+                runs = allRuns,
+                providerPackage = providerPackage,
+                initialSelectedDate = initialDate,
+            )
+        }
         composable(AppRoute.Community.route) { entry ->
             val statsUpdate =
                 entry.savedStateHandle

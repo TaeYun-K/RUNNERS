@@ -66,6 +66,7 @@ fun HomeScreen(
     uiState: HomeUiState,
     onOpenCommunity: () -> Unit = {},
     onPopularPostClick: (postId: String) -> Unit = {},
+    onRecentRunClick: (LocalDate) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -122,7 +123,10 @@ fun HomeScreen(
                 )
             }
 
-            RecentRunsCard(runs = uiState.recentRuns)
+            RecentRunsCard(
+                runs = uiState.recentRuns,
+                onRunClick = onRecentRunClick,
+            )
 
             PopularPostsCard(
                 posts = uiState.popularPosts,
@@ -281,6 +285,7 @@ private fun StatMiniCard(
 @Composable
 private fun RecentRunsCard(
     runs: List<RecentRunUiModel>,
+    onRunClick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -325,7 +330,11 @@ private fun RecentRunsCard(
                 Column(verticalArrangement = spacedBy(12.dp)) {
                     runs.forEach { run ->
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable { onRunClick(run.date) }
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {

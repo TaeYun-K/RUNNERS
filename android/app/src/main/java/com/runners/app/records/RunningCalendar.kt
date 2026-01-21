@@ -71,13 +71,14 @@ import kotlin.math.ceil
 fun RunningCalendarCard(
     runs: List<RunRecordUiModel>,
     loadDetails: (suspend (RunRecordUiModel) -> RunRecordDetails)? = null,
+    initialSelectedDate: LocalDate? = null,
     modifier: Modifier = Modifier,
 ) {
     val runsByDate = remember(runs) { runs.groupBy { it.date } }
     val today = remember { LocalDate.now() }
 
-    var month by remember { mutableStateOf(YearMonth.from(today)) }
-    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    var month by remember { mutableStateOf(YearMonth.from(initialSelectedDate ?: today)) }
+    var selectedDate by remember { mutableStateOf<LocalDate?>(initialSelectedDate) }
 
     val monthDays = remember(month) { computeMonthCells(month) }
     val monthTotals = remember(runsByDate, month) { computeMonthTotals(runsByDate, month) }
@@ -85,6 +86,12 @@ fun RunningCalendarCard(
     val zoneId = remember { ZoneId.systemDefault() }
     val detailsCache = remember { mutableStateMapOf<String, RunRecordDetails>() }
     val bringDetailsIntoViewRequester = remember { BringIntoViewRequester() }
+
+    LaunchedEffect(initialSelectedDate) {
+        val initial = initialSelectedDate ?: return@LaunchedEffect
+        selectedDate = initial
+        month = YearMonth.from(initial)
+    }
 
     // 디자인: 카드 모양과 그림자를 더 부드럽게 처리
     Card(
@@ -288,16 +295,25 @@ private fun CalendarDayCell(
 ) {
     val isToday = date == today
     val hasRun = totalDistanceKm > 0.0
+    val shape = RoundedCornerShape(10.dp)
 
     // 히트맵 색상 로직: 운동량이 많을수록 Primary 색상이 진해짐
-    val backgroundColor = if (hasRun) {
+    val heatmapColor = if (hasRun) {
         val intensity = if (maxDistanceKm > 0) (totalDistanceKm / maxDistanceKm).toFloat().coerceIn(0.1f, 1f) else 0f
         MaterialTheme.colorScheme.primary.copy(alpha = 0.1f + (intensity * 0.9f))
     } else {
         MaterialTheme.colorScheme.surfaceContainerLow
     }
 
-    val textColor = if (hasRun) {
+    val backgroundColor = if (isSelected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        heatmapColor
+    }
+
+    val textColor = if (isSelected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else if (hasRun) {
         // 배경이 진하면 흰 글씨, 연하면 검은 글씨 (간단한 로직)
         if ((totalDistanceKm / maxDistanceKm) > 0.5) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     } else {
@@ -305,20 +321,35 @@ private fun CalendarDayCell(
     }
 
     // 선택 시 테두리 스타일
-    val borderWidth = if (isSelected) 2.dp else 0.dp
+    val borderWidth = if (isSelected) 2.5.dp else 0.dp
     val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
 
     Column(
         modifier = modifier
             .aspectRatio(0.85f) // 약간 세로로 긴 비율이 더 현대적임
-            .clip(RoundedCornerShape(10.dp))
+            .clip(shape)
             .background(backgroundColor)
-            .border(borderWidth, borderColor, RoundedCornerShape(10.dp))
+            .border(borderWidth, borderColor, shape)
             .clickable { onClick() }
             .padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        if (isSelected) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+        }
+
         // 날짜 숫자
         Box(
             modifier = Modifier.size(20.dp),
@@ -336,7 +367,7 @@ private fun CalendarDayCell(
                 text = date.dayOfMonth.toString(),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isToday && !hasRun) MaterialTheme.colorScheme.primary else textColor
+                color = if (isToday && !hasRun && !isSelected) MaterialTheme.colorScheme.primary else textColor
             )
         }
 
