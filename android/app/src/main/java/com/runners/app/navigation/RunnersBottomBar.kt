@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.navOptions
 
 private data class NavItemData(
@@ -64,7 +65,7 @@ fun RunnersBottomBar(navController: NavHostController) {
                     navController.navigate(
                         route = item.route.route,
                         navOptions = navOptions {
-                            popUpTo(AppRoute.Home.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
                             }
                             launchSingleTop = true

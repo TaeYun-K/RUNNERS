@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -266,7 +267,17 @@ fun RunnersNavHost(
                 onOpenCommunity = { navController.navigate(AppRoute.Community.route) },
                 onPopularPostClick = { navController.navigate(AppRoute.Community.route) },
                 onRecentRunClick = { date ->
-                    navController.navigate(AppRoute.Records.createRoute(date))
+                    navController.navigate(
+                        route = AppRoute.Records.createRoute(date),
+                        navOptions = androidx.navigation.navOptions {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            // Do NOT restore previous Records state here; the user expects the newly clicked date to apply.
+                            launchSingleTop = false
+                            restoreState = false
+                        },
+                    )
                 },
             )
         }
