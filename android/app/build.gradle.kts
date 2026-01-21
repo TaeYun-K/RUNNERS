@@ -30,12 +30,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resValue("string", "google_web_client_id", properties.getProperty("google_web_client_id", ""))
         buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
+
+        manifestPlaceholders["admob_app_id"] = "ca-app-pub-3940256099942544~3347511713"
     }
 
     buildTypes {
-        debug {}
+        debug {
+            resValue("string", "admob_banner_ad_unit_id", "ca-app-pub-3940256099942544/6300978111")
+        }
         release {
             isMinifyEnabled = false
+            resValue("string", "admob_banner_ad_unit_id", "ca-app-pub-3940256099942544/6300978111")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -66,6 +71,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.health.connect:connect-client:1.1.0")
     implementation(libs.play.services.auth)
+    implementation(libs.play.services.ads)
     implementation(libs.okhttp)
     implementation(libs.androidx.navigation.compose)
     implementation(platform(libs.androidx.compose.bom))

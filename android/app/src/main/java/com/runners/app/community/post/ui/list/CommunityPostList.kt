@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.runners.app.ads.CommunityTopBannerAd
 import com.runners.app.network.CommunityPostSummaryResult
 import java.time.Duration
 import java.time.Instant
@@ -98,6 +99,10 @@ fun CommunityPostList(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = modifier.fillMaxSize(),
             ) {
+                item(key = "community_top_banner_ad") {
+                    CommunityTopBannerAd()
+                }
+
                 items(posts, key = { it.postId }) { post ->
                     PostCard(
                         post = post,
