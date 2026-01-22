@@ -1,6 +1,7 @@
 package com.runners.app.community.post.ui.detail
 
 import android.os.Build
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ThumbUp
@@ -65,6 +67,7 @@ import com.runners.app.community.comment.ui.CommunityPostDetailCommentComposer
 import com.runners.app.community.comment.ui.CommunityPostDetailCommentItem
 import com.runners.app.community.post.state.CommunityPostDetailUiState
 import com.runners.app.community.post.ui.components.CommunityAuthorLine
+import com.runners.app.community.post.ui.components.FullScreenImageViewerDialog
 import com.runners.app.network.CommunityCommentResult
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -263,6 +266,17 @@ internal fun CommunityPostDetailContent(
                 else -> {
                     val data = uiState.post
                     if (data != null) {
+                        var viewerOpen by remember { mutableStateOf(false) }
+                        var viewerInitialIndex by remember { mutableStateOf(0) }
+
+                        if (viewerOpen) {
+                            FullScreenImageViewerDialog(
+                                imageUrls = data.imageUrls,
+                                initialIndex = viewerInitialIndex,
+                                onDismissRequest = { viewerOpen = false },
+                            )
+                        }
+
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -333,14 +347,18 @@ internal fun CommunityPostDetailContent(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     ) {
-                                        items(items = data.imageUrls, key = { it }) { url ->
+                                        itemsIndexed(items = data.imageUrls, key = { _, url -> url }) { index, url ->
                                             AsyncImage(
                                                 model = url,
                                                 contentDescription = "게시글 이미지",
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier
                                                     .size(220.dp)
-                                                    .clip(RoundedCornerShape(16.dp)),
+                                                    .clip(RoundedCornerShape(16.dp))
+                                                    .clickable {
+                                                        viewerInitialIndex = index
+                                                        viewerOpen = true
+                                                    },
                                             )
                                         }
                                     }
