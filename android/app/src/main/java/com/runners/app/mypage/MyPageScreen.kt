@@ -1,5 +1,8 @@
 package com.runners.app.mypage
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Arrangement
@@ -49,13 +52,16 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Logout
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.runners.app.R
 import com.runners.app.mypage.components.HealthConnectSection
 import com.runners.app.auth.AuthTokenStore
+import com.runners.app.network.PresignCommunityImageUploadFileRequest
 import com.runners.app.network.BackendUserApi
 import com.runners.app.network.GoogleLoginResult
+import com.runners.app.network.PresignedUploadClient
 import com.runners.app.network.UserMeResult
 import com.runners.app.settings.AppSettingsStore
 import kotlinx.coroutines.Dispatchers
@@ -80,6 +86,7 @@ fun MyPageScreen(
     var nicknameDraft by remember { mutableStateOf("") }
     var nicknameErrorMessage by remember { mutableStateOf<String?>(null) }
     var isNicknameSaving by remember { mutableStateOf(false) }
+    var isProfileImageUploading by remember { mutableStateOf(false) }
 
     val showTotalDistanceInCommunity =
         AppSettingsStore.showTotalDistanceInCommunityFlow(context)
@@ -115,6 +122,51 @@ fun MyPageScreen(
         refreshUser()
     }
 
+    val pickProfileImageLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            if (isLoading || isProfileImageUploading) return@rememberLauncherForActivityResult
+
+            scope.launch {
+                isProfileImageUploading = true
+                errorMessage = null
+                try {
+                    val bytes =
+                        withContext(Dispatchers.IO) {
+                            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        } ?: throw IllegalStateException("이미지를 읽을 수 없어요")
+
+                    val contentType = context.contentResolver.getType(uri) ?: "image/jpeg"
+                    val presigned =
+                        withContext(Dispatchers.IO) {
+                            BackendUserApi.presignProfileImageUpload(
+                                PresignCommunityImageUploadFileRequest(
+                                    fileName = uri.lastPathSegment ?: "profile",
+                                    contentType = contentType,
+                                    contentLength = bytes.size.toLong(),
+                                )
+                            )
+                        }
+                    val item = presigned.items.firstOrNull()
+                        ?: throw IllegalStateException("업로드 URL을 발급받지 못했어요")
+
+                    withContext(Dispatchers.IO) {
+                        PresignedUploadClient.put(
+                            uploadUrl = item.uploadUrl,
+                            contentType = item.contentType.ifBlank { contentType },
+                            bytes = bytes,
+                        )
+                    }
+
+                    userMe = withContext(Dispatchers.IO) { BackendUserApi.commitProfileImage(item.key) }
+                } catch (e: Exception) {
+                    errorMessage = e.message ?: "프로필 사진 업로드에 실패했어요"
+                } finally {
+                    isProfileImageUploading = false
+                }
+            }
+        }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -148,19 +200,30 @@ fun MyPageScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     // 프로필 아바타
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = ((userMe?.name ?: session.name)?.firstOrNull() ?: "R").toString().uppercase(),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimary,
+                    val profileImageUrl = userMe?.picture ?: session.picture
+                    if (!profileImageUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = "프로필 이미지",
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape),
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = ((userMe?.name ?: session.name)?.firstOrNull() ?: "R").toString().uppercase(),
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
@@ -175,6 +238,30 @@ fun MyPageScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                         )
+                    }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            pickProfileImageLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        enabled = !isLoading && !isProfileImageUploading,
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        if (isProfileImageUploading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Text("  업로드 중...")
+                        } else {
+                            Text("프로필 사진 변경")
+                        }
                     }
                 }
 

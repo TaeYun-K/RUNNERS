@@ -29,11 +29,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.runners.app.community.post.ui.detail.shouldShowEditedBadge
 import com.runners.app.community.post.ui.detail.toSecondPrecision
 import com.runners.app.network.CommunityCommentResult
+import coil.compose.AsyncImage
 
 @Composable
 internal fun CommunityPostDetailCommentItem(
@@ -79,19 +81,31 @@ internal fun CommunityPostDetailCommentItem(
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = (comment.authorName?.firstOrNull() ?: "?").toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+            val authorPicture = comment.authorPicture
+            if (!authorPicture.isNullOrBlank()) {
+                AsyncImage(
+                    model = authorPicture,
+                    contentDescription = "작성자 프로필",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape),
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = (comment.authorName?.firstOrNull() ?: "?").toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
             }
 
             Column(modifier = Modifier.weight(1f)) {

@@ -60,6 +60,7 @@ import com.runners.app.settings.AppSettingsStore
 @Composable
 fun CommunityCreatePostScreen(
     authorNickname: String,
+    authorPictureUrl: String? = null,
     totalDistanceKm: Double?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -172,6 +173,7 @@ fun CommunityCreatePostScreen(
                 Column(Modifier.padding(16.dp)) {
                     CommunityAuthorLine(
                         nickname = authorNickname,
+                        pictureUrl = authorPictureUrl,
                         totalDistanceKm = totalDistanceKm,
                         showTotalDistance = showTotalDistanceInCommunity,
                     )

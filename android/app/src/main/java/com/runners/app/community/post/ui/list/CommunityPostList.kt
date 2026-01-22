@@ -240,6 +240,35 @@ private fun PostCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val authorPicture = post.authorPicture
+                if (!authorPicture.isNullOrBlank()) {
+                    AsyncImage(
+                        model = authorPicture,
+                        contentDescription = "작성자 프로필",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape),
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = (post.authorName?.firstOrNull() ?: '?').toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(8.dp))
+
                 Text(
                     text = post.authorName ?: "익명",
                     style = MaterialTheme.typography.bodySmall,

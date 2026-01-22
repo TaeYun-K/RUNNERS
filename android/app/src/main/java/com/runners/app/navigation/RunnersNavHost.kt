@@ -355,6 +355,7 @@ fun RunnersNavHost(
         composable(AppRoute.CommunityCreate.route) {
             CommunityCreatePostScreen(
                 authorNickname = session.nickname ?: session.email ?: "RUNNERS",
+                authorPictureUrl = session.picture,
                 totalDistanceKm = totalDistanceKm,
                 onBack = { navController.popBackStack() },
                 viewModel = communityViewModel,

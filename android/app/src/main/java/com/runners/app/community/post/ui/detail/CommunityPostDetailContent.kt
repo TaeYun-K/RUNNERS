@@ -305,6 +305,7 @@ internal fun CommunityPostDetailContent(
                                 ) {
                                     CommunityAuthorLine(
                                         nickname = data.authorName ?: "익명",
+                                        pictureUrl = data.authorPicture,
                                         totalDistanceKm = data.authorTotalDistanceKm,
                                         showTotalDistance = showTotalDistance,
                                     )
