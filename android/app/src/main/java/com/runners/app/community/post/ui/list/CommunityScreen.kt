@@ -24,8 +24,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
@@ -51,7 +49,6 @@ fun CommunityScreen(
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
-    val isSearchOpen = remember { mutableStateOf(false) }
     val showTotalDistanceInCommunity =
         AppSettingsStore.showTotalDistanceInCommunityFlow(context)
             .collectAsStateWithLifecycle(initialValue = true)
@@ -82,10 +79,10 @@ fun CommunityScreen(
         CommunityHeader(
             title = "커뮤니티",
             onCreateClick = onCreateClick,
-            onSearchClick = { isSearchOpen.value = !isSearchOpen.value },
+            onSearchClick = viewModel::toggleSearchOpen,
         )
 
-        if (isSearchOpen.value) {
+        if (uiState.isSearchOpen) {
             OutlinedTextField(
                 value = uiState.searchInput,
                 onValueChange = viewModel::onSearchInputChange,
@@ -104,7 +101,6 @@ fun CommunityScreen(
                         }
                     } else {
                         IconButton(onClick = {
-                            isSearchOpen.value = false
                             viewModel.clearSearchAndRefresh()
                         }) {
                             Icon(imageVector = Icons.Default.Close, contentDescription = null)

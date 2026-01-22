@@ -5,6 +5,7 @@ import com.runners.app.network.CommunityPostSummaryResult
 data class CommunityUiState(
     val searchInput: String = "",
     val searchQuery: String = "",
+    val isSearchOpen: Boolean = false,
     val posts: List<CommunityPostSummaryResult> = emptyList(),
     val nextCursor: String? = null,
     val isInitialLoading: Boolean = false,

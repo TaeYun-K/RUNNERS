@@ -73,10 +73,20 @@ class CommunityViewModel(
         }
     }
 
+    fun toggleSearchOpen() {
+        _uiState.update { state ->
+            state.copy(
+                isSearchOpen = !state.isSearchOpen,
+                listErrorMessage = null,
+            )
+        }
+    }
+
     fun submitSearch() {
         _uiState.update { state ->
             state.copy(
                 searchQuery = state.searchInput.trim(),
+                isSearchOpen = true,
                 listErrorMessage = null,
                 scrollToTopSignal = state.scrollToTopSignal + 1L,
             )
@@ -89,6 +99,7 @@ class CommunityViewModel(
             state.copy(
                 searchInput = "",
                 searchQuery = "",
+                isSearchOpen = false,
                 listErrorMessage = null,
                 scrollToTopSignal = state.scrollToTopSignal + 1L,
             )
