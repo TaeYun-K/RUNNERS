@@ -5,6 +5,8 @@ import com.runners.app.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.time.LocalDateTime;
 
 @Entity
@@ -60,6 +62,11 @@ public class CommunityPost {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    @Builder.Default
+    private List<CommunityPostImage> images = new ArrayList<>();
+
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();
@@ -76,6 +83,16 @@ public class CommunityPost {
     public void updateContent(String title, String content) {
         this.title = title;
         this.content = content;
+    }
+
+    public void replaceImages(List<String> imageKeys) {
+        images.clear();
+        if (imageKeys == null || imageKeys.isEmpty()) return;
+        for (int i = 0; i < imageKeys.size(); i++) {
+            String key = imageKeys.get(i);
+            if (key == null || key.isBlank()) continue;
+            images.add(CommunityPostImage.create(this, key.trim(), i));
+        }
     }
 
     public void markDeleted() {

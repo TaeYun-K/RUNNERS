@@ -8,6 +8,7 @@ import com.runners.app.community.post.dto.response.CommunityPostResponse;
 import com.runners.app.community.post.dto.response.CommunityPostDetailResponse;
 import com.runners.app.community.post.dto.response.CommunityPostSummaryResponse;
 import com.runners.app.community.post.repository.CommunityPostRepository;
+import com.runners.app.community.upload.service.CommunityUploadService;
 import com.runners.app.community.view.CommunityPostViewTracker;
 import com.runners.app.user.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
@@ -27,15 +28,18 @@ public class CommunityPostService {
     private final CommunityPostRepository communityPostRepository;
     private final CommunityPostViewTracker communityPostViewTracker;
     private final UserRepository userRepository;
+    private final CommunityUploadService communityUploadService;
 
     public CommunityPostService(
             CommunityPostRepository communityPostRepository,
             CommunityPostViewTracker communityPostViewTracker,
-            UserRepository userRepository
+            UserRepository userRepository,
+            CommunityUploadService communityUploadService
     ) {
         this.communityPostRepository = communityPostRepository;
         this.communityPostViewTracker = communityPostViewTracker;
         this.userRepository = userRepository;
+        this.communityUploadService = communityUploadService;
     }
 
     @Transactional
@@ -43,13 +47,14 @@ public class CommunityPostService {
         var author = userRepository.findById(authorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        CommunityPost saved = communityPostRepository.save(
-                CommunityPost.builder()
-                        .author(author)
-                        .title(request.title())
-                        .content(request.content())
-                        .build()
-        );
+        CommunityPost post = CommunityPost.builder()
+                .author(author)
+                .title(request.title())
+                .content(request.content())
+                .build();
+
+        post.replaceImages(request.imageKeys());
+        CommunityPost saved = communityPostRepository.save(post);
 
         return new CommunityPostResponse(
                 saved.getId(),
@@ -59,7 +64,8 @@ public class CommunityPostService {
                 saved.getViewCount(),
                 saved.getRecommendCount(),
                 saved.getCommentCount(),
-                saved.getCreatedAt()
+                saved.getCreatedAt(),
+                toImageUrls(saved)
         );
     }
 
@@ -77,6 +83,9 @@ public class CommunityPostService {
         }
 
         post.updateContent(request.title(), request.content());
+        if (request.imageKeys() != null) {
+            post.replaceImages(request.imageKeys());
+        }
 
         return new CommunityPostResponse(
             post.getId(),
@@ -86,7 +95,8 @@ public class CommunityPostService {
             post.getViewCount(),
             post.getRecommendCount(),
             post.getCommentCount(),
-            post.getCreatedAt()
+            post.getCreatedAt(),
+            toImageUrls(post)
         );
     }
 
@@ -134,6 +144,7 @@ public class CommunityPostService {
                 author.getTotalDistanceKm(),
                 post.getTitle(),
                 post.getContent(),
+                toImageUrls(post),
                 post.getViewCount(),
                 post.getRecommendCount(),
                 post.getCommentCount(),
@@ -212,5 +223,12 @@ public class CommunityPostService {
         int limit = 120;
         if (singleLine.length() <= limit) return singleLine;
         return singleLine.substring(0, limit).trim() + "…";
+    }
+
+    private List<String> toImageUrls(CommunityPost post) {
+        if (post.getImages() == null || post.getImages().isEmpty()) return List.of();
+        return post.getImages().stream()
+                .map(image -> communityUploadService.toPublicFileUrl(image.getS3Key()))
+                .collect(Collectors.toList());
     }
 }

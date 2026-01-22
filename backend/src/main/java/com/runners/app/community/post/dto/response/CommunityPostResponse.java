@@ -1,6 +1,7 @@
 package com.runners.app.community.post.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record CommunityPostResponse(
         Long postId,
@@ -10,6 +11,6 @@ public record CommunityPostResponse(
         int viewCount,
         int recommendCount,
         int commentCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        List<String> imageUrls
 ) {}
-
