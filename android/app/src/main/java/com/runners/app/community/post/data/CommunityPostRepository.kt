@@ -16,6 +16,11 @@ class CommunityPostRepository {
             BackendCommunityApi.listPosts(cursor = cursor, size = size)
         }
 
+    suspend fun searchPosts(query: String, cursor: String?, size: Int = 20): CommunityPostCursorListResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.searchPosts(query = query, cursor = cursor, size = size)
+        }
+
     suspend fun getPost(postId: Long): CommunityPostDetailResult =
         withContext(Dispatchers.IO) {
             BackendCommunityApi.getPost(postId)

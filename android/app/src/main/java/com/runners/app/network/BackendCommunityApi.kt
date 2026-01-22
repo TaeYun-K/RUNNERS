@@ -167,6 +167,35 @@ object BackendCommunityApi {
         }
     }
 
+    fun searchPosts(query: String, cursor: String?, size: Int = 20): CommunityPostCursorListResult {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/search"
+        val httpUrlBuilder = url.toHttpUrl().newBuilder()
+            .addQueryParameter("q", query)
+            .addQueryParameter("size", size.coerceIn(1, 50).toString())
+
+        if (!cursor.isNullOrBlank()) {
+            httpUrlBuilder.addQueryParameter("cursor", cursor)
+        }
+
+        val request = Request.Builder()
+            .url(httpUrlBuilder.build())
+            .get()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Search community posts failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            val posts = parsePosts(json.optJSONArray("posts") ?: JSONArray())
+            val nextCursor = json.optString("nextCursor")
+                .takeIf { it.isNotBlank() && it != "null" }
+            return CommunityPostCursorListResult(posts = posts, nextCursor = nextCursor)
+        }
+    }
+
     private fun parsePosts(array: JSONArray): List<CommunityPostSummaryResult> {
         val result = ArrayList<CommunityPostSummaryResult>(array.length())
         for (i in 0 until array.length()) {

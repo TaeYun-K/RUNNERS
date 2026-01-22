@@ -3,6 +3,7 @@ package com.runners.app.community.post.state
 import com.runners.app.network.CommunityPostSummaryResult
 
 data class CommunityUiState(
+    val searchQuery: String = "",
     val posts: List<CommunityPostSummaryResult> = emptyList(),
     val nextCursor: String? = null,
     val isInitialLoading: Boolean = false,
@@ -17,4 +18,5 @@ data class CommunityUiState(
     val scrollToTopSignal: Long = 0L,
 ) {
     val isLoading: Boolean get() = isInitialLoading || isLoadingMore
+    val isSearchMode: Boolean get() = searchQuery.isNotBlank()
 }

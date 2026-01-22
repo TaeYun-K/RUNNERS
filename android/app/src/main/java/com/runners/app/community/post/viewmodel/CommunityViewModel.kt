@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -22,6 +24,8 @@ class CommunityViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CommunityUiState())
     val uiState: StateFlow<CommunityUiState> = _uiState.asStateFlow()
+
+    private var searchJob: Job? = null
 
     init {
         refresh()
@@ -39,7 +43,12 @@ class CommunityViewModel(
             }
 
             runCatching {
-                repository.listPosts(cursor = null, size = 20)
+                val searchQuery = _uiState.value.searchQuery.trim()
+                if (searchQuery.isBlank()) {
+                    repository.listPosts(cursor = null, size = 20)
+                } else {
+                    repository.searchPosts(query = searchQuery, cursor = null, size = 20)
+                }
             }.onSuccess { result ->
                 _uiState.update {
                     it.copy(
@@ -59,6 +68,21 @@ class CommunityViewModel(
         }
     }
 
+    fun onSearchQueryChange(value: String) {
+        _uiState.update {
+            it.copy(
+                searchQuery = value,
+                listErrorMessage = null,
+            )
+        }
+
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(300)
+            refresh()
+        }
+    }
+
     fun loadMore() {
         viewModelScope.launch {
             val state = _uiState.value
@@ -68,7 +92,12 @@ class CommunityViewModel(
             _uiState.update { it.copy(isLoadingMore = true, listErrorMessage = null) }
 
             runCatching {
-                repository.listPosts(cursor = cursor, size = 20)
+                val searchQuery = state.searchQuery.trim()
+                if (searchQuery.isBlank()) {
+                    repository.listPosts(cursor = cursor, size = 20)
+                } else {
+                    repository.searchPosts(query = searchQuery, cursor = cursor, size = 20)
+                }
             }.onSuccess { result ->
                 _uiState.update {
                     it.copy(
