@@ -43,4 +43,49 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
             @Param("cursorId") Long cursorId,
             Pageable pageable
     );
+
+    @Query(
+            value = """
+            select p.id
+            from community_posts p
+            where p.status = :postStatus
+              and (
+                match(p.title) against (:q in natural language mode) > 0
+                or exists (
+                  select 1
+                  from community_comments c
+                  where c.post_id = p.id
+                    and c.status = :commentStatus
+                    and match(c.content) against (:q in natural language mode) > 0
+                )
+              )
+              and (
+                :cursorCreatedAt is null
+                or p.created_at < :cursorCreatedAt
+                or (p.created_at = :cursorCreatedAt and p.id < :cursorId)
+              )
+            order by p.created_at desc, p.id desc
+            limit :limit
+            """,
+            nativeQuery = true
+    )
+    List<Long> searchPostIdsForCursor(
+            @Param("postStatus") String postStatus,
+            @Param("commentStatus") String commentStatus,
+            @Param("q") String q,
+            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+            @Param("cursorId") Long cursorId,
+            @Param("limit") int limit
+    );
+
+    @EntityGraph(attributePaths = "author")
+    @Query("""
+            select p from CommunityPost p
+            where p.status = :status
+              and p.id in :ids
+            """)
+    List<CommunityPost> findAllByIdInWithAuthor(
+            @Param("status") CommunityContentStatus status,
+            @Param("ids") List<Long> ids
+    );
 }

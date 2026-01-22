@@ -87,4 +87,17 @@ public class CommunityPostController {
         return communityPostService.listPosts(cursor, size);
     }
 
+    @Operation(
+        summary = "게시글 검색",
+        description = "최신순 커서 기반 검색(제목/댓글 FULLTEXT, nextCursor를 다음 요청의 cursor로 전달)"
+    )
+    @GetMapping("/search")
+    public CommunityPostCursorListResponse searchPosts(
+            @RequestParam String q,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return communityPostService.searchPosts(q, cursor, size);
+    }
+
 }

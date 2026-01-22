@@ -185,25 +185,7 @@ public class CommunityPostService {
         boolean hasNext = fetched.size() > safeSize;
         List<CommunityPost> pageItems = hasNext ? fetched.subList(0, safeSize) : fetched;
 
-        Map<Long, String> thumbnailUrlByPostId = new HashMap<>();
-        if (!pageItems.isEmpty()) {
-            List<Long> postIds = pageItems.stream().map(CommunityPost::getId).collect(Collectors.toList());
-            List<CommunityPostImage> images =
-                    communityPostImageRepository.findByPostIdsAndStatus(postIds, CommunityPostImageStatus.ACTIVE);
-
-            Map<Long, CommunityPostImage> firstImageByPostId = new HashMap<>();
-            for (CommunityPostImage image : images) {
-                Long postId = image.getPost().getId();
-                firstImageByPostId.putIfAbsent(postId, image);
-            }
-
-            for (Map.Entry<Long, CommunityPostImage> entry : firstImageByPostId.entrySet()) {
-                thumbnailUrlByPostId.put(
-                        entry.getKey(),
-                        communityUploadService.toPublicFileUrl(entry.getValue().getS3Key())
-                );
-            }
-        }
+        Map<Long, String> thumbnailUrlByPostId = buildThumbnailUrlByPostId(pageItems);
 
         var posts = pageItems.stream()
                 .map(post -> new CommunityPostSummaryResponse(
@@ -224,6 +206,75 @@ public class CommunityPostService {
         String nextCursor = null;
         if (hasNext && !pageItems.isEmpty()) {
             CommunityPost last = pageItems.get(pageItems.size() - 1);
+            nextCursor = encodeCursor(last.getCreatedAt(), last.getId());
+        }
+
+        return new CommunityPostCursorListResponse(posts, nextCursor);
+    }
+
+    @Transactional(readOnly = true)
+    public CommunityPostCursorListResponse searchPosts(String query, String cursor, int size) {
+        if (query == null || query.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Query is required");
+        }
+
+        int safeSize = Math.min(50, Math.max(1, size));
+        String trimmedQuery = query.trim();
+
+        Cursor decodedCursor = decodeCursor(cursor);
+        int fetchSize = safeSize + 1;
+
+        List<Long> fetchedIds = communityPostRepository.searchPostIdsForCursor(
+                CommunityContentStatus.ACTIVE.name(),
+                CommunityContentStatus.ACTIVE.name(),
+                trimmedQuery,
+                decodedCursor == null ? null : decodedCursor.createdAt(),
+                decodedCursor == null ? Long.MAX_VALUE : decodedCursor.id(),
+                fetchSize
+        );
+
+        boolean hasNext = fetchedIds.size() > safeSize;
+        List<Long> pageIds = hasNext ? fetchedIds.subList(0, safeSize) : fetchedIds;
+        if (pageIds.isEmpty()) {
+            return new CommunityPostCursorListResponse(List.of(), null);
+        }
+
+        List<CommunityPost> fetchedPosts = communityPostRepository.findAllByIdInWithAuthor(
+                CommunityContentStatus.ACTIVE,
+                pageIds
+        );
+        Map<Long, CommunityPost> postById = fetchedPosts.stream()
+                .collect(Collectors.toMap(CommunityPost::getId, post -> post));
+
+        List<CommunityPost> orderedPosts = new ArrayList<>(pageIds.size());
+        for (Long id : pageIds) {
+            CommunityPost post = postById.get(id);
+            if (post != null) {
+                orderedPosts.add(post);
+            }
+        }
+
+        Map<Long, String> thumbnailUrlByPostId = buildThumbnailUrlByPostId(orderedPosts);
+
+        var posts = orderedPosts.stream()
+                .map(post -> new CommunityPostSummaryResponse(
+                        post.getId(),
+                        post.getAuthor().getId(),
+                        post.getAuthor().getDisplayName(),
+                        post.getAuthor().getTotalDistanceKm(),
+                        post.getTitle(),
+                        toContentPreview(post.getContent()),
+                        thumbnailUrlByPostId.get(post.getId()),
+                        post.getViewCount(),
+                        post.getRecommendCount(),
+                        post.getCommentCount(),
+                        post.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
+
+        String nextCursor = null;
+        if (hasNext && !orderedPosts.isEmpty()) {
+            CommunityPost last = orderedPosts.get(orderedPosts.size() - 1);
             nextCursor = encodeCursor(last.getCreatedAt(), last.getId());
         }
 
@@ -259,6 +310,30 @@ public class CommunityPostService {
         int limit = 120;
         if (singleLine.length() <= limit) return singleLine;
         return singleLine.substring(0, limit).trim() + "…";
+    }
+
+    private Map<Long, String> buildThumbnailUrlByPostId(List<CommunityPost> posts) {
+        Map<Long, String> thumbnailUrlByPostId = new HashMap<>();
+        if (posts == null || posts.isEmpty()) return thumbnailUrlByPostId;
+
+        List<Long> postIds = posts.stream().map(CommunityPost::getId).collect(Collectors.toList());
+        List<CommunityPostImage> images =
+                communityPostImageRepository.findByPostIdsAndStatus(postIds, CommunityPostImageStatus.ACTIVE);
+
+        Map<Long, CommunityPostImage> firstImageByPostId = new HashMap<>();
+        for (CommunityPostImage image : images) {
+            Long postId = image.getPost().getId();
+            firstImageByPostId.putIfAbsent(postId, image);
+        }
+
+        for (Map.Entry<Long, CommunityPostImage> entry : firstImageByPostId.entrySet()) {
+            thumbnailUrlByPostId.put(
+                    entry.getKey(),
+                    communityUploadService.toPublicFileUrl(entry.getValue().getS3Key())
+            );
+        }
+
+        return thumbnailUrlByPostId;
     }
 
     private List<String> toImageUrls(CommunityPost post) {
