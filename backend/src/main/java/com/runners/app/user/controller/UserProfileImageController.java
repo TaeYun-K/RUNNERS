@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,5 +56,12 @@ public class UserProfileImageController {
     ) {
         Long userId = SecurityUtils.extractUserId(authentication);
         return userService.updateProfileImage(userId, request.key());
+    }
+
+    @Operation(summary = "프로필 이미지 삭제", description = "사용자의 커스텀 프로필 이미지를 삭제하고 기본 이미지로 되돌립니다.")
+    @DeleteMapping
+    public UserMeResponse deleteProfileImage(Authentication authentication) {
+        Long userId = SecurityUtils.extractUserId(authentication);
+        return userService.deleteProfileImage(userId);
     }
 }

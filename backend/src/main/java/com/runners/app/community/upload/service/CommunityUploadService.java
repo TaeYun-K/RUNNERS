@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
@@ -68,6 +70,26 @@ public class CommunityUploadService {
         String normalizedPrefix = normalizePrefix(userProfileKeyPrefix);
         String userPrefix = normalizedPrefix + "/" + userId + "/";
         return !normalizedKey.isBlank() && normalizedKey.startsWith(userPrefix);
+    }
+
+    public void deleteUserProfileImageObject(Long userId, String key) {
+        validateS3Config(userProfileKeyPrefix);
+
+        String trimmedKey = key == null ? "" : key.trim();
+        if (trimmedKey.isBlank()) return;
+        if (!isUserProfileImageKey(userId, trimmedKey)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid key");
+        }
+
+        String normalizedKey = normalizeKey(trimmedKey);
+        try (S3Client client = newS3Client()) {
+            client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(normalizedKey)
+                    .build());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete profile image");
+        }
     }
 
     private PresignCommunityImageUploadResponse presignUploads(
@@ -181,6 +203,13 @@ public class CommunityUploadService {
 
     private S3Presigner newPresigner() {
         return S3Presigner.builder()
+                .region(Region.of(region))
+                .credentialsProvider(DefaultCredentialsProvider.create())
+                .build();
+    }
+
+    private S3Client newS3Client() {
+        return S3Client.builder()
                 .region(Region.of(region))
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();

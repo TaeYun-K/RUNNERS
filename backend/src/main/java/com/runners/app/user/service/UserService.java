@@ -86,8 +86,28 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid key");
         }
 
+        String prevKey = user.getCustomPictureKey();
+        if (prevKey != null && !prevKey.isBlank() && !prevKey.equals(trimmedKey)) {
+            communityUploadService.deleteUserProfileImageObject(userId, prevKey);
+        }
+
         String url = communityUploadService.toPublicFileUrl(trimmedKey);
-        user.updateCustomPicture(url);
+        user.updateCustomPicture(url, trimmedKey);
+        userRepository.save(user);
+        return toMeResponse(user);
+    }
+
+    @Transactional
+    public UserMeResponse deleteProfileImage(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        String prevKey = user.getCustomPictureKey();
+        if (prevKey != null && !prevKey.isBlank()) {
+            communityUploadService.deleteUserProfileImageObject(userId, prevKey);
+        }
+
+        user.clearCustomPicture();
         userRepository.save(user);
         return toMeResponse(user);
     }

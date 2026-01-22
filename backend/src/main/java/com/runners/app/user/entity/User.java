@@ -39,6 +39,9 @@ public class User {
     @Column(name = "custom_picture", length = 500)
     private String customPicture;
 
+    @Column(name = "custom_picture_key", length = 1024)
+    private String customPictureKey;
+
     @Column(name = "total_distance_km")
     private Double totalDistanceKm;
 
@@ -51,8 +54,14 @@ public class User {
         this.nickname = nickname;
     }
 
-    public void updateCustomPicture(String customPicture) {
+    public void updateCustomPicture(String customPicture, String customPictureKey) {
         this.customPicture = customPicture;
+        this.customPictureKey = customPictureKey;
+    }
+
+    public void clearCustomPicture() {
+        this.customPicture = null;
+        this.customPictureKey = null;
     }
 
     public void updateTotalDistanceKm(Double totalDistanceKm) {
