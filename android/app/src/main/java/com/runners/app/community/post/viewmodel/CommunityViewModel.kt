@@ -14,8 +14,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -24,8 +22,6 @@ class CommunityViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CommunityUiState())
     val uiState: StateFlow<CommunityUiState> = _uiState.asStateFlow()
-
-    private var searchJob: Job? = null
 
     init {
         refresh()
@@ -43,7 +39,7 @@ class CommunityViewModel(
             }
 
             runCatching {
-                val searchQuery = _uiState.value.searchQuery.trim()
+                val searchQuery = _uiState.value.searchQuery
                 if (searchQuery.isBlank()) {
                     repository.listPosts(cursor = null, size = 20)
                 } else {
@@ -68,19 +64,36 @@ class CommunityViewModel(
         }
     }
 
-    fun onSearchQueryChange(value: String) {
+    fun onSearchInputChange(value: String) {
         _uiState.update {
             it.copy(
-                searchQuery = value,
+                searchInput = value,
                 listErrorMessage = null,
             )
         }
+    }
 
-        searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            delay(300)
-            refresh()
+    fun submitSearch() {
+        _uiState.update { state ->
+            state.copy(
+                searchQuery = state.searchInput.trim(),
+                listErrorMessage = null,
+                scrollToTopSignal = state.scrollToTopSignal + 1L,
+            )
         }
+        refresh()
+    }
+
+    fun clearSearchAndRefresh() {
+        _uiState.update { state ->
+            state.copy(
+                searchInput = "",
+                searchQuery = "",
+                listErrorMessage = null,
+                scrollToTopSignal = state.scrollToTopSignal + 1L,
+            )
+        }
+        refresh()
     }
 
     fun loadMore() {
@@ -92,7 +105,7 @@ class CommunityViewModel(
             _uiState.update { it.copy(isLoadingMore = true, listErrorMessage = null) }
 
             runCatching {
-                val searchQuery = state.searchQuery.trim()
+                val searchQuery = state.searchQuery
                 if (searchQuery.isBlank()) {
                     repository.listPosts(cursor = cursor, size = 20)
                 } else {

@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -86,8 +87,8 @@ fun CommunityScreen(
 
         if (isSearchOpen.value) {
             OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = viewModel::onSearchQueryChange,
+                value = uiState.searchInput,
+                onValueChange = viewModel::onSearchInputChange,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = !uiState.isCreating,
@@ -97,17 +98,23 @@ fun CommunityScreen(
                     Icon(imageVector = Icons.Default.Search, contentDescription = null)
                 },
                 trailingIcon = {
-                    if (uiState.searchQuery.isNotBlank()) {
-                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                    if (uiState.searchInput.isNotBlank()) {
+                        IconButton(onClick = { viewModel.onSearchInputChange("") }) {
                             Icon(imageVector = Icons.Default.Clear, contentDescription = null)
                         }
                     } else {
-                        IconButton(onClick = { isSearchOpen.value = false }) {
+                        IconButton(onClick = {
+                            isSearchOpen.value = false
+                            viewModel.clearSearchAndRefresh()
+                        }) {
                             Icon(imageVector = Icons.Default.Close, contentDescription = null)
                         }
                     }
                 },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = { viewModel.submitSearch() },
+                ),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,

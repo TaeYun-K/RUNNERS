@@ -3,6 +3,7 @@ package com.runners.app.community.post.state
 import com.runners.app.network.CommunityPostSummaryResult
 
 data class CommunityUiState(
+    val searchInput: String = "",
     val searchQuery: String = "",
     val posts: List<CommunityPostSummaryResult> = emptyList(),
     val nextCursor: String? = null,
