@@ -3,6 +3,7 @@ package com.runners.app.user.service;
 import com.runners.app.user.dto.UserMeResponse;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
+import com.runners.app.community.upload.service.CommunityUploadService;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -13,9 +14,17 @@ import org.springframework.web.server.ResponseStatusException;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final CommunityUploadService communityUploadService;
+    private final UserProfileImageResolver userProfileImageResolver;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(
+            UserRepository userRepository,
+            CommunityUploadService communityUploadService,
+            UserProfileImageResolver userProfileImageResolver
+    ) {
         this.userRepository = userRepository;
+        this.communityUploadService = communityUploadService;
+        this.userProfileImageResolver = userProfileImageResolver;
     }
 
     @Transactional(readOnly = true)
@@ -63,16 +72,35 @@ public class UserService {
         return toMeResponse(user);
     }
 
-    private static UserMeResponse toMeResponse(User user) {
+    @Transactional
+    public UserMeResponse updateProfileImage(Long userId, String key) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        String trimmedKey = key == null ? "" : key.trim();
+        if (trimmedKey.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "key is required");
+        }
+
+        if (!communityUploadService.isUserProfileImageKey(userId, trimmedKey)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid key");
+        }
+
+        String url = communityUploadService.toPublicFileUrl(trimmedKey);
+        user.updateCustomPicture(url);
+        userRepository.save(user);
+        return toMeResponse(user);
+    }
+
+    private UserMeResponse toMeResponse(User user) {
         return new UserMeResponse(
                 user.getId(),
                 user.getEmail(),
                 user.getName(),
                 user.getNickname(),
-                user.getPicture(),
+                userProfileImageResolver.resolve(user),
                 user.getRole(),
                 user.getTotalDistanceKm()
         );
     }
 }
-

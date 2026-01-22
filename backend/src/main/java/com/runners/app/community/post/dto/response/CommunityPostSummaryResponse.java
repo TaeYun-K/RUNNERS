@@ -6,6 +6,7 @@ public record CommunityPostSummaryResponse(
         Long postId,
         Long authorId,
         String authorName,
+        String authorPicture,
         Double authorTotalDistanceKm,
         String title,
         String contentPreview,

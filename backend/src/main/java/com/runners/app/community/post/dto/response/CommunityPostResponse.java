@@ -6,6 +6,8 @@ import java.util.List;
 public record CommunityPostResponse(
         Long postId,
         Long authorId,
+        String authorName,
+        String authorPicture,
         String title,
         String content,
         int viewCount,

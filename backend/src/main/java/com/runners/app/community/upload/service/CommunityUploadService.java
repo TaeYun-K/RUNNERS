@@ -37,8 +37,11 @@ public class CommunityUploadService {
     @Value("${app.s3.public-base-url:}")
     private String publicBaseUrl;
 
-    @Value("${app.s3.key-prefix:community/posts}")
-    private String keyPrefix;
+    @Value("${app.s3.post-key-prefix:community/posts}")
+    private String communityPostKeyPrefix;
+
+    @Value("${app.s3.profile-key-prefix:users/profile}")
+    private String userProfileKeyPrefix;
 
     @Value("${app.s3.presign-exp-minutes:10}")
     private long presignExpirationMinutes;
@@ -50,10 +53,36 @@ public class CommunityUploadService {
             Long userId,
             PresignCommunityImageUploadRequest request
     ) {
-        validateS3Config();
+        return presignUploads(userId, request, communityPostKeyPrefix, 10);
+    }
+
+    public PresignCommunityImageUploadResponse presignUserProfileImageUpload(
+            Long userId,
+            PresignCommunityImageUploadRequest request
+    ) {
+        return presignUploads(userId, request, userProfileKeyPrefix, 1);
+    }
+
+    public boolean isUserProfileImageKey(Long userId, String key) {
+        String normalizedKey = normalizeKey(key);
+        String normalizedPrefix = normalizePrefix(userProfileKeyPrefix);
+        String userPrefix = normalizedPrefix + "/" + userId + "/";
+        return !normalizedKey.isBlank() && normalizedKey.startsWith(userPrefix);
+    }
+
+    private PresignCommunityImageUploadResponse presignUploads(
+            Long userId,
+            PresignCommunityImageUploadRequest request,
+            String keyPrefix,
+            int maxFiles
+    ) {
+        validateS3Config(keyPrefix);
 
         if (request == null || request.files() == null || request.files().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "files is required");
+        }
+        if (request.files().size() > maxFiles) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Too many files");
         }
 
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(presignExpirationMinutes);
@@ -63,7 +92,7 @@ public class CommunityUploadService {
             for (PresignCommunityImageUploadFileRequest file : request.files()) {
                 validateFile(file);
 
-                String objectKey = buildObjectKey(userId, file.fileName(), file.contentType());
+                String objectKey = buildObjectKey(keyPrefix, userId, file.fileName(), file.contentType());
                 PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                         .bucket(bucket)
                         .key(objectKey)
@@ -96,7 +125,7 @@ public class CommunityUploadService {
         return requiredPublicBaseUrl() + "/" + safeKey;
     }
 
-    private void validateS3Config() {
+    private void validateS3Config(String keyPrefix) {
         if (region == null || region.isBlank()) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.region is not configured");
         }
@@ -104,7 +133,7 @@ public class CommunityUploadService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.bucket is not configured");
         }
         if (keyPrefix == null || keyPrefix.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.key-prefix is not configured");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 key prefix is not configured");
         }
         if (presignExpirationMinutes <= 0 || presignExpirationMinutes > 60) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.presign-exp-minutes must be between 1 and 60");
@@ -157,8 +186,8 @@ public class CommunityUploadService {
                 .build();
     }
 
-    private String buildObjectKey(Long userId, String fileName, String contentType) {
-        String normalizedPrefix = keyPrefix.replaceAll("^/+", "").replaceAll("/+$", "");
+    private String buildObjectKey(String keyPrefix, Long userId, String fileName, String contentType) {
+        String normalizedPrefix = normalizePrefix(keyPrefix);
         String ext = resolveExtension(fileName, contentType);
         String date = LocalDate.now().toString().replace("-", "");
         String random = UUID.randomUUID().toString().replace("-", "");
@@ -198,6 +227,11 @@ public class CommunityUploadService {
             sb.append(URLEncoder.encode(parts[i], StandardCharsets.UTF_8));
         }
         return sb.toString();
+    }
+
+    private String normalizePrefix(String prefix) {
+        if (prefix == null) return "";
+        return prefix.trim().replaceAll("^/+", "").replaceAll("/+$", "");
     }
 
     private String normalizeKey(String key) {

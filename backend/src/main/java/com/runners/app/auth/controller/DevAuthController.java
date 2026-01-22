@@ -7,6 +7,7 @@ import com.runners.app.auth.service.RefreshTokenService;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
 import com.runners.app.user.service.NicknameService;
+import com.runners.app.user.service.UserProfileImageResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -28,19 +29,22 @@ public class DevAuthController {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
     private final NicknameService nicknameService;
+    private final UserProfileImageResolver userProfileImageResolver;
 
     public DevAuthController(
             @Value("${app.dev-auth.enabled:false}") String enabled,
             UserRepository userRepository,
             JwtService jwtService,
             RefreshTokenService refreshTokenService,
-            NicknameService nicknameService
+            NicknameService nicknameService,
+            UserProfileImageResolver userProfileImageResolver
     ) {
         this.enabled = Boolean.parseBoolean(enabled);
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
         this.nicknameService = nicknameService;
+        this.userProfileImageResolver = userProfileImageResolver;
     }
 
     @Operation(
@@ -85,7 +89,7 @@ public class DevAuthController {
                 user.getEmail(),
                 user.getName(),
                 user.getNickname(),
-                user.getPicture(),
+                userProfileImageResolver.resolve(user),
                 token,
                 refreshToken,
                 isNewUser

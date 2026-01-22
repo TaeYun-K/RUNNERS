@@ -14,6 +14,7 @@ import com.runners.app.community.post.repository.CommunityPostRepository;
 import com.runners.app.community.upload.service.CommunityUploadService;
 import com.runners.app.community.view.CommunityPostViewTracker;
 import com.runners.app.user.repository.UserRepository;
+import com.runners.app.user.service.UserProfileImageResolver;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -38,19 +39,22 @@ public class CommunityPostService {
     private final UserRepository userRepository;
     private final CommunityUploadService communityUploadService;
     private final CommunityPostImageRepository communityPostImageRepository;
+    private final UserProfileImageResolver userProfileImageResolver;
 
     public CommunityPostService(
             CommunityPostRepository communityPostRepository,
             CommunityPostViewTracker communityPostViewTracker,
             UserRepository userRepository,
             CommunityUploadService communityUploadService,
-            CommunityPostImageRepository communityPostImageRepository
+            CommunityPostImageRepository communityPostImageRepository,
+            UserProfileImageResolver userProfileImageResolver
     ) {
         this.communityPostRepository = communityPostRepository;
         this.communityPostViewTracker = communityPostViewTracker;
         this.userRepository = userRepository;
         this.communityUploadService = communityUploadService;
         this.communityPostImageRepository = communityPostImageRepository;
+        this.userProfileImageResolver = userProfileImageResolver;
     }
 
     @Transactional
@@ -70,6 +74,8 @@ public class CommunityPostService {
         return new CommunityPostResponse(
                 saved.getId(),
                 author.getId(),
+                author.getDisplayName(),
+                userProfileImageResolver.resolve(author),
                 saved.getTitle(),
                 saved.getContent(),
                 saved.getViewCount(),
@@ -101,6 +107,8 @@ public class CommunityPostService {
         return new CommunityPostResponse(
             post.getId(),
             author.getId(),
+            author.getDisplayName(),
+            userProfileImageResolver.resolve(author),
             post.getTitle(),
             post.getContent(),
             post.getViewCount(),
@@ -154,7 +162,7 @@ public class CommunityPostService {
                 post.getId(),
                 author.getId(),
                 author.getDisplayName(),
-                author.getPicture(),
+                userProfileImageResolver.resolve(author),
                 author.getTotalDistanceKm(),
                 post.getTitle(),
                 post.getContent(),
@@ -192,6 +200,7 @@ public class CommunityPostService {
                         post.getId(),
                         post.getAuthor().getId(),
                         post.getAuthor().getDisplayName(),
+                        userProfileImageResolver.resolve(post.getAuthor()),
                         post.getAuthor().getTotalDistanceKm(),
                         post.getTitle(),
                         toContentPreview(post.getContent()),
@@ -261,6 +270,7 @@ public class CommunityPostService {
                         post.getId(),
                         post.getAuthor().getId(),
                         post.getAuthor().getDisplayName(),
+                        userProfileImageResolver.resolve(post.getAuthor()),
                         post.getAuthor().getTotalDistanceKm(),
                         post.getTitle(),
                         toContentPreview(post.getContent()),

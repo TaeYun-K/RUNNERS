@@ -11,6 +11,7 @@ import com.runners.app.community.comment.repository.CommunityCommentRepository;
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.community.post.repository.CommunityPostRepository;
 import com.runners.app.user.repository.UserRepository;
+import com.runners.app.user.service.UserProfileImageResolver;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -27,15 +28,18 @@ public class CommunityCommentService {
     private final CommunityCommentRepository communityCommentRepository;
     private final CommunityPostRepository communityPostRepository;
     private final UserRepository userRepository;
+    private final UserProfileImageResolver userProfileImageResolver;
 
     public CommunityCommentService(
             CommunityCommentRepository communityCommentRepository,
             CommunityPostRepository communityPostRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            UserProfileImageResolver userProfileImageResolver
     ) {
         this.communityCommentRepository = communityCommentRepository;
         this.communityPostRepository = communityPostRepository;
         this.userRepository = userRepository;
+        this.userProfileImageResolver = userProfileImageResolver;
     }
 
     @Transactional
@@ -63,7 +67,7 @@ public class CommunityCommentService {
             post.getId(),
             author.getId(),
             author.getDisplayName(),
-            author.getPicture(),
+            userProfileImageResolver.resolve(author),
             author.getTotalDistanceKm(),
             parent == null ? null : parent.getId(),
             saved.getContent(),
@@ -98,7 +102,7 @@ public class CommunityCommentService {
             post.getId(),
             comment.getAuthor().getId(),
             comment.getAuthor().getDisplayName(),
-            comment.getAuthor().getPicture(),
+            userProfileImageResolver.resolve(comment.getAuthor()),
             comment.getAuthor().getTotalDistanceKm(),
             comment.getParent() == null ? null : comment.getParent().getId(),
             comment.getContent(),
@@ -165,7 +169,7 @@ public class CommunityCommentService {
                              postId,
                              comment.getAuthor().getId(),
                              comment.getAuthor().getDisplayName(),
-                             comment.getAuthor().getPicture(),
+                             userProfileImageResolver.resolve(comment.getAuthor()),
                              comment.getAuthor().getTotalDistanceKm(),
                              comment.getParent() == null ? null : comment.getParent().getId(),
                              content,

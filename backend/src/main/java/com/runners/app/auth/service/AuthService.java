@@ -5,6 +5,7 @@ import com.runners.app.auth.dto.GoogleLoginResponse;
 import com.runners.app.auth.dto.TokenRefreshResponse;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
+import com.runners.app.user.service.UserProfileImageResolver;
 import com.runners.app.user.service.NicknameService;
 import io.jsonwebtoken.Claims;
 import org.springframework.stereotype.Service;
@@ -20,19 +21,22 @@ public class AuthService {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
     private final NicknameService nicknameService;
+    private final UserProfileImageResolver userProfileImageResolver;
 
     public AuthService(
             GoogleTokenVerifier googleTokenVerifier,
             UserRepository userRepository,
             JwtService jwtService,
             RefreshTokenService refreshTokenService,
-            NicknameService nicknameService
+            NicknameService nicknameService,
+            UserProfileImageResolver userProfileImageResolver
     ) {
         this.googleTokenVerifier = googleTokenVerifier;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
         this.nicknameService = nicknameService;
+        this.userProfileImageResolver = userProfileImageResolver;
     }
 
     @Transactional
@@ -55,7 +59,16 @@ public class AuthService {
             String accessToken = jwtService.createAccessToken(user);
             String refreshToken = jwtService.createRefreshToken(user);
             refreshTokenService.save(user.getId(), refreshToken, jwtService.refreshTokenTtl());
-            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getNickname(), user.getPicture(), accessToken, refreshToken, false);
+            return new GoogleLoginResponse(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getName(),
+                    user.getNickname(),
+                    userProfileImageResolver.resolve(user),
+                    accessToken,
+                    refreshToken,
+                    false
+            );
         }
 
         // 2) email로도 조회 (기존에 email로 가입했을 가능성 대비)
@@ -75,7 +88,16 @@ public class AuthService {
             String accessToken = jwtService.createAccessToken(user);
             String refreshToken = jwtService.createRefreshToken(user);
             refreshTokenService.save(user.getId(), refreshToken, jwtService.refreshTokenTtl());
-            return new GoogleLoginResponse(user.getId(), user.getEmail(), user.getName(), user.getNickname(), user.getPicture(), accessToken, refreshToken, false);
+            return new GoogleLoginResponse(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getName(),
+                    user.getNickname(),
+                    userProfileImageResolver.resolve(user),
+                    accessToken,
+                    refreshToken,
+                    false
+            );
         }
 
         // 3) 신규 가입
@@ -92,7 +114,16 @@ public class AuthService {
         String accessToken = jwtService.createAccessToken(saved);
         String refreshToken = jwtService.createRefreshToken(saved);
         refreshTokenService.save(saved.getId(), refreshToken, jwtService.refreshTokenTtl());
-        return new GoogleLoginResponse(saved.getId(), saved.getEmail(), saved.getName(), saved.getNickname(), saved.getPicture(), accessToken, refreshToken, true);
+        return new GoogleLoginResponse(
+                saved.getId(),
+                saved.getEmail(),
+                saved.getName(),
+                saved.getNickname(),
+                userProfileImageResolver.resolve(saved),
+                accessToken,
+                refreshToken,
+                true
+        );
     }
 
     private void ensureNickname(User user) {
