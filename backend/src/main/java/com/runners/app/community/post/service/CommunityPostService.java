@@ -2,6 +2,7 @@ package com.runners.app.community.post.service;
 
 import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.post.entity.CommunityPost;
+import com.runners.app.community.post.entity.CommunityPostImage;
 import com.runners.app.community.post.dto.request.CreateCommunityPostRequest;
 import com.runners.app.community.post.dto.response.CommunityPostCursorListResponse;
 import com.runners.app.community.post.dto.response.CommunityPostResponse;
@@ -15,6 +16,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -53,7 +59,7 @@ public class CommunityPostService {
                 .content(request.content())
                 .build();
 
-        post.replaceImages(request.imageKeys());
+        applyImageKeys(post, request.imageKeys());
         CommunityPost saved = communityPostRepository.save(post);
 
         return new CommunityPostResponse(
@@ -84,7 +90,7 @@ public class CommunityPostService {
 
         post.updateContent(request.title(), request.content());
         if (request.imageKeys() != null) {
-            post.replaceImages(request.imageKeys());
+            applyImageKeys(post, request.imageKeys());
         }
 
         return new CommunityPostResponse(
@@ -116,6 +122,9 @@ public class CommunityPostService {
         }
 
         post.markDeleted();
+        if (post.getImages() != null) {
+            post.getImages().forEach(CommunityPostImage::markDeleted);
+        }
     }
 
     @Transactional
@@ -229,6 +238,7 @@ public class CommunityPostService {
     private List<String> toImageUrls(CommunityPost post) {
         if (post.getImages() == null || post.getImages().isEmpty()) return List.of();
         return post.getImages().stream()
+                .filter(CommunityPostImage::isActive)
                 .map(image -> communityUploadService.toPublicFileUrl(image.getS3Key()))
                 .collect(Collectors.toList());
     }
@@ -236,7 +246,75 @@ public class CommunityPostService {
     private List<String> toImageKeys(CommunityPost post) {
         if (post.getImages() == null || post.getImages().isEmpty()) return List.of();
         return post.getImages().stream()
+                .filter(CommunityPostImage::isActive)
                 .map(image -> image.getS3Key())
                 .collect(Collectors.toList());
+    }
+
+    private void applyImageKeys(CommunityPost post, List<String> requestedImageKeys) {
+        List<String> normalized = normalizeImageKeys(requestedImageKeys);
+
+        Map<String, CommunityPostImage> activeByKey = new HashMap<>();
+        Map<String, CommunityPostImage> deletedByKey = new HashMap<>();
+        if (post.getImages() != null) {
+            for (CommunityPostImage image : post.getImages()) {
+                if (image == null || image.getS3Key() == null) continue;
+                if (image.isActive()) {
+                    activeByKey.put(image.getS3Key(), image);
+                } else {
+                    deletedByKey.put(image.getS3Key(), image);
+                }
+            }
+        }
+
+        Set<String> desired = new HashSet<>(normalized);
+        if (post.getImages() != null) {
+            for (CommunityPostImage image : post.getImages()) {
+                if (image == null || !image.isActive()) continue;
+                if (!desired.contains(image.getS3Key())) {
+                    image.markDeleted();
+                }
+            }
+        }
+
+        List<CommunityPostImage> images = post.getImages();
+        if (images == null) {
+            images = new ArrayList<>();
+            // should never happen because builder default, but keep safe
+            throw new IllegalStateException("Post images is null");
+        }
+
+        for (int i = 0; i < normalized.size(); i++) {
+            String key = normalized.get(i);
+            CommunityPostImage existingActive = activeByKey.get(key);
+            if (existingActive != null) {
+                existingActive.setSortOrder(i);
+                continue;
+            }
+
+            CommunityPostImage existingDeleted = deletedByKey.get(key);
+            if (existingDeleted != null) {
+                existingDeleted.restore(i);
+                continue;
+            }
+
+            images.add(CommunityPostImage.create(post, key, i));
+        }
+    }
+
+    private List<String> normalizeImageKeys(List<String> imageKeys) {
+        if (imageKeys == null || imageKeys.isEmpty()) return List.of();
+        List<String> result = new ArrayList<>(Math.min(10, imageKeys.size()));
+        Set<String> seen = new HashSet<>();
+        for (String key : imageKeys) {
+            if (key == null) continue;
+            String trimmed = key.trim();
+            if (trimmed.isBlank()) continue;
+            if (seen.add(trimmed)) {
+                result.add(trimmed);
+            }
+            if (result.size() >= 10) break;
+        }
+        return result;
     }
 }

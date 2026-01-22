@@ -62,7 +62,7 @@ public class CommunityPost {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
     @OrderBy("sortOrder ASC")
     @Builder.Default
     private List<CommunityPostImage> images = new ArrayList<>();
@@ -83,16 +83,6 @@ public class CommunityPost {
     public void updateContent(String title, String content) {
         this.title = title;
         this.content = content;
-    }
-
-    public void replaceImages(List<String> imageKeys) {
-        images.clear();
-        if (imageKeys == null || imageKeys.isEmpty()) return;
-        for (int i = 0; i < imageKeys.size(); i++) {
-            String key = imageKeys.get(i);
-            if (key == null || key.isBlank()) continue;
-            images.add(CommunityPostImage.create(this, key.trim(), i));
-        }
     }
 
     public void markDeleted() {
