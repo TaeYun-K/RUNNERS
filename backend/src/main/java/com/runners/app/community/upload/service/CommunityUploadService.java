@@ -90,18 +90,10 @@ public class CommunityUploadService {
         return new PresignCommunityImageUploadResponse(items, expiresAt);
     }
 
-    public String toPublicFileUrl(String s3Key) {
-        String safeKey = urlEncodePath(s3Key);
-
-        if (publicBaseUrl != null && !publicBaseUrl.isBlank()) {
-            return publicBaseUrl.replaceAll("/+$", "") + "/" + safeKey;
-        }
-
-        if (region == null || region.isBlank() || bucket == null || bucket.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 public URL is not configured");
-        }
-
-        return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + safeKey;
+    public String toPublicFileUrl(String key) {
+        String normalizedKey = normalizeKey(key);
+        String safeKey = urlEncodePath(normalizedKey);
+        return requiredPublicBaseUrl() + "/" + safeKey;
     }
 
     private void validateS3Config() {
@@ -120,6 +112,23 @@ public class CommunityUploadService {
         if (maxUploadBytes <= 0) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.max-upload-bytes must be positive");
         }
+
+        requiredPublicBaseUrl();
+    }
+
+    private String requiredPublicBaseUrl() {
+        if (publicBaseUrl == null || publicBaseUrl.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.public-base-url is not configured");
+        }
+
+        String trimmed = publicBaseUrl.trim().replaceAll("/+$", "");
+        if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "app.s3.public-base-url must start with http:// or https://"
+            );
+        }
+        return trimmed;
     }
 
     private void validateFile(PresignCommunityImageUploadFileRequest file) {
@@ -190,5 +199,27 @@ public class CommunityUploadService {
         }
         return sb.toString();
     }
-}
 
+    private String normalizeKey(String key) {
+        if (key == null) return "";
+        String trimmed = key.trim();
+        if (trimmed.isBlank()) return "";
+
+        if (trimmed.startsWith("arn:aws:s3:::")) {
+            String withoutArn = trimmed.substring("arn:aws:s3:::".length());
+            String prefix = bucket + "/";
+            if (withoutArn.startsWith(prefix)) {
+                return withoutArn.substring(prefix.length());
+            }
+            int firstSlash = withoutArn.indexOf('/');
+            return firstSlash >= 0 ? withoutArn.substring(firstSlash + 1) : withoutArn;
+        }
+
+        String bucketPrefix = bucket + "/";
+        if (trimmed.startsWith(bucketPrefix)) {
+            return trimmed.substring(bucketPrefix.length());
+        }
+
+        return trimmed.replaceAll("^/+", "");
+    }
+}
