@@ -1,5 +1,6 @@
 package com.runners.app.community.post.ui.list
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -53,6 +54,14 @@ fun CommunityScreen(
         AppSettingsStore.showTotalDistanceInCommunityFlow(context)
             .collectAsStateWithLifecycle(initialValue = true)
             .value
+
+    BackHandler(enabled = uiState.isSearchMode || uiState.isSearchOpen) {
+        if (uiState.isSearchMode) {
+            viewModel.clearSearchAndRefresh()
+        } else {
+            viewModel.closeSearch()
+        }
+    }
 
     InfiniteScrollHandler(
         listState = listState,

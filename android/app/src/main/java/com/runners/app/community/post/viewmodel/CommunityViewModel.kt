@@ -82,6 +82,15 @@ class CommunityViewModel(
         }
     }
 
+    fun closeSearch() {
+        _uiState.update { state ->
+            state.copy(
+                isSearchOpen = false,
+                listErrorMessage = null,
+            )
+        }
+    }
+
     fun submitSearch() {
         _uiState.update { state ->
             state.copy(
