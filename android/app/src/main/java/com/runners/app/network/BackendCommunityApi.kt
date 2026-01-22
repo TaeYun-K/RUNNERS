@@ -38,6 +38,24 @@ data class CreateCommunityPostResult(
     val updatedAt: String? = null,
 )
 
+data class PresignCommunityImageUploadFileRequest(
+    val fileName: String?,
+    val contentType: String,
+    val contentLength: Long,
+)
+
+data class PresignedCommunityUploadItemResult(
+    val key: String,
+    val uploadUrl: String,
+    val fileUrl: String,
+    val contentType: String,
+)
+
+data class PresignCommunityImageUploadResult(
+    val items: List<PresignedCommunityUploadItemResult>,
+    val expiresAt: String?,
+)
+
 data class CommunityPostDetailResult(
     val postId: Long,
     val authorId: Long,
@@ -46,6 +64,7 @@ data class CommunityPostDetailResult(
     val authorTotalDistanceKm: Double?,
     val title: String,
     val content: String,
+    val imageUrls: List<String> = emptyList(),
     val viewCount: Int,
     val recommendCount: Int,
     val commentCount: Int,
@@ -171,12 +190,68 @@ object BackendCommunityApi {
         return result
     }
 
-    fun createPost(title: String, content: String): CreateCommunityPostResult {
+    fun presignCommunityPostImageUploads(files: List<PresignCommunityImageUploadFileRequest>): PresignCommunityImageUploadResult {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/uploads/presign"
+
+        val filesArray = JSONArray().apply {
+            files.forEach { file ->
+                put(
+                    JSONObject()
+                        .put("fileName", file.fileName)
+                        .put("contentType", file.contentType)
+                        .put("contentLength", file.contentLength)
+                )
+            }
+        }
+
+        val bodyJson = JSONObject()
+            .put("files", filesArray)
+            .toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .post(bodyJson.toRequestBody(jsonMediaType))
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Presign community upload failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            val itemsJson = json.optJSONArray("items") ?: JSONArray()
+            val items = ArrayList<PresignedCommunityUploadItemResult>(itemsJson.length())
+            for (i in 0 until itemsJson.length()) {
+                val item = itemsJson.getJSONObject(i)
+                items.add(
+                    PresignedCommunityUploadItemResult(
+                        key = item.getString("key"),
+                        uploadUrl = item.getString("uploadUrl"),
+                        fileUrl = item.optString("fileUrl"),
+                        contentType = item.optString("contentType"),
+                    )
+                )
+            }
+
+            return PresignCommunityImageUploadResult(
+                items = items,
+                expiresAt = json.optString("expiresAt").takeIf { it.isNotBlank() && it != "null" },
+            )
+        }
+    }
+
+    fun createPost(title: String, content: String, imageKeys: List<String>? = null): CreateCommunityPostResult {
         val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts"
 
         val bodyJson = JSONObject()
             .put("title", title)
             .put("content", content)
+            .apply {
+                if (!imageKeys.isNullOrEmpty()) {
+                    put("imageKeys", JSONArray(imageKeys))
+                }
+            }
             .toString()
 
         val request = Request.Builder()
@@ -225,6 +300,11 @@ object BackendCommunityApi {
                 json.optDouble("authorTotalDistanceKm", Double.NaN)
                     .takeIf { !it.isNaN() }
 
+            val imageUrls =
+                json.optJSONArray("imageUrls")?.let { array ->
+                    List(array.length()) { idx -> array.optString(idx) }.filter { it.isNotBlank() }
+                } ?: emptyList()
+
             return CommunityPostDetailResult(
                 postId = json.getLong("postId"),
                 authorId = json.getLong("authorId"),
@@ -233,6 +313,7 @@ object BackendCommunityApi {
                 authorTotalDistanceKm = authorTotalDistanceKm,
                 title = json.getString("title"),
                 content = json.getString("content"),
+                imageUrls = imageUrls,
                 viewCount = json.optInt("viewCount", 0),
                 recommendCount = json.optInt("recommendCount", 0),
                 commentCount = json.optInt("commentCount", 0),
@@ -272,7 +353,7 @@ object BackendCommunityApi {
         }
     }
 
-    fun updatePost(postId: Long, title: String, content: String): CreateCommunityPostResult {
+    fun updatePost(postId: Long, title: String, content: String, imageKeys: List<String>? = null): CreateCommunityPostResult {
         require(postId > 0) { "postId must be positive" }
 
         val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId"
@@ -280,6 +361,11 @@ object BackendCommunityApi {
         val bodyJson = JSONObject()
             .put("title", title)
             .put("content", content)
+            .apply {
+                if (imageKeys != null) {
+                    put("imageKeys", JSONArray(imageKeys))
+                }
+            }
             .toString()
 
         val request = Request.Builder()

@@ -10,6 +10,7 @@ data class CommunityUiState(
     val listErrorMessage: String? = null,
     val createTitle: String = "",
     val createContent: String = "",
+    val createImageUris: List<String> = emptyList(),
     val isCreating: Boolean = false,
     val createErrorMessage: String? = null,
     val createSuccessSignal: Long = 0L,

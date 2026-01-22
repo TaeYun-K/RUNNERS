@@ -1,5 +1,11 @@
 package com.runners.app.community.post.ui.create
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -15,6 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -34,13 +42,16 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.runners.app.community.post.ui.components.CommunityAuthorLine
 import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.settings.AppSettingsStore
@@ -61,6 +72,13 @@ fun CommunityCreatePostScreen(
         AppSettingsStore.showTotalDistanceInCommunityFlow(context)
             .collectAsStateWithLifecycle(initialValue = true)
             .value
+
+    val pickImagesLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 10),
+        ) { uris ->
+            viewModel.addCreateImages(uris)
+        }
 
     LaunchedEffect(uiState.createSuccessSignal) {
         if (uiState.createSuccessSignal > initialSuccessSignal) {
@@ -115,7 +133,7 @@ fun CommunityCreatePostScreen(
             Column(Modifier.fillMaxWidth()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Button(
-                    onClick = viewModel::submitCreatePost,
+                    onClick = { viewModel.submitCreatePost(context) },
                     enabled = canSubmit,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -212,7 +230,7 @@ fun CommunityCreatePostScreen(
                 }
             }
 
-            // 첨부 기능 (준비 중)
+            // 사진 첨부
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -236,17 +254,63 @@ fun CommunityCreatePostScreen(
                             modifier = Modifier.size(18.dp),
                         )
                         Text(
-                            "첨부 (준비 중)",
+                            "사진 첨부",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
+                        Text(
+                            "(${uiState.createImageUris.size}/10)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Box(modifier = Modifier.weight(1f))
+                        TextButton(
+                            onClick = {
+                                if (uiState.isCreating) return@TextButton
+                                pickImagesLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            enabled = !uiState.isCreating,
+                        ) {
+                            Text("사진 선택")
+                        }
                     }
-                    Text(
-                        "추후 사진 업로드나 링크 첨부 기능을 지원할 예정이에요.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+
+                    if (uiState.createImageUris.isNotEmpty()) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            items(uiState.createImageUris.size) { index ->
+                                val uriString = uiState.createImageUris[index]
+                                Box(
+                                    modifier = Modifier
+                                        .size(86.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                ) {
+                                    AsyncImage(
+                                        model = Uri.parse(uriString),
+                                        contentDescription = "첨부 이미지",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(12.dp)),
+                                    )
+                                    IconButton(
+                                        onClick = { viewModel.removeCreateImage(uriString) },
+                                        modifier = Modifier.align(Alignment.TopEnd),
+                                        enabled = !uiState.isCreating,
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Close,
+                                            contentDescription = "삭제",
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

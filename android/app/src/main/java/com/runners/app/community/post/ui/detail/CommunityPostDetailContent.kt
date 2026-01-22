@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -53,8 +54,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.runners.app.ads.InlineBannerAd
 import com.runners.app.community.comment.ui.CommunityPostDetailCommentComposer
 import com.runners.app.community.comment.ui.CommunityPostDetailCommentItem
@@ -320,6 +325,30 @@ internal fun CommunityPostDetailContent(
 
                             item(key = "divider-author") {
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            }
+
+                            if (data.imageUrls.isNotEmpty()) {
+                                item(key = "images") {
+                                    LazyRow(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        items(items = data.imageUrls, key = { it }) { url ->
+                                            AsyncImage(
+                                                model = url,
+                                                contentDescription = "게시글 이미지",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .size(220.dp)
+                                                    .clip(RoundedCornerShape(16.dp)),
+                                            )
+                                        }
+                                    }
+                                }
+
+                                item(key = "divider-images") {
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                }
                             }
 
                             item(key = "content") {

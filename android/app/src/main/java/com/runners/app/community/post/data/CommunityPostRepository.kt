@@ -5,6 +5,8 @@ import com.runners.app.network.CommunityPostCursorListResult
 import com.runners.app.network.CommunityPostDetailResult
 import com.runners.app.network.CommunityPostRecommendResult
 import com.runners.app.network.CreateCommunityPostResult
+import com.runners.app.network.PresignCommunityImageUploadFileRequest
+import com.runners.app.network.PresignCommunityImageUploadResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -19,18 +21,24 @@ class CommunityPostRepository {
             BackendCommunityApi.getPost(postId)
         }
 
-    suspend fun createPost(title: String, content: String): CreateCommunityPostResult =
+    suspend fun createPost(title: String, content: String, imageKeys: List<String>? = null): CreateCommunityPostResult =
         withContext(Dispatchers.IO) {
-            BackendCommunityApi.createPost(title = title, content = content)
+            BackendCommunityApi.createPost(title = title, content = content, imageKeys = imageKeys)
         }
 
-    suspend fun updatePost(postId: Long, title: String, content: String): CreateCommunityPostResult =
+    suspend fun updatePost(postId: Long, title: String, content: String, imageKeys: List<String>? = null): CreateCommunityPostResult =
         withContext(Dispatchers.IO) {
             BackendCommunityApi.updatePost(
                 postId = postId,
                 title = title,
                 content = content,
+                imageKeys = imageKeys,
             )
+        }
+
+    suspend fun presignCommunityPostImageUploads(files: List<PresignCommunityImageUploadFileRequest>): PresignCommunityImageUploadResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.presignCommunityPostImageUploads(files)
         }
 
     suspend fun deletePost(postId: Long) =
