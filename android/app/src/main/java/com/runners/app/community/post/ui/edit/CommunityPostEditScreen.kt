@@ -30,10 +30,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -48,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel
+import androidx.compose.foundation.shape.CircleShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -320,16 +324,33 @@ fun CommunityPostEditScreen(
                                                     .fillMaxSize()
                                                     .clip(RoundedCornerShape(12.dp)),
                                             )
-                                            IconButton(
-                                                onClick = {
-                                                    if (uiState.isUpdatingPost) return@IconButton
-                                                    existingImageUrls = existingImageUrls.filterIndexed { i, _ -> i != index }
-                                                    existingImageKeys = existingImageKeys.filterIndexed { i, _ -> i != index }
-                                                },
-                                                modifier = Modifier.align(Alignment.TopEnd),
-                                                enabled = !uiState.isUpdatingPost,
+                                            Surface(
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(6.dp)
+                                                    .size(26.dp),
+                                                shape = CircleShape,
+                                                color = Color.Black.copy(alpha = 0.58f),
+                                                shadowElevation = 2.dp,
                                             ) {
-                                                Icon(Icons.Outlined.Close, contentDescription = "삭제")
+                                                IconButton(
+                                                    onClick = {
+                                                        if (uiState.isUpdatingPost) return@IconButton
+                                                        existingImageUrls =
+                                                            existingImageUrls.filterIndexed { i, _ -> i != index }
+                                                        existingImageKeys =
+                                                            existingImageKeys.filterIndexed { i, _ -> i != index }
+                                                    },
+                                                    enabled = !uiState.isUpdatingPost,
+                                                    colors = IconButtonDefaults.iconButtonColors(
+                                                        contentColor = Color.White,
+                                                    ),
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.Close,
+                                                        contentDescription = "삭제",
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -345,15 +366,31 @@ fun CommunityPostEditScreen(
                                                     .fillMaxSize()
                                                     .clip(RoundedCornerShape(12.dp)),
                                             )
-                                            IconButton(
-                                                onClick = {
-                                                    if (uiState.isUpdatingPost) return@IconButton
-                                                    newImageUris = newImageUris.filterIndexed { i, _ -> i != index }
-                                                },
-                                                modifier = Modifier.align(Alignment.TopEnd),
-                                                enabled = !uiState.isUpdatingPost,
+                                            Surface(
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(6.dp)
+                                                    .size(26.dp),
+                                                shape = CircleShape,
+                                                color = Color.Black.copy(alpha = 0.58f),
+                                                shadowElevation = 2.dp,
                                             ) {
-                                                Icon(Icons.Outlined.Close, contentDescription = "삭제")
+                                                IconButton(
+                                                    onClick = {
+                                                        if (uiState.isUpdatingPost) return@IconButton
+                                                        newImageUris =
+                                                            newImageUris.filterIndexed { i, _ -> i != index }
+                                                    },
+                                                    enabled = !uiState.isUpdatingPost,
+                                                    colors = IconButtonDefaults.iconButtonColors(
+                                                        contentColor = Color.White,
+                                                    ),
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.Close,
+                                                        contentDescription = "삭제",
+                                                    )
+                                                }
                                             }
                                         }
                                     }
