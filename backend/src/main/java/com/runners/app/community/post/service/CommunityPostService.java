@@ -3,11 +3,13 @@ package com.runners.app.community.post.service;
 import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.community.post.entity.CommunityPostImage;
+import com.runners.app.community.post.entity.CommunityPostImageStatus;
 import com.runners.app.community.post.dto.request.CreateCommunityPostRequest;
 import com.runners.app.community.post.dto.response.CommunityPostCursorListResponse;
 import com.runners.app.community.post.dto.response.CommunityPostResponse;
 import com.runners.app.community.post.dto.response.CommunityPostDetailResponse;
 import com.runners.app.community.post.dto.response.CommunityPostSummaryResponse;
+import com.runners.app.community.post.repository.CommunityPostImageRepository;
 import com.runners.app.community.post.repository.CommunityPostRepository;
 import com.runners.app.community.upload.service.CommunityUploadService;
 import com.runners.app.community.view.CommunityPostViewTracker;
@@ -35,17 +37,20 @@ public class CommunityPostService {
     private final CommunityPostViewTracker communityPostViewTracker;
     private final UserRepository userRepository;
     private final CommunityUploadService communityUploadService;
+    private final CommunityPostImageRepository communityPostImageRepository;
 
     public CommunityPostService(
             CommunityPostRepository communityPostRepository,
             CommunityPostViewTracker communityPostViewTracker,
             UserRepository userRepository,
-            CommunityUploadService communityUploadService
+            CommunityUploadService communityUploadService,
+            CommunityPostImageRepository communityPostImageRepository
     ) {
         this.communityPostRepository = communityPostRepository;
         this.communityPostViewTracker = communityPostViewTracker;
         this.userRepository = userRepository;
         this.communityUploadService = communityUploadService;
+        this.communityPostImageRepository = communityPostImageRepository;
     }
 
     @Transactional
@@ -180,6 +185,26 @@ public class CommunityPostService {
         boolean hasNext = fetched.size() > safeSize;
         List<CommunityPost> pageItems = hasNext ? fetched.subList(0, safeSize) : fetched;
 
+        Map<Long, String> thumbnailUrlByPostId = new HashMap<>();
+        if (!pageItems.isEmpty()) {
+            List<Long> postIds = pageItems.stream().map(CommunityPost::getId).collect(Collectors.toList());
+            List<CommunityPostImage> images =
+                    communityPostImageRepository.findByPostIdsAndStatus(postIds, CommunityPostImageStatus.ACTIVE);
+
+            Map<Long, CommunityPostImage> firstImageByPostId = new HashMap<>();
+            for (CommunityPostImage image : images) {
+                Long postId = image.getPost().getId();
+                firstImageByPostId.putIfAbsent(postId, image);
+            }
+
+            for (Map.Entry<Long, CommunityPostImage> entry : firstImageByPostId.entrySet()) {
+                thumbnailUrlByPostId.put(
+                        entry.getKey(),
+                        communityUploadService.toPublicFileUrl(entry.getValue().getS3Key())
+                );
+            }
+        }
+
         var posts = pageItems.stream()
                 .map(post -> new CommunityPostSummaryResponse(
                         post.getId(),
@@ -188,6 +213,7 @@ public class CommunityPostService {
                         post.getAuthor().getTotalDistanceKm(),
                         post.getTitle(),
                         toContentPreview(post.getContent()),
+                        thumbnailUrlByPostId.get(post.getId()),
                         post.getViewCount(),
                         post.getRecommendCount(),
                         post.getCommentCount(),

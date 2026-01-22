@@ -9,6 +9,7 @@ public record CommunityPostSummaryResponse(
         Double authorTotalDistanceKm,
         String title,
         String contentPreview,
+        String thumbnailUrl,
         int viewCount,
         int recommendCount,
         int commentCount,
