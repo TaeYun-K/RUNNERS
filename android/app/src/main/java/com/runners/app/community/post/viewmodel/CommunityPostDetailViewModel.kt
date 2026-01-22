@@ -1,16 +1,22 @@
 package com.runners.app.community.post.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.runners.app.community.comment.data.CommunityCommentRepository
 import com.runners.app.community.post.data.CommunityPostRepository
 import com.runners.app.community.post.state.CommunityPostDetailUiState
+import com.runners.app.network.PresignCommunityImageUploadFileRequest
+import com.runners.app.network.PresignedUploadClient
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class CommunityPostDetailViewModel(
     private val postId: Long,
@@ -553,7 +559,7 @@ class CommunityPostDetailViewModel(
         }
     }
 
-    fun updatePost(title: String, content: String) {
+    fun updatePost(context: Context, title: String, content: String, existingImageKeys: List<String>, newImageUris: List<Uri>) {
         viewModelScope.launch {
             val state = _uiState.value
             if (state.isUpdatingPost) return@launch
@@ -572,7 +578,14 @@ class CommunityPostDetailViewModel(
             }
 
             runCatching {
-                postRepository.updatePost(postId = postId, title = newTitle, content = newContent)
+                val uploadedKeys = uploadSelectedImagesIfNeeded(context, newImageUris)
+                val mergedKeys = (existingImageKeys + uploadedKeys).filter { it.isNotBlank() }
+                postRepository.updatePost(
+                    postId = postId,
+                    title = newTitle,
+                    content = newContent,
+                    imageKeys = mergedKeys,
+                )
             }.onSuccess { updated ->
                 // 1) 즉시 화면 데이터 갱신
                 _uiState.update {
@@ -588,8 +601,8 @@ class CommunityPostDetailViewModel(
                     )
                 }
 
-                // 2) 서버 데이터로 완전 동기화 원하면 아래 한 줄 추가 (선택)
-                // loadPost()
+                // 서버 데이터로 완전 동기화 (이미지 포함)
+                loadPost()
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(
@@ -602,6 +615,44 @@ class CommunityPostDetailViewModel(
             }
         }
     }
+
+    private suspend fun uploadSelectedImagesIfNeeded(context: Context, uris: List<Uri>): List<String> =
+        withContext(Dispatchers.IO) {
+            if (uris.isEmpty()) return@withContext emptyList()
+
+            val payloads = ArrayList<ByteArray>(uris.size)
+            val files = ArrayList<PresignCommunityImageUploadFileRequest>(uris.size)
+
+            for (uri in uris) {
+                val bytes =
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: throw IllegalStateException("사진을 읽을 수 없어요")
+                val contentType = context.contentResolver.getType(uri) ?: "image/jpeg"
+                payloads.add(bytes)
+                files.add(
+                    PresignCommunityImageUploadFileRequest(
+                        fileName = null,
+                        contentType = contentType,
+                        contentLength = bytes.size.toLong(),
+                    )
+                )
+            }
+
+            val presigned = postRepository.presignCommunityPostImageUploads(files)
+            if (presigned.items.size != payloads.size) {
+                throw IllegalStateException("업로드 정보를 받지 못했어요")
+            }
+
+            presigned.items.forEachIndexed { index, item ->
+                PresignedUploadClient.put(
+                    uploadUrl = item.uploadUrl,
+                    contentType = item.contentType.ifBlank { "application/octet-stream" },
+                    bytes = payloads[index],
+                )
+            }
+
+            presigned.items.map { it.key }
+        }
 
     fun deletePost() {
         viewModelScope.launch {

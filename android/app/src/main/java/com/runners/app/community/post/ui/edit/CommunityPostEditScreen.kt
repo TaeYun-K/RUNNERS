@@ -1,16 +1,26 @@
 package com.runners.app.community.post.ui.edit
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -37,9 +47,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,6 +65,7 @@ fun CommunityPostEditScreen(
     modifier: Modifier = Modifier,
     viewModel: CommunityPostDetailViewModel,
 ) {
+    val context = LocalContext.current
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val post = uiState.post
 
@@ -58,11 +73,27 @@ fun CommunityPostEditScreen(
     var content by rememberSaveable(postId) { mutableStateOf("") }
     var initializedFromPost by rememberSaveable(postId) { mutableStateOf(false) }
     var submitRequested by remember { mutableStateOf(false) }
+    var existingImageKeys by rememberSaveable(postId) { mutableStateOf(emptyList<String>()) }
+    var existingImageUrls by rememberSaveable(postId) { mutableStateOf(emptyList<String>()) }
+    var newImageUris by rememberSaveable(postId) { mutableStateOf(emptyList<String>()) }
+
+    val pickImagesLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 10),
+        ) { uris ->
+            if (uris.isEmpty()) return@rememberLauncherForActivityResult
+            val currentNew = newImageUris.mapNotNull { runCatching { Uri.parse(it) }.getOrNull() }
+            val merged = (currentNew + uris).distinct()
+            val max = 10 - existingImageKeys.size
+            newImageUris = merged.take(max.coerceAtLeast(0)).map { it.toString() }
+        }
 
     LaunchedEffect(post?.postId, post?.title, post?.content) {
         if (!initializedFromPost && post != null) {
             title = post.title
             content = post.content
+            existingImageKeys = post.imageKeys
+            existingImageUrls = post.imageUrls
             initializedFromPost = true
         }
     }
@@ -123,7 +154,13 @@ fun CommunityPostEditScreen(
                 Button(
                     onClick = {
                         submitRequested = true
-                        viewModel.updatePost(title = title, content = content)
+                        viewModel.updatePost(
+                            context = context,
+                            title = title,
+                            content = content,
+                            existingImageKeys = existingImageKeys,
+                            newImageUris = newImageUris.mapNotNull { runCatching { Uri.parse(it) }.getOrNull() },
+                        )
                     },
                     enabled = canSubmit(),
                     modifier = Modifier
@@ -222,6 +259,108 @@ fun CommunityPostEditScreen(
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                         ),
                     )
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.AttachFile,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    "사진",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    "(${existingImageKeys.size + newImageUris.size}/10)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Box(modifier = Modifier.weight(1f))
+                                TextButton(
+                                    onClick = {
+                                        if (uiState.isUpdatingPost) return@TextButton
+                                        if (existingImageKeys.size + newImageUris.size >= 10) return@TextButton
+                                        pickImagesLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    },
+                                    enabled = !uiState.isUpdatingPost,
+                                ) {
+                                    Text("추가")
+                                }
+                            }
+
+                            if (existingImageUrls.isNotEmpty() || newImageUris.isNotEmpty()) {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    items(existingImageUrls.size) { index ->
+                                        val url = existingImageUrls[index]
+                                        Box(modifier = Modifier.size(86.dp)) {
+                                            AsyncImage(
+                                                model = url,
+                                                contentDescription = "기존 이미지",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(RoundedCornerShape(12.dp)),
+                                            )
+                                            IconButton(
+                                                onClick = {
+                                                    if (uiState.isUpdatingPost) return@IconButton
+                                                    existingImageUrls = existingImageUrls.filterIndexed { i, _ -> i != index }
+                                                    existingImageKeys = existingImageKeys.filterIndexed { i, _ -> i != index }
+                                                },
+                                                modifier = Modifier.align(Alignment.TopEnd),
+                                                enabled = !uiState.isUpdatingPost,
+                                            ) {
+                                                Icon(Icons.Outlined.Close, contentDescription = "삭제")
+                                            }
+                                        }
+                                    }
+
+                                    items(newImageUris.size) { index ->
+                                        val uriString = newImageUris[index]
+                                        Box(modifier = Modifier.size(86.dp)) {
+                                            AsyncImage(
+                                                model = Uri.parse(uriString),
+                                                contentDescription = "새 이미지",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(RoundedCornerShape(12.dp)),
+                                            )
+                                            IconButton(
+                                                onClick = {
+                                                    if (uiState.isUpdatingPost) return@IconButton
+                                                    newImageUris = newImageUris.filterIndexed { i, _ -> i != index }
+                                                },
+                                                modifier = Modifier.align(Alignment.TopEnd),
+                                                enabled = !uiState.isUpdatingPost,
+                                            ) {
+                                                Icon(Icons.Outlined.Close, contentDescription = "삭제")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     if (uiState.updatePostErrorMessage != null) {
                         Card(

@@ -64,6 +64,7 @@ data class CommunityPostDetailResult(
     val authorTotalDistanceKm: Double?,
     val title: String,
     val content: String,
+    val imageKeys: List<String> = emptyList(),
     val imageUrls: List<String> = emptyList(),
     val viewCount: Int,
     val recommendCount: Int,
@@ -305,6 +306,11 @@ object BackendCommunityApi {
                     List(array.length()) { idx -> array.optString(idx) }.filter { it.isNotBlank() }
                 } ?: emptyList()
 
+            val imageKeys =
+                json.optJSONArray("imageKeys")?.let { array ->
+                    List(array.length()) { idx -> array.optString(idx) }.filter { it.isNotBlank() }
+                } ?: emptyList()
+
             return CommunityPostDetailResult(
                 postId = json.getLong("postId"),
                 authorId = json.getLong("authorId"),
@@ -313,6 +319,7 @@ object BackendCommunityApi {
                 authorTotalDistanceKm = authorTotalDistanceKm,
                 title = json.getString("title"),
                 content = json.getString("content"),
+                imageKeys = imageKeys,
                 imageUrls = imageUrls,
                 viewCount = json.optInt("viewCount", 0),
                 recommendCount = json.optInt("recommendCount", 0),
