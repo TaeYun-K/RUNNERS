@@ -11,6 +11,7 @@ public record CommunityPostDetailResponse(
         Double authorTotalDistanceKm,
         String title,
         String content,
+        List<String> imageKeys,
         List<String> imageUrls,
         int viewCount,
         int recommendCount,

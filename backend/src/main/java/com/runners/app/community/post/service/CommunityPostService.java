@@ -144,6 +144,7 @@ public class CommunityPostService {
                 author.getTotalDistanceKm(),
                 post.getTitle(),
                 post.getContent(),
+                toImageKeys(post),
                 toImageUrls(post),
                 post.getViewCount(),
                 post.getRecommendCount(),
@@ -229,6 +230,13 @@ public class CommunityPostService {
         if (post.getImages() == null || post.getImages().isEmpty()) return List.of();
         return post.getImages().stream()
                 .map(image -> communityUploadService.toPublicFileUrl(image.getS3Key()))
+                .collect(Collectors.toList());
+    }
+
+    private List<String> toImageKeys(CommunityPost post) {
+        if (post.getImages() == null || post.getImages().isEmpty()) return List.of();
+        return post.getImages().stream()
+                .map(image -> image.getS3Key())
                 .collect(Collectors.toList());
     }
 }
