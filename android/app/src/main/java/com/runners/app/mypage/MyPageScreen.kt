@@ -263,6 +263,27 @@ fun MyPageScreen(
                             Text("프로필 사진 변경")
                         }
                     }
+
+                    OutlinedButton(
+                        onClick = {
+                            if (isLoading || isProfileImageUploading) return@OutlinedButton
+                            scope.launch {
+                                isProfileImageUploading = true
+                                errorMessage = null
+                                try {
+                                    userMe = withContext(Dispatchers.IO) { BackendUserApi.deleteProfileImage() }
+                                } catch (e: Exception) {
+                                    errorMessage = e.message ?: "프로필 사진 삭제에 실패했어요"
+                                } finally {
+                                    isProfileImageUploading = false
+                                }
+                            }
+                        },
+                        enabled = !isLoading && !isProfileImageUploading,
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Text("프로필 사진 삭제")
+                    }
                 }
 
                 if (isLoading) {

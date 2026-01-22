@@ -208,4 +208,36 @@ object BackendUserApi {
             )
         }
     }
+
+    fun deleteProfileImage(): UserMeResult {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/users/me/profile-image"
+
+        val request = Request.Builder()
+            .url(url)
+            .delete()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Delete profile image failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            fun optNullableString(key: String): String? =
+                json.optString(key).takeIf { it.isNotBlank() }
+            fun optNullableDouble(key: String): Double? =
+                json.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
+
+            return UserMeResult(
+                userId = json.getLong("userId"),
+                email = json.getString("email"),
+                name = optNullableString("name"),
+                nickname = optNullableString("nickname"),
+                picture = optNullableString("picture"),
+                role = optNullableString("role"),
+                totalDistanceKm = optNullableDouble("totalDistanceKm"),
+            )
+        }
+    }
 }
