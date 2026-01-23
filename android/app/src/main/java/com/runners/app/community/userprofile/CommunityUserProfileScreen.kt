@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.runners.app.network.BackendUserApi
 import com.runners.app.network.UserPublicProfileResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 @Composable
@@ -63,7 +65,7 @@ fun CommunityUserProfileScreen(
         isLoading = true
         errorMessage = null
         try {
-            profile = BackendUserApi.getPublicProfile(userId)
+            profile = withContext(Dispatchers.IO) { BackendUserApi.getPublicProfile(userId) }
         } catch (e: Exception) {
             errorMessage = e.message ?: "프로필을 불러오지 못했어요"
         } finally {
