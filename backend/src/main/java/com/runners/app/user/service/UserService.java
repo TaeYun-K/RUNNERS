@@ -1,6 +1,7 @@
 package com.runners.app.user.service;
 
 import com.runners.app.user.dto.UserMeResponse;
+import com.runners.app.user.dto.UserPublicProfileResponse;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
 import com.runners.app.community.upload.service.CommunityUploadService;
@@ -33,6 +34,27 @@ public class UserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         return toMeResponse(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserPublicProfileResponse getPublicProfile(Long userId) {
+        if (userId == null || userId <= 0L) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid userId");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        return new UserPublicProfileResponse(
+                user.getId(),
+                user.getDisplayName(),
+                user.getNickname(),
+                user.getIntro(),
+                userProfileImageResolver.resolve(user),
+                user.getTotalDistanceKm(),
+                user.getTotalDurationMinutes(),
+                user.getRunCount()
+        );
     }
 
     @Transactional
@@ -69,6 +91,24 @@ public class UserService {
         }
 
         user.updateTotalDistanceKm(totalDistanceKm);
+        userRepository.save(user);
+        return toMeResponse(user);
+    }
+
+    @Transactional
+    public UserMeResponse updateRunningStats(Long userId, Double totalDistanceKm, Long totalDurationMinutes, Integer runCount) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        boolean same =
+                Objects.equals(user.getTotalDistanceKm(), totalDistanceKm)
+                        && Objects.equals(user.getTotalDurationMinutes(), totalDurationMinutes)
+                        && Objects.equals(user.getRunCount(), runCount);
+        if (same) {
+            return toMeResponse(user);
+        }
+
+        user.updateRunningStats(totalDistanceKm, totalDurationMinutes, runCount);
         userRepository.save(user);
         return toMeResponse(user);
     }

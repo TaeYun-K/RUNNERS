@@ -48,6 +48,12 @@ public class User {
     @Column(name = "total_distance_km")
     private Double totalDistanceKm;
 
+    @Column(name = "total_duration_minutes")
+    private Long totalDurationMinutes;
+
+    @Column(name = "run_count")
+    private Integer runCount;
+
     public void updateProfile(String name, String picture) {
         this.name = name;
         this.picture = picture;
@@ -73,6 +79,12 @@ public class User {
 
     public void updateTotalDistanceKm(Double totalDistanceKm) {
         this.totalDistanceKm = totalDistanceKm;
+    }
+
+    public void updateRunningStats(Double totalDistanceKm, Long totalDurationMinutes, Integer runCount) {
+        this.totalDistanceKm = totalDistanceKm;
+        this.totalDurationMinutes = totalDurationMinutes;
+        this.runCount = runCount;
     }
 
     public String getDisplayName() {
