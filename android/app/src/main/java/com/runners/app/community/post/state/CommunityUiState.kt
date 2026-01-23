@@ -1,11 +1,14 @@
 package com.runners.app.community.post.state
 
+import com.runners.app.network.CommunityPostBoardType
 import com.runners.app.network.CommunityPostSummaryResult
 
 data class CommunityUiState(
     val searchInput: String = "",
     val searchQuery: String = "",
     val isSearchOpen: Boolean = false,
+    val selectedBoardType: CommunityPostBoardType? = null,
+    val latestPosts: List<CommunityPostSummaryResult> = emptyList(),
     val posts: List<CommunityPostSummaryResult> = emptyList(),
     val nextCursor: String? = null,
     val isInitialLoading: Boolean = false,

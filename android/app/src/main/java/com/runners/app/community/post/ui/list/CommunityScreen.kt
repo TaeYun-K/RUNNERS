@@ -139,6 +139,7 @@ fun CommunityScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             CommunityPostList(
+                latestPosts = uiState.latestPosts,
                 posts = uiState.posts,
                 listState = listState,
                 isInitialLoading = uiState.isInitialLoading,
@@ -146,6 +147,9 @@ fun CommunityScreen(
                 errorMessage = uiState.listErrorMessage,
                 nextCursor = uiState.nextCursor,
                 showTotalDistance = showTotalDistanceInCommunity,
+                selectedBoardType = uiState.selectedBoardType,
+                showLatestSection = !uiState.isSearchMode,
+                onBoardTypeChange = viewModel::selectBoardType,
                 onPostClick = onPostClick,
                 onRetryInitial = viewModel::refresh,
                 onRetryMore = viewModel::loadMore,

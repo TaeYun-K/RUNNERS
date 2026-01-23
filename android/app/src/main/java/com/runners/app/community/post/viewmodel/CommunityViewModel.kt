@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.runners.app.community.post.data.CommunityPostRepository
 import com.runners.app.community.post.state.CommunityPostStatsUpdate
 import com.runners.app.community.post.state.CommunityUiState
+import com.runners.app.network.CommunityPostBoardType
 import com.runners.app.network.PresignCommunityImageUploadFileRequest
 import com.runners.app.network.PresignedUploadClient
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,23 @@ class CommunityViewModel(
         refresh()
     }
 
+    fun selectBoardType(boardType: CommunityPostBoardType?) {
+        _uiState.update { state ->
+            if (state.selectedBoardType == boardType) {
+                state
+            } else {
+                state.copy(
+                    selectedBoardType = boardType,
+                    nextCursor = null,
+                    posts = emptyList(),
+                    listErrorMessage = null,
+                    scrollToTopSignal = state.scrollToTopSignal + 1L,
+                )
+            }
+        }
+        refresh()
+    }
+
     fun refresh() {
         viewModelScope.launch {
             if (_uiState.value.isInitialLoading) return@launch
@@ -40,16 +58,22 @@ class CommunityViewModel(
 
             runCatching {
                 val searchQuery = _uiState.value.searchQuery
+                val selectedBoardType = _uiState.value.selectedBoardType
+
+                val latest = repository.listPosts(boardType = null, cursor = null, size = 10)
                 if (searchQuery.isBlank()) {
-                    repository.listPosts(cursor = null, size = 20)
+                    val list = repository.listPosts(boardType = selectedBoardType, cursor = null, size = 20)
+                    latest to list
                 } else {
-                    repository.searchPosts(query = searchQuery, cursor = null, size = 20)
+                    val list = repository.searchPosts(query = searchQuery, boardType = selectedBoardType, cursor = null, size = 20)
+                    latest to list
                 }
             }.onSuccess { result ->
                 _uiState.update {
                     it.copy(
-                        posts = result.posts,
-                        nextCursor = result.nextCursor,
+                        latestPosts = result.first.posts,
+                        posts = result.second.posts,
+                        nextCursor = result.second.nextCursor,
                         isInitialLoading = false,
                     )
                 }
@@ -126,10 +150,11 @@ class CommunityViewModel(
 
             runCatching {
                 val searchQuery = state.searchQuery
+                val selectedBoardType = state.selectedBoardType
                 if (searchQuery.isBlank()) {
-                    repository.listPosts(cursor = cursor, size = 20)
+                    repository.listPosts(boardType = selectedBoardType, cursor = cursor, size = 20)
                 } else {
-                    repository.searchPosts(query = searchQuery, cursor = cursor, size = 20)
+                    repository.searchPosts(query = searchQuery, boardType = selectedBoardType, cursor = cursor, size = 20)
                 }
             }.onSuccess { result ->
                 _uiState.update {
@@ -197,7 +222,12 @@ class CommunityViewModel(
 
             runCatching {
                 val imageKeys = uploadSelectedImagesIfNeeded(context, state.createImageUris)
-                repository.createPost(title = trimmedTitle, content = trimmedContent, imageKeys = imageKeys)
+                repository.createPost(
+                    title = trimmedTitle,
+                    content = trimmedContent,
+                    boardType = state.selectedBoardType ?: CommunityPostBoardType.FREE,
+                    imageKeys = imageKeys
+                )
             }.onSuccess {
                 _uiState.update {
                     it.copy(

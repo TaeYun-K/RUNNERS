@@ -8,12 +8,28 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 
+enum class CommunityPostBoardType(val labelKo: String) {
+    FREE("자유"),
+    QNA("질문"),
+    INFO("정보");
+
+    fun toKoreanBracketPrefix(): String = "[$labelKo]"
+
+    companion object {
+        fun from(raw: String?): CommunityPostBoardType {
+            if (raw.isNullOrBlank()) return FREE
+            return entries.firstOrNull { it.name.equals(raw.trim(), ignoreCase = true) } ?: FREE
+        }
+    }
+}
+
 data class CommunityPostSummaryResult(
     val postId: Long,
     val authorId: Long,
     val authorName: String?,
     val authorPicture: String?,
     val authorTotalDistanceKm: Double?,
+    val boardType: CommunityPostBoardType = CommunityPostBoardType.FREE,
     val title: String,
     val contentPreview: String?,
     val thumbnailUrl: String?,
@@ -31,6 +47,7 @@ data class CommunityPostCursorListResult(
 data class CreateCommunityPostResult(
     val postId: Long,
     val authorId: Long,
+    val boardType: CommunityPostBoardType = CommunityPostBoardType.FREE,
     val title: String,
     val content: String,
     val viewCount: Int,
@@ -64,6 +81,7 @@ data class CommunityPostDetailResult(
     val authorName: String?,
     val authorPicture: String?,
     val authorTotalDistanceKm: Double?,
+    val boardType: CommunityPostBoardType = CommunityPostBoardType.FREE,
     val title: String,
     val content: String,
     val imageKeys: List<String> = emptyList(),
@@ -140,10 +158,14 @@ object BackendCommunityApi {
             updatedAt = json.optString("updatedAt").takeIf { it.isNotBlank() && it != "null" },
         )
 
-    fun listPosts(cursor: String?, size: Int = 20): CommunityPostCursorListResult {
+    fun listPosts(boardType: CommunityPostBoardType? = null, cursor: String?, size: Int = 20): CommunityPostCursorListResult {
         val baseUrl = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts"
         val httpUrlBuilder = baseUrl.toHttpUrl().newBuilder()
             .addQueryParameter("size", size.coerceIn(1, 50).toString())
+
+        if (boardType != null) {
+            httpUrlBuilder.addQueryParameter("boardType", boardType.name)
+        }
 
         if (!cursor.isNullOrBlank()) {
             httpUrlBuilder.addQueryParameter("cursor", cursor)
@@ -168,11 +190,20 @@ object BackendCommunityApi {
         }
     }
 
-    fun searchPosts(query: String, cursor: String?, size: Int = 20): CommunityPostCursorListResult {
+    fun searchPosts(
+        query: String,
+        boardType: CommunityPostBoardType? = null,
+        cursor: String?,
+        size: Int = 20
+    ): CommunityPostCursorListResult {
         val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/search"
         val httpUrlBuilder = url.toHttpUrl().newBuilder()
             .addQueryParameter("q", query)
             .addQueryParameter("size", size.coerceIn(1, 50).toString())
+
+        if (boardType != null) {
+            httpUrlBuilder.addQueryParameter("boardType", boardType.name)
+        }
 
         if (!cursor.isNullOrBlank()) {
             httpUrlBuilder.addQueryParameter("cursor", cursor)
@@ -211,6 +242,7 @@ object BackendCommunityApi {
                     authorName = item.optString("authorName").takeIf { it.isNotBlank() },
                     authorPicture = item.optString("authorPicture").takeIf { it.isNotBlank() },
                     authorTotalDistanceKm = authorTotalDistanceKm,
+                    boardType = CommunityPostBoardType.from(item.optString("boardType")),
                     title = item.getString("title"),
                     contentPreview = item.optString("contentPreview").takeIf { it.isNotBlank() },
                     thumbnailUrl = item.optString("thumbnailUrl").takeIf { it.isNotBlank() && it != "null" },
@@ -275,12 +307,22 @@ object BackendCommunityApi {
         }
     }
 
-    fun createPost(title: String, content: String, imageKeys: List<String>? = null): CreateCommunityPostResult {
+    fun createPost(
+        title: String,
+        content: String,
+        boardType: CommunityPostBoardType? = null,
+        imageKeys: List<String>? = null
+    ): CreateCommunityPostResult {
         val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts"
 
         val bodyJson = JSONObject()
             .put("title", title)
             .put("content", content)
+            .apply {
+                if (boardType != null) {
+                    put("boardType", boardType.name)
+                }
+            }
             .apply {
                 if (!imageKeys.isNullOrEmpty()) {
                     put("imageKeys", JSONArray(imageKeys))
@@ -303,6 +345,7 @@ object BackendCommunityApi {
             return CreateCommunityPostResult(
                 postId = json.getLong("postId"),
                 authorId = json.getLong("authorId"),
+                boardType = CommunityPostBoardType.from(json.optString("boardType")),
                 title = json.getString("title"),
                 content = json.getString("content"),
                 viewCount = json.optInt("viewCount", 0),
@@ -350,6 +393,7 @@ object BackendCommunityApi {
                 authorName = json.optString("authorName").takeIf { it.isNotBlank() },
                 authorPicture = json.optString("authorPicture").takeIf { it.isNotBlank() },
                 authorTotalDistanceKm = authorTotalDistanceKm,
+                boardType = CommunityPostBoardType.from(json.optString("boardType")),
                 title = json.getString("title"),
                 content = json.getString("content"),
                 imageKeys = imageKeys,

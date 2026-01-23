@@ -25,6 +25,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.runners.app.ads.CommunityTopBannerAd
+import com.runners.app.network.CommunityPostBoardType
 import com.runners.app.network.CommunityPostSummaryResult
 import coil.compose.AsyncImage
 import java.time.Duration
@@ -49,6 +52,7 @@ import java.util.Locale
 
 @Composable
 fun CommunityPostList(
+    latestPosts: List<CommunityPostSummaryResult>,
     posts: List<CommunityPostSummaryResult>,
     listState: LazyListState,
     isInitialLoading: Boolean,
@@ -56,6 +60,9 @@ fun CommunityPostList(
     errorMessage: String?,
     nextCursor: String?,
     showTotalDistance: Boolean,
+    selectedBoardType: CommunityPostBoardType?,
+    showLatestSection: Boolean,
+    onBoardTypeChange: (CommunityPostBoardType?) -> Unit,
     onPostClick: (Long) -> Unit,
     onRetryInitial: () -> Unit,
     onRetryMore: () -> Unit,
@@ -101,6 +108,22 @@ fun CommunityPostList(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = modifier.fillMaxSize(),
             ) {
+                if (showLatestSection && latestPosts.isNotEmpty()) {
+                    item(key = "latest_posts_section") {
+                        LatestPostsSection(
+                            posts = latestPosts.take(10),
+                            onPostClick = onPostClick,
+                        )
+                    }
+                }
+
+                item(key = "board_type_chips") {
+                    BoardTypeChipsRow(
+                        selected = selectedBoardType,
+                        onSelected = onBoardTypeChange,
+                    )
+                }
+
                 item(key = "community_top_banner_ad") {
                     CommunityTopBannerAd()
                 }
@@ -204,7 +227,7 @@ private fun PostCard(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
-                        text = post.title,
+                        text = "${post.boardType.toKoreanBracketPrefix()} ${post.title}",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -317,6 +340,103 @@ private fun PostCard(
                     count = post.viewCount,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun LatestPostsSection(
+    posts: List<CommunityPostSummaryResult>,
+    onPostClick: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "최신 글",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                posts.forEach { post ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPostClick(post.postId) }
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(
+                            text = "${post.boardType.toKoreanBracketPrefix()} ${post.title}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            StatItem(icon = Icons.Outlined.ChatBubbleOutline, count = post.commentCount)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoardTypeChipsRow(
+    selected: CommunityPostBoardType?,
+    onSelected: (CommunityPostBoardType?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val items =
+        listOf(
+            null,
+            CommunityPostBoardType.FREE,
+            CommunityPostBoardType.QNA,
+            CommunityPostBoardType.INFO,
+        )
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "게시판",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
+        )
+
+        items.forEach { type ->
+            FilterChip(
+                selected = type == selected,
+                onClick = { onSelected(type) },
+                label = { Text(type?.labelKo ?: "전체") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    labelColor = MaterialTheme.colorScheme.onSurface,
+                )
+            )
         }
     }
 }
