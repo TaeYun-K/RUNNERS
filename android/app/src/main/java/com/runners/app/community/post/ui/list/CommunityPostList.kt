@@ -52,7 +52,7 @@ import java.util.Locale
 
 @Composable
 fun CommunityPostList(
-    latestPosts: List<CommunityPostSummaryResult>,
+    latestPosts: List<CommunityPostSummaryResult> = emptyList(),
     posts: List<CommunityPostSummaryResult>,
     listState: LazyListState,
     isInitialLoading: Boolean,
@@ -61,8 +61,9 @@ fun CommunityPostList(
     nextCursor: String?,
     showTotalDistance: Boolean,
     selectedBoardType: CommunityPostBoardType?,
-    showLatestSection: Boolean,
-    onBoardTypeChange: (CommunityPostBoardType?) -> Unit,
+    showLatestSection: Boolean = false,
+    showBoardTypeChips: Boolean = false,
+    onBoardTypeChange: ((CommunityPostBoardType?) -> Unit)? = null,
     onPostClick: (Long) -> Unit,
     onRetryInitial: () -> Unit,
     onRetryMore: () -> Unit,
@@ -117,11 +118,14 @@ fun CommunityPostList(
                     }
                 }
 
-                item(key = "board_type_chips") {
-                    BoardTypeChipsRow(
-                        selected = selectedBoardType,
-                        onSelected = onBoardTypeChange,
-                    )
+                if (showBoardTypeChips) {
+                    item(key = "board_type_chips") {
+                        val handler = onBoardTypeChange ?: return@item
+                        BoardTypeChipsRow(
+                            selected = selectedBoardType,
+                            onSelected = handler,
+                        )
+                    }
                 }
 
                 item(key = "community_top_banner_ad") {
@@ -345,7 +349,7 @@ private fun PostCard(
 }
 
 @Composable
-private fun LatestPostsSection(
+fun LatestPostsSection(
     posts: List<CommunityPostSummaryResult>,
     onPostClick: (Long) -> Unit,
     modifier: Modifier = Modifier,

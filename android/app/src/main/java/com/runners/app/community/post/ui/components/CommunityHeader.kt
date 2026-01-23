@@ -42,9 +42,6 @@ fun CommunityHeader(
         )
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onSearchClick) {
-                Icon(imageVector = Icons.Default.Search, contentDescription = "검색")
-            }
 
             IconButton(onClick = { isMenuExpanded.value = true }) {
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "더보기")

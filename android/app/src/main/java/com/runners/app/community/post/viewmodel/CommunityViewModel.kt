@@ -19,12 +19,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class CommunityViewModel(
+    initialBoardType: CommunityPostBoardType? = null,
     private val repository: CommunityPostRepository = CommunityPostRepository(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CommunityUiState())
     val uiState: StateFlow<CommunityUiState> = _uiState.asStateFlow()
 
     init {
+        if (initialBoardType != null) {
+            _uiState.update { it.copy(selectedBoardType = initialBoardType) }
+        }
         refresh()
     }
 

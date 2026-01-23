@@ -20,10 +20,12 @@ import androidx.health.connect.client.records.ExerciseSessionRecord
 import com.runners.app.community.post.ui.create.CommunityCreatePostScreen
 import com.runners.app.community.post.ui.edit.CommunityPostEditScreen
 import com.runners.app.community.post.ui.detail.CommunityPostDetailScreen
+import com.runners.app.community.post.ui.list.CommunityBoardScreen
 import com.runners.app.community.post.ui.list.CommunityScreen
 import com.runners.app.community.post.state.CommunityPostStatsUpdate
 import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel
+import com.runners.app.community.post.viewmodel.CommunityViewModelFactory
 import com.runners.app.community.userprofile.CommunityUserProfileScreen
 import com.runners.app.healthconnect.HealthConnectRepository
 import com.runners.app.home.HomeScreen
@@ -31,6 +33,7 @@ import com.runners.app.home.HomeUiState
 import com.runners.app.home.PopularPostUiModel
 import com.runners.app.home.RecentRunUiModel
 import com.runners.app.mypage.MyPageScreen
+import com.runners.app.network.CommunityPostBoardType
 import com.runners.app.network.GoogleLoginResult
 import com.runners.app.network.BackendUserApi
 import com.runners.app.records.RecordsDashboardScreen
@@ -383,7 +386,34 @@ fun RunnersNavHost(
                 totalDistanceKm = totalDistanceKm,
                 onCreateClick = { navController.navigate(AppRoute.CommunityCreate.route) },
                 onPostClick = { postId -> navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) },
+                onBoardClick = { type ->
+                    val arg = type?.name ?: "ALL"
+                    navController.navigate(AppRoute.CommunityBoard.createRoute(arg))
+                },
                 viewModel = communityViewModel,
+            )
+        }
+        composable(
+            route = AppRoute.CommunityBoard.route,
+            arguments = listOf(navArgument("boardType") { type = NavType.StringType }),
+        ) { entry ->
+            val raw = entry.arguments?.getString("boardType") ?: "ALL"
+            val boardType =
+                if (raw.equals("ALL", ignoreCase = true)) {
+                    null
+                } else {
+                    runCatching { CommunityPostBoardType.valueOf(raw) }.getOrNull()
+                }
+
+            val boardViewModel: CommunityViewModel =
+                viewModel(factory = CommunityViewModelFactory(initialBoardType = boardType))
+
+            CommunityBoardScreen(
+                boardType = boardType,
+                onBack = { navController.popBackStack() },
+                onCreateClick = { navController.navigate(AppRoute.CommunityCreate.route) },
+                onPostClick = { postId -> navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) },
+                viewModel = boardViewModel,
             )
         }
         composable(
