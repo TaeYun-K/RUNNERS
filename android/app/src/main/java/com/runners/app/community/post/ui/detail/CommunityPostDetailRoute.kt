@@ -21,6 +21,7 @@ internal fun CommunityPostDetailRoute(
     onEdit: () -> Unit,
     onDeleted: (Long) -> Unit,
     currentUserId: Long,
+    onAuthorClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -51,6 +52,7 @@ internal fun CommunityPostDetailRoute(
         currentUserId = currentUserId,
         showTotalDistance = showTotalDistanceInCommunity,
         onBack = { onBack(uiState.post) },
+        onAuthorClick = onAuthorClick,
         onEdit = onEdit,
         onRefresh = viewModel::refresh,
         onTogglePostRecommend = viewModel::togglePostRecommend,

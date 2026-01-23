@@ -1,6 +1,7 @@
 package com.runners.app.community.comment.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +57,7 @@ internal fun CommunityPostDetailCommentItem(
     onEditSave: () -> Unit,
     isEditSaving: Boolean,
     showTotalDistance: Boolean,
+    onAuthorClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isDeleted = comment.content == "삭제된 댓글입니다"
@@ -81,62 +83,70 @@ internal fun CommunityPostDetailCommentItem(
                 )
             }
 
-            val authorPicture = comment.authorPicture
-            if (!authorPicture.isNullOrBlank()) {
-                AsyncImage(
-                    model = authorPicture,
-                    contentDescription = "작성자 프로필",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape),
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = (comment.authorName?.firstOrNull() ?: "?").toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = { onAuthorClick(comment.authorId) }),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                val authorPicture = comment.authorPicture
+                if (!authorPicture.isNullOrBlank()) {
+                    AsyncImage(
+                        model = authorPicture,
+                        contentDescription = "작성자 프로필",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape),
                     )
-                }
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text(
-                        text = comment.authorName ?: "익명",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    if (showTotalDistance && comment.authorTotalDistanceKm != null) {
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Text(
-                            text = String.format("%.1fkm", comment.authorTotalDistanceKm),
+                            text = (comment.authorName?.firstOrNull() ?: "?").toString(),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
                 }
-                Text(
-                    text = buildString {
-                        append(createdLabel)
-                        if (showEdited) {
-                            append(" (수정됨)")
+
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = comment.authorName ?: "익명",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (showTotalDistance && comment.authorTotalDistanceKm != null) {
+                            Text(
+                                text = String.format("%.1fkm", comment.authorTotalDistanceKm),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
                         }
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                    }
+                    Text(
+                        text = buildString {
+                            append(createdLabel)
+                            if (showEdited) {
+                                append(" (수정됨)")
+                            }
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             if (!isDeleted) {

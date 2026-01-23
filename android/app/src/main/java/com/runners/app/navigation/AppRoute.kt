@@ -18,6 +18,9 @@ sealed class AppRoute(val route: String) {
     data object CommunityPostEdit : AppRoute("community/posts/{postId}/edit") {
         fun createRoute(postId: Long): String = "community/posts/$postId/edit"
     }
+    data object CommunityUserProfile : AppRoute("community/users/{userId}") {
+        fun createRoute(userId: Long): String = "community/users/$userId"
+    }
     data object MyPage : AppRoute("mypage")
 }
 
@@ -27,6 +30,7 @@ fun shouldShowBottomBar(currentRoute: String?): Boolean {
     return when {
         currentRoute.startsWith("community/create") -> false
         currentRoute.startsWith("community/posts/") -> false // detail, edit 모두 포함
+        currentRoute.startsWith("community/users/") -> false
         else -> true
     }
 }

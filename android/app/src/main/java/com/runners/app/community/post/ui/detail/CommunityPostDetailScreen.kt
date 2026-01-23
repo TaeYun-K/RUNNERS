@@ -13,6 +13,7 @@ fun CommunityPostDetailScreen(
     onEdit: () -> Unit,
     onDeleted: (Long) -> Unit,
     currentUserId: Long,
+    onAuthorClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     CommunityPostDetailRoute(
@@ -21,7 +22,7 @@ fun CommunityPostDetailScreen(
         onEdit = onEdit,
         onDeleted = onDeleted,
         currentUserId = currentUserId,
+        onAuthorClick = onAuthorClick,
         modifier = modifier,
     )
 }
-

@@ -18,6 +18,17 @@ data class UserMeResult(
     val totalDistanceKm: Double?,
 )
 
+data class UserPublicProfileResult(
+    val userId: Long,
+    val displayName: String,
+    val nickname: String?,
+    val intro: String?,
+    val picture: String?,
+    val totalDistanceKm: Double?,
+    val totalDurationMinutes: Long?,
+    val runCount: Int?,
+)
+
 object BackendUserApi {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -50,6 +61,43 @@ object BackendUserApi {
                 picture = optNullableString("picture"),
                 role = optNullableString("role"),
                 totalDistanceKm = optNullableDouble("totalDistanceKm"),
+            )
+        }
+    }
+
+    fun getPublicProfile(userId: Long): UserPublicProfileResult {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/users/$userId/public-profile"
+
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Fetch public profile failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            fun optNullableString(key: String): String? =
+                json.optString(key).takeIf { it.isNotBlank() && it != "null" }
+            fun optNullableDouble(key: String): Double? =
+                json.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
+            fun optNullableLong(key: String): Long? =
+                json.optLong(key, Long.MIN_VALUE).takeIf { it != Long.MIN_VALUE }
+            fun optNullableInt(key: String): Int? =
+                json.optInt(key, Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
+
+            return UserPublicProfileResult(
+                userId = json.getLong("userId"),
+                displayName = json.optString("displayName").ifBlank { "RUNNERS" },
+                nickname = optNullableString("nickname"),
+                intro = optNullableString("intro"),
+                picture = optNullableString("picture"),
+                totalDistanceKm = optNullableDouble("totalDistanceKm"),
+                totalDurationMinutes = optNullableLong("totalDurationMinutes"),
+                runCount = optNullableInt("runCount"),
             )
         }
     }
@@ -148,6 +196,49 @@ object BackendUserApi {
             val responseBody = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
                 throw IllegalStateException("Update total distance failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            fun optNullableString(key: String): String? =
+                json.optString(key).takeIf { it.isNotBlank() && it != "null" }
+            fun optNullableDouble(key: String): Double? =
+                json.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
+
+            return UserMeResult(
+                userId = json.getLong("userId"),
+                email = json.getString("email"),
+                name = optNullableString("name"),
+                nickname = optNullableString("nickname"),
+                intro = optNullableString("intro"),
+                picture = optNullableString("picture"),
+                role = optNullableString("role"),
+                totalDistanceKm = optNullableDouble("totalDistanceKm"),
+            )
+        }
+    }
+
+    fun updateRunningStats(
+        totalDistanceKm: Double,
+        totalDurationMinutes: Long,
+        runCount: Int,
+    ): UserMeResult {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/users/me/running-stats"
+
+        val bodyJson = JSONObject()
+            .put("totalDistanceKm", totalDistanceKm)
+            .put("totalDurationMinutes", totalDurationMinutes)
+            .put("runCount", runCount)
+            .toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .patch(bodyJson.toRequestBody(jsonMediaType))
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Update running stats failed: HTTP ${response.code} ${responseBody.take(300)}")
             }
 
             val json = JSONObject(responseBody)

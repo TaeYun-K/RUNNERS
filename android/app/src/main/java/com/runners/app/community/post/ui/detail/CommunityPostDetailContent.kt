@@ -77,6 +77,7 @@ internal fun CommunityPostDetailContent(
     currentUserId: Long,
     showTotalDistance: Boolean,
     onBack: () -> Unit,
+    onAuthorClick: (Long) -> Unit,
     onEdit: () -> Unit,
     onRefresh: () -> Unit,
     onTogglePostRecommend: () -> Unit,
@@ -308,6 +309,7 @@ internal fun CommunityPostDetailContent(
                                         pictureUrl = data.authorPicture,
                                         totalDistanceKm = data.authorTotalDistanceKm,
                                         showTotalDistance = showTotalDistance,
+                                        onClick = { onAuthorClick(data.authorId) },
                                     )
 
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -510,6 +512,7 @@ internal fun CommunityPostDetailContent(
                                             onEditSave = onSubmitEditingComment,
                                             isEditSaving = uiState.isUpdatingComment || isRecommendLoading,
                                             showTotalDistance = showTotalDistance,
+                                            onAuthorClick = onAuthorClick,
                                             modifier = Modifier.padding(start = depthIndent),
                                         )
                                     }

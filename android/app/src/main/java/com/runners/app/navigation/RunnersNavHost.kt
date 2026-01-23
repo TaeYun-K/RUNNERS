@@ -24,6 +24,7 @@ import com.runners.app.community.post.ui.list.CommunityScreen
 import com.runners.app.community.post.state.CommunityPostStatsUpdate
 import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel
+import com.runners.app.community.userprofile.CommunityUserProfileScreen
 import com.runners.app.healthconnect.HealthConnectRepository
 import com.runners.app.home.HomeScreen
 import com.runners.app.home.HomeUiState
@@ -62,7 +63,13 @@ fun RunnersNavHost(
     var firstRunDate by remember { mutableStateOf<LocalDate?>(null) }
     var recentRuns by remember { mutableStateOf<List<RecentRunUiModel>>(emptyList()) }
     var allRuns by remember { mutableStateOf<List<RunRecordUiModel>>(emptyList()) }
-    var lastSyncedTotalDistanceKm by remember { mutableStateOf<Double?>(null) }
+
+    data class RunningStatsSnapshot(
+        val totalDistanceKm: Double,
+        val totalDurationMinutes: Long,
+        val runCount: Int,
+    )
+    var lastSyncedRunningStats by remember { mutableStateOf<RunningStatsSnapshot?>(null) }
 
     LaunchedEffect(providerPackage) {
         totalDistanceKm = null
@@ -225,21 +232,48 @@ fun RunnersNavHost(
         }
     }
 
-    LaunchedEffect(totalDistanceKm) {
+    LaunchedEffect(totalDistanceKm, allRuns) {
         val km = totalDistanceKm ?: return@LaunchedEffect
         if (km.isNaN() || km.isInfinite() || km < 0.0) return@LaunchedEffect
 
-        val last = lastSyncedTotalDistanceKm
-        val shouldSync = last == null || kotlin.math.abs(km - last) >= 0.1
+        val totalDurationMinutes = allRuns.sumOf { run ->
+            run.durationMinutes ?: Duration.between(run.startTime, run.endTime).toMinutes().coerceAtLeast(0L)
+        }.coerceAtLeast(0L)
+        val runCount = allRuns.size.coerceAtLeast(0)
+
+        val snapshot = RunningStatsSnapshot(
+            totalDistanceKm = km,
+            totalDurationMinutes = totalDurationMinutes,
+            runCount = runCount,
+        )
+
+        val last = lastSyncedRunningStats
+        val shouldSync =
+            last == null ||
+                abs(snapshot.totalDistanceKm - last.totalDistanceKm) >= 0.1 ||
+                abs(snapshot.totalDurationMinutes - last.totalDurationMinutes) >= 1L ||
+                snapshot.runCount != last.runCount
         if (!shouldSync) return@LaunchedEffect
 
         runCatching {
             withContext(Dispatchers.IO) {
                 // Avoid firing immediately during startup recompositions.
                 delay(300)
-                BackendUserApi.updateTotalDistanceKm(km)
+                BackendUserApi.updateRunningStats(
+                    totalDistanceKm = snapshot.totalDistanceKm,
+                    totalDurationMinutes = snapshot.totalDurationMinutes,
+                    runCount = snapshot.runCount,
+                )
             }
-            lastSyncedTotalDistanceKm = km
+            lastSyncedRunningStats = snapshot
+        }.onFailure {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    delay(300)
+                    BackendUserApi.updateTotalDistanceKm(snapshot.totalDistanceKm)
+                }
+                lastSyncedRunningStats = snapshot
+            }
         }
     }
 
@@ -349,7 +383,18 @@ fun RunnersNavHost(
                 totalDistanceKm = totalDistanceKm,
                 onCreateClick = { navController.navigate(AppRoute.CommunityCreate.route) },
                 onPostClick = { postId -> navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) },
+                onAuthorClick = { userId -> navController.navigate(AppRoute.CommunityUserProfile.createRoute(userId)) },
                 viewModel = communityViewModel,
+            )
+        }
+        composable(
+            route = AppRoute.CommunityUserProfile.route,
+            arguments = listOf(navArgument("userId") { type = NavType.LongType }),
+        ) { entry ->
+            val userId = entry.arguments?.getLong("userId") ?: return@composable
+            CommunityUserProfileScreen(
+                userId = userId,
+                onBack = { navController.popBackStack() },
             )
         }
         composable(AppRoute.CommunityCreate.route) {
@@ -392,6 +437,7 @@ fun RunnersNavHost(
                     navController.popBackStack()
                 },
                 currentUserId = session.userId,
+                onAuthorClick = { userId -> navController.navigate(AppRoute.CommunityUserProfile.createRoute(userId)) },
             )
         }
         composable(

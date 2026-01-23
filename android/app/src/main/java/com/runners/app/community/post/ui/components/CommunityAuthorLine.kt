@@ -1,6 +1,7 @@
 package com.runners.app.community.post.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Box
@@ -26,10 +27,15 @@ fun CommunityAuthorLine(
     pictureUrl: String? = null,
     totalDistanceKm: Double?,
     showTotalDistance: Boolean,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .let { base ->
+                if (onClick != null) base.clickable(onClick = onClick) else base
+            },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (!pictureUrl.isNullOrBlank()) {
