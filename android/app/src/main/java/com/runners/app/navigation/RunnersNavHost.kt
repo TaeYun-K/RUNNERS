@@ -383,7 +383,6 @@ fun RunnersNavHost(
                 totalDistanceKm = totalDistanceKm,
                 onCreateClick = { navController.navigate(AppRoute.CommunityCreate.route) },
                 onPostClick = { postId -> navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) },
-                onAuthorClick = { userId -> navController.navigate(AppRoute.CommunityUserProfile.createRoute(userId)) },
                 viewModel = communityViewModel,
             )
         }

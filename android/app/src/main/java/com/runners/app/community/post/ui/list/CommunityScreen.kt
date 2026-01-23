@@ -43,7 +43,6 @@ fun CommunityScreen(
     totalDistanceKm: Double?,
     onCreateClick: () -> Unit,
     onPostClick: (Long) -> Unit,
-    onAuthorClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CommunityViewModel = viewModel(),
 ) {
@@ -148,7 +147,6 @@ fun CommunityScreen(
                 nextCursor = uiState.nextCursor,
                 showTotalDistance = showTotalDistanceInCommunity,
                 onPostClick = onPostClick,
-                onAuthorClick = onAuthorClick,
                 onRetryInitial = viewModel::refresh,
                 onRetryMore = viewModel::loadMore,
                 modifier = Modifier.fillMaxSize(),

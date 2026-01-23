@@ -57,7 +57,6 @@ fun CommunityPostList(
     nextCursor: String?,
     showTotalDistance: Boolean,
     onPostClick: (Long) -> Unit,
-    onAuthorClick: (Long) -> Unit,
     onRetryInitial: () -> Unit,
     onRetryMore: () -> Unit,
     modifier: Modifier = Modifier,
@@ -111,7 +110,6 @@ fun CommunityPostList(
                         post = post,
                         showTotalDistance = showTotalDistance,
                         onClick = { onPostClick(post.postId) },
-                        onAuthorClick = { onAuthorClick(post.authorId) },
                     )
                 }
 
@@ -181,7 +179,6 @@ private fun PostCard(
     post: CommunityPostSummaryResult,
     showTotalDistance: Boolean,
     onClick: () -> Unit,
-    onAuthorClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -241,7 +238,6 @@ private fun PostCard(
 
             // 작성자 정보
             Row(
-                modifier = Modifier.clickable(onClick = onAuthorClick),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val authorPicture = post.authorPicture
