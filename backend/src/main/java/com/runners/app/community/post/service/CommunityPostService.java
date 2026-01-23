@@ -2,6 +2,7 @@ package com.runners.app.community.post.service;
 
 import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.post.entity.CommunityPost;
+import com.runners.app.community.post.entity.CommunityPostBoardType;
 import com.runners.app.community.post.entity.CommunityPostImage;
 import com.runners.app.community.post.entity.CommunityPostImageStatus;
 import com.runners.app.community.post.dto.request.CreateCommunityPostRequest;
@@ -64,6 +65,7 @@ public class CommunityPostService {
 
         CommunityPost post = CommunityPost.builder()
                 .author(author)
+                .boardType(request.boardType() == null ? CommunityPostBoardType.FREE : request.boardType())
                 .title(request.title())
                 .content(request.content())
                 .build();
@@ -76,6 +78,7 @@ public class CommunityPostService {
                 author.getId(),
                 author.getDisplayName(),
                 userProfileImageResolver.resolve(author),
+                saved.getBoardType(),
                 saved.getTitle(),
                 saved.getContent(),
                 saved.getViewCount(),
@@ -100,6 +103,7 @@ public class CommunityPostService {
         }
 
         post.updateContent(request.title(), request.content());
+        post.changeBoardType(request.boardType());
         if (request.imageKeys() != null) {
             applyImageKeys(post, request.imageKeys());
         }
@@ -109,6 +113,7 @@ public class CommunityPostService {
             author.getId(),
             author.getDisplayName(),
             userProfileImageResolver.resolve(author),
+            post.getBoardType(),
             post.getTitle(),
             post.getContent(),
             post.getViewCount(),
@@ -164,6 +169,7 @@ public class CommunityPostService {
                 author.getDisplayName(),
                 userProfileImageResolver.resolve(author),
                 author.getTotalDistanceKm(),
+                post.getBoardType(),
                 post.getTitle(),
                 post.getContent(),
                 toImageKeys(post),
@@ -177,7 +183,7 @@ public class CommunityPostService {
     }
 
     @Transactional(readOnly = true)
-    public CommunityPostCursorListResponse listPosts(String cursor, int size) {
+    public CommunityPostCursorListResponse listPosts(CommunityPostBoardType boardType, String cursor, int size) {
         int safeSize = Math.min(50, Math.max(1, size));
 
         Cursor decodedCursor = decodeCursor(cursor);
@@ -185,6 +191,7 @@ public class CommunityPostService {
 
         List<CommunityPost> fetched = communityPostRepository.findForCursor(
                 CommunityContentStatus.ACTIVE,
+                boardType == null ? CommunityPostBoardType.FREE : boardType,
                 decodedCursor == null ? null : decodedCursor.createdAt(),
                 decodedCursor == null ? Long.MAX_VALUE : decodedCursor.id(),
                 PageRequest.of(0, fetchSize)
@@ -202,6 +209,7 @@ public class CommunityPostService {
                         post.getAuthor().getDisplayName(),
                         userProfileImageResolver.resolve(post.getAuthor()),
                         post.getAuthor().getTotalDistanceKm(),
+                        post.getBoardType(),
                         post.getTitle(),
                         toContentPreview(post.getContent()),
                         thumbnailUrlByPostId.get(post.getId()),
@@ -222,7 +230,7 @@ public class CommunityPostService {
     }
 
     @Transactional(readOnly = true)
-    public CommunityPostCursorListResponse searchPosts(String query, String cursor, int size) {
+    public CommunityPostCursorListResponse searchPosts(String query, CommunityPostBoardType boardType, String cursor, int size) {
         if (query == null || query.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Query is required");
         }
@@ -230,6 +238,7 @@ public class CommunityPostService {
         int safeSize = Math.min(50, Math.max(1, size));
         String trimmedQuery = query.trim();
         String booleanQuery = toBooleanModePrefixQuery(trimmedQuery);
+        CommunityPostBoardType safeBoardType = boardType == null ? CommunityPostBoardType.FREE : boardType;
 
         Cursor decodedCursor = decodeCursor(cursor);
         int fetchSize = safeSize + 1;
@@ -237,6 +246,7 @@ public class CommunityPostService {
         List<Long> fetchedIds = communityPostRepository.searchPostIdsForCursor(
                 CommunityContentStatus.ACTIVE.name(),
                 CommunityContentStatus.ACTIVE.name(),
+                safeBoardType.name(),
                 booleanQuery,
                 decodedCursor == null ? null : decodedCursor.createdAt(),
                 decodedCursor == null ? Long.MAX_VALUE : decodedCursor.id(),
@@ -251,6 +261,7 @@ public class CommunityPostService {
 
         List<CommunityPost> fetchedPosts = communityPostRepository.findAllByIdInWithAuthor(
                 CommunityContentStatus.ACTIVE,
+                safeBoardType,
                 pageIds
         );
         Map<Long, CommunityPost> postById = fetchedPosts.stream()
@@ -273,6 +284,7 @@ public class CommunityPostService {
                         post.getAuthor().getDisplayName(),
                         userProfileImageResolver.resolve(post.getAuthor()),
                         post.getAuthor().getTotalDistanceKm(),
+                        post.getBoardType(),
                         post.getTitle(),
                         toContentPreview(post.getContent()),
                         thumbnailUrlByPostId.get(post.getId()),

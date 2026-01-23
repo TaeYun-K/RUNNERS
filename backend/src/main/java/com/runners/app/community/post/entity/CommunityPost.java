@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
         name = "community_posts",
         indexes = {
                 @Index(name = "idx_community_posts_created_at", columnList = "created_at"),
+                @Index(name = "idx_community_posts_board_type_created_at", columnList = "board_type,created_at"),
                 @Index(name = "idx_community_posts_author_id_created_at", columnList = "author_id,created_at"),
                 @Index(name = "idx_community_posts_recommend_count_created_at", columnList = "recommend_count,created_at"),
                 @Index(name = "idx_community_posts_view_count_created_at", columnList = "view_count,created_at")
@@ -44,6 +45,10 @@ public class CommunityPost {
     @Column(nullable = false, length = 20)
     private CommunityContentStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "board_type", nullable = false, length = 20)
+    private CommunityPostBoardType boardType;
+
     @Column(name = "view_count", nullable = false)
     private int viewCount;
 
@@ -71,6 +76,7 @@ public class CommunityPost {
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();
         if (status == null) status = CommunityContentStatus.ACTIVE;
+        if (boardType == null) boardType = CommunityPostBoardType.FREE;
         if (createdAt == null) createdAt = now;
         updatedAt = now;
     }
@@ -83,6 +89,15 @@ public class CommunityPost {
     public void updateContent(String title, String content) {
         this.title = title;
         this.content = content;
+    }
+
+    public CommunityPostBoardType getBoardType() {
+        return boardType == null ? CommunityPostBoardType.FREE : boardType;
+    }
+
+    public void changeBoardType(CommunityPostBoardType boardType) {
+        if (boardType == null) return;
+        this.boardType = boardType;
     }
 
     public void markDeleted() {

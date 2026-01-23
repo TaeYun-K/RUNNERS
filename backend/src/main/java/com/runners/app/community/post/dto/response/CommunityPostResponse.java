@@ -1,5 +1,6 @@
 package com.runners.app.community.post.dto.response;
 
+import com.runners.app.community.post.entity.CommunityPostBoardType;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -8,6 +9,7 @@ public record CommunityPostResponse(
         Long authorId,
         String authorName,
         String authorPicture,
+        CommunityPostBoardType boardType,
         String title,
         String content,
         int viewCount,

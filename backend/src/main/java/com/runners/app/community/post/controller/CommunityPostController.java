@@ -4,6 +4,7 @@ import com.runners.app.community.post.dto.request.CreateCommunityPostRequest;
 import com.runners.app.community.post.dto.response.CommunityPostResponse;
 import com.runners.app.community.post.dto.response.CommunityPostDetailResponse;
 import com.runners.app.community.post.dto.response.CommunityPostCursorListResponse;
+import com.runners.app.community.post.entity.CommunityPostBoardType;
 import com.runners.app.community.post.service.CommunityPostService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -81,10 +82,11 @@ public class CommunityPostController {
     @Operation(summary = "게시글 목록 조회", description = "최신순 커서 기반 목록 조회(nextCursor를 다음 요청의 cursor로 전달)")
     @GetMapping
     public CommunityPostCursorListResponse listPosts(
+            @RequestParam(required = false, defaultValue = "FREE") CommunityPostBoardType boardType,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return communityPostService.listPosts(cursor, size);
+        return communityPostService.listPosts(boardType, cursor, size);
     }
 
     @Operation(
@@ -94,10 +96,11 @@ public class CommunityPostController {
     @GetMapping("/search")
     public CommunityPostCursorListResponse searchPosts(
             @RequestParam String q,
+            @RequestParam(required = false, defaultValue = "FREE") CommunityPostBoardType boardType,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return communityPostService.searchPosts(q, cursor, size);
+        return communityPostService.searchPosts(q, boardType, cursor, size);
     }
 
 }
