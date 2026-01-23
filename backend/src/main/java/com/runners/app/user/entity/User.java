@@ -33,6 +33,9 @@ public class User {
     @Column(length = 30)
     private String nickname;
 
+    @Column(length = 30)
+    private String intro;
+
     @Column(length = 500)
     private String picture;
 
@@ -52,6 +55,10 @@ public class User {
 
     public void updateNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public void updateIntro(String intro) {
+        this.intro = intro;
     }
 
     public void updateCustomPicture(String customPicture, String customPictureKey) {

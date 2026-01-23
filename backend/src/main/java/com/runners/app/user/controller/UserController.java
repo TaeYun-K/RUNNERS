@@ -1,6 +1,6 @@
 package com.runners.app.user.controller;
 
-import com.runners.app.user.dto.UpdateNicknameRequest;
+import com.runners.app.user.dto.UpdateProfileRequest;
 import com.runners.app.user.dto.UpdateTotalDistanceRequest;
 import com.runners.app.user.dto.UserMeResponse;
 import com.runners.app.user.service.UserService;
@@ -31,14 +31,14 @@ public class UserController {
         return userService.getMe(userId);
     }
 
-    @Operation(summary = "닉네임 변경", description = "커뮤니티/앱에서 사용할 닉네임을 변경합니다.")
-    @PatchMapping("/me/nickname")
-    public UserMeResponse updateNickname(
+    @Operation(summary = "내 프로필 수정", description = "닉네임/한줄 소개 등 프로필 정보를 수정합니다. (부분 수정)")
+    @PatchMapping("/me/profile")
+    public UserMeResponse updateProfile(
             Authentication authentication,
-            @Valid @RequestBody UpdateNicknameRequest request
+            @Valid @RequestBody UpdateProfileRequest request
     ) {
         Long userId = SecurityUtils.extractUserId(authentication);
-        return userService.updateNickname(userId, request.nickname());
+        return userService.updateProfile(userId, request.nickname(), request.intro());
     }
 
     @Operation(summary = "내 누적 거리 업데이트", description = "사용자의 누적 러닝 거리(km)를 업데이트합니다.")

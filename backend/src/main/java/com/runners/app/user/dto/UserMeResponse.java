@@ -5,6 +5,7 @@ public record UserMeResponse(
         String email,
         String name,
         String nickname,
+        String intro,
         String picture,
         String role,
         Double totalDistanceKm

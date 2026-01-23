@@ -36,25 +36,26 @@ public class UserService {
     }
 
     @Transactional
-    public UserMeResponse updateNickname(Long userId, String nickname) {
+    public UserMeResponse updateProfile(Long userId, String nickname, String intro) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        String newNickname = nickname == null ? "" : nickname.trim();
-        if (newNickname.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nickname is required");
+        boolean changed = false;
+        if (nickname != null) {
+            changed |= applyNicknameUpdate(user, nickname);
+        }
+        if (intro != null) {
+            String trimmedIntro = intro.trim();
+            String normalizedIntro = trimmedIntro.isBlank() ? null : trimmedIntro;
+            if (!Objects.equals(normalizedIntro, user.getIntro())) {
+                user.updateIntro(normalizedIntro);
+                changed = true;
+            }
         }
 
-        if (Objects.equals(newNickname, user.getNickname())) {
-            return toMeResponse(user);
+        if (changed) {
+            userRepository.save(user);
         }
-
-        if (userRepository.existsByNickname(newNickname)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nickname already in use");
-        }
-
-        user.updateNickname(newNickname);
-        userRepository.save(user);
         return toMeResponse(user);
     }
 
@@ -118,9 +119,28 @@ public class UserService {
                 user.getEmail(),
                 user.getName(),
                 user.getNickname(),
+                user.getIntro(),
                 userProfileImageResolver.resolve(user),
                 user.getRole(),
                 user.getTotalDistanceKm()
         );
+    }
+
+    private boolean applyNicknameUpdate(User user, String nickname) {
+        String newNickname = nickname == null ? "" : nickname.trim();
+        if (newNickname.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nickname is required");
+        }
+
+        if (Objects.equals(newNickname, user.getNickname())) {
+            return false;
+        }
+
+        if (userRepository.existsByNickname(newNickname)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nickname already in use");
+        }
+
+        user.updateNickname(newNickname);
+        return true;
     }
 }
