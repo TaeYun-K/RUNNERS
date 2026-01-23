@@ -3,71 +3,51 @@ package com.runners.app.mypage
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.runners.app.R
-import com.runners.app.mypage.components.HealthConnectSection
 import com.runners.app.auth.AuthTokenStore
-import com.runners.app.network.PresignCommunityImageUploadFileRequest
-import com.runners.app.network.BackendUserApi
-import com.runners.app.network.GoogleLoginResult
-import com.runners.app.network.PresignedUploadClient
-import com.runners.app.network.UserMeResult
+import com.runners.app.mypage.components.HealthConnectSection
+import com.runners.app.network.*
 import com.runners.app.settings.AppSettingsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyPageScreen(
     session: GoogleLoginResult,
@@ -77,31 +57,42 @@ fun MyPageScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val webClientId = stringResource(R.string.google_web_client_id)
+
+    // Dialog States
     var isLogoutDialogOpen by remember { mutableStateOf(false) }
     var isReLoginDialogOpen by remember { mutableStateOf(false) }
+    var isProfileImageOptionDialogOpen by remember { mutableStateOf(false) } // 사진 변경 옵션 다이얼로그
+    var isProfileEditDialogOpen by remember { mutableStateOf(false) }
+
+    // Loading & Data States
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var userMe by remember { mutableStateOf<UserMeResult?>(null) }
-    var isNicknameDialogOpen by remember { mutableStateOf(false) }
-    var nicknameDraft by remember { mutableStateOf("") }
-    var nicknameErrorMessage by remember { mutableStateOf<String?>(null) }
-    var isNicknameSaving by remember { mutableStateOf(false) }
     var isProfileImageUploading by remember { mutableStateOf(false) }
 
-    val showTotalDistanceInCommunity =
-        AppSettingsStore.showTotalDistanceInCommunityFlow(context)
-            .collectAsStateWithLifecycle(initialValue = true)
-            .value
+    // Edit States
+    var profileNicknameDraft by remember { mutableStateOf("") }
+    var profileIntroDraft by remember { mutableStateOf("") }
+    var profileEditErrorMessage by remember { mutableStateOf<String?>(null) }
+    var isProfileEditSaving by remember { mutableStateOf(false) }
 
+    val currentUserId = userMe?.userId ?: session.userId
+    val rawNickname = (userMe?.nickname ?: session.nickname).orEmpty()
+    val displayNickname = rawNickname.takeUnless { it.isBlank() } ?: "RUNNERS"
+    val oneLineIntro = AppSettingsStore.profileOneLineFlow(context, currentUserId)
+        .collectAsStateWithLifecycle(initialValue = null).value
+
+    val showTotalDistanceInCommunity = AppSettingsStore.showTotalDistanceInCommunityFlow(context)
+        .collectAsStateWithLifecycle(initialValue = true).value
+
+    // --- Logic Functions (기존 유지) ---
     suspend fun refreshUser() {
         if (isLoading) return
-
         if (AuthTokenStore.peekRefreshToken().isNullOrBlank()) {
             errorMessage = null
             isReLoginDialogOpen = true
             return
         }
-
         isLoading = true
         errorMessage = null
         try {
@@ -118,551 +109,490 @@ fun MyPageScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        refreshUser()
-    }
+    LaunchedEffect(Unit) { refreshUser() }
 
-    val pickProfileImageLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-            if (uri == null) return@rememberLauncherForActivityResult
-            if (isLoading || isProfileImageUploading) return@rememberLauncherForActivityResult
+    val pickProfileImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        if (isLoading || isProfileImageUploading) return@rememberLauncherForActivityResult
 
-            scope.launch {
-                isProfileImageUploading = true
-                errorMessage = null
-                try {
-                    val bytes =
-                        withContext(Dispatchers.IO) {
-                            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        } ?: throw IllegalStateException("이미지를 읽을 수 없어요")
+        scope.launch {
+            isProfileImageUploading = true
+            isProfileImageOptionDialogOpen = false // 다이얼로그 닫기
+            errorMessage = null
+            try {
+                val bytes = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                } ?: throw IllegalStateException("이미지를 읽을 수 없어요")
 
-                    val contentType = context.contentResolver.getType(uri) ?: "image/jpeg"
-                    val presigned =
-                        withContext(Dispatchers.IO) {
-                            BackendUserApi.presignProfileImageUpload(
-                                PresignCommunityImageUploadFileRequest(
-                                    fileName = uri.lastPathSegment ?: "profile",
-                                    contentType = contentType,
-                                    contentLength = bytes.size.toLong(),
-                                )
-                            )
-                        }
-                    val item = presigned.items.firstOrNull()
-                        ?: throw IllegalStateException("업로드 URL을 발급받지 못했어요")
-
-                    withContext(Dispatchers.IO) {
-                        PresignedUploadClient.put(
-                            uploadUrl = item.uploadUrl,
-                            contentType = item.contentType.ifBlank { contentType },
-                            bytes = bytes,
+                val contentType = context.contentResolver.getType(uri) ?: "image/jpeg"
+                val presigned = withContext(Dispatchers.IO) {
+                    BackendUserApi.presignProfileImageUpload(
+                        PresignCommunityImageUploadFileRequest(
+                            fileName = uri.lastPathSegment ?: "profile",
+                            contentType = contentType,
+                            contentLength = bytes.size.toLong(),
                         )
-                    }
-
-                    userMe = withContext(Dispatchers.IO) { BackendUserApi.commitProfileImage(item.key) }
-                } catch (e: Exception) {
-                    errorMessage = e.message ?: "프로필 사진 업로드에 실패했어요"
-                } finally {
-                    isProfileImageUploading = false
+                    )
                 }
+                val item = presigned.items.firstOrNull() ?: throw IllegalStateException("업로드 URL 실패")
+
+                withContext(Dispatchers.IO) {
+                    PresignedUploadClient.put(
+                        uploadUrl = item.uploadUrl,
+                        contentType = item.contentType.ifBlank { contentType },
+                        bytes = bytes,
+                    )
+                }
+                userMe = withContext(Dispatchers.IO) { BackendUserApi.commitProfileImage(item.key) }
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "프로필 사진 업로드에 실패했어요"
+            } finally {
+                isProfileImageUploading = false
             }
         }
+    }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        // 헤더
-        Text(
-            text = "마이페이지",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-
-        // 프로필 카드
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-            ),
-            shape = RoundedCornerShape(20.dp),
+    // --- UI Structure ---
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background, // 전체 배경색
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "마이페이지",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally // 전체 중앙 정렬
         ) {
-            Column(
-                Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    // 프로필 아바타
-                    val profileImageUrl = userMe?.picture ?: session.picture
-                    if (!profileImageUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = profileImageUrl,
-                            contentDescription = "프로필 이미지",
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(CircleShape),
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = ((userMe?.name ?: session.name)?.firstOrNull() ?: "R").toString().uppercase(),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        }
-                    }
+            Spacer(Modifier.height(20.dp))
 
-                    Column(modifier = Modifier.weight(1f)) {
+            // 1. 프로필 섹션 (중앙 집중형)
+            Box(
+                contentAlignment = Alignment.BottomEnd,
+                modifier = Modifier
+                    .size(110.dp)
+                    .clickable { isProfileImageOptionDialogOpen = true } // 사진 클릭 시 옵션
+            ) {
+                // 프로필 이미지
+                val profileImageUrl = userMe?.picture ?: session.picture
+                if (!profileImageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = profileImageUrl,
+                        contentDescription = "프로필 이미지",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Text(
-                            text = userMe?.name ?: session.name ?: "RUNNERS",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
+                            text = (displayNickname.firstOrNull() ?: 'R').toString().uppercase(),
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                        Text(
-                            text = userMe?.email ?: session.email ?: "-",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                         )
                     }
                 }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            pickProfileImageLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                // 업로드 로딩 인디케이터 or 카메라 아이콘
+                if (isProfileImageUploading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(110.dp),
+                        strokeWidth = 3.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    // 카메라 아이콘 배지
+                    Box(
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                            .padding(6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "사진 변경",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // 닉네임 & 소개
+            Text(
+                text = displayNickname,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Text(
+                text = oneLineIntro.takeUnless { it.isNullOrBlank() } ?: "나를 소개하는 한마디를 입력해보세요",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp, start = 24.dp, end = 24.dp)
+            )
+
+            // 프로필 편집 버튼
+            FilledTonalButton(
+                onClick = {
+                    profileNicknameDraft = rawNickname
+                    profileIntroDraft = oneLineIntro.orEmpty()
+                    profileEditErrorMessage = null
+                    isProfileEditDialogOpen = true
+                },
+                contentPadding = PaddingValues(horizontal = 24.dp)
+            ) {
+                Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("프로필 편집")
+            }
+
+            if (errorMessage != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+            }
+
+            Spacer(Modifier.height(32.dp))
+
+            // 2. 설정 리스트 그룹
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // 개인정보 그룹
+                SettingsGroup(title = "계정 정보") {
+                    SettingsItem(
+                        icon = Icons.Outlined.Person,
+                        title = "이메일",
+                        value = userMe?.email ?: session.email ?: "-"
+                    )
+                }
+
+                // 앱 설정 그룹
+                SettingsGroup(title = "앱 설정") {
+                    // 1. 커뮤니티 거리 표시 (기존 유지)
+                    ListItem(
+                        headlineContent = { Text("커뮤니티 거리 표시", style = MaterialTheme.typography.bodyLarge) },
+                        supportingContent = { Text("닉네임 옆에 누적 거리를 표시합니다", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        trailingContent = {
+                            Switch(
+                                checked = showTotalDistanceInCommunity,
+                                onCheckedChange = { scope.launch { AppSettingsStore.setShowTotalDistanceInCommunity(context, it) } },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                                ),
+                                modifier = Modifier.scale(0.8f)
                             )
                         },
-                        enabled = !isLoading && !isProfileImageUploading,
-                        shape = RoundedCornerShape(10.dp),
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // 2. 헬스 커넥트 (접었다 펼치기 기능 추가)
+                    var isHealthConnectExpanded by remember { mutableStateOf(false) }
+                    // 화살표 회전 애니메이션
+                    val rotationState by animateFloatAsState(
+                        targetValue = if (isHealthConnectExpanded) 180f else 0f,
+                        label = "Rotation"
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isHealthConnectExpanded = !isHealthConnectExpanded } // 클릭 시 토글
+                            .padding(16.dp)
                     ) {
-                        if (isProfileImageUploading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Filled.Settings,
+                                null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Text("  업로드 중...")
-                        } else {
-                            Text("프로필 사진 변경")
+                            Spacer(Modifier.width(16.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("헬스 커넥트 설정", style = MaterialTheme.typography.bodyLarge)
+                                // 접혀있을 때 간단한 안내 문구 표시 (선택사항)
+                                if (!isHealthConnectExpanded) {
+                                    Text(
+                                        "연동 상태를 관리하려면 누르세요",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            // 화살표 아이콘
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = "펼치기",
+                                modifier = Modifier.graphicsLayer(rotationZ = rotationState), // 회전 적용
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // 펼쳐졌을 때만 내용 보이기 (애니메이션 적용)
+                        AnimatedVisibility(visible = isHealthConnectExpanded) {
+                            Box(modifier = Modifier.padding(top = 16.dp)) {
+                                HealthConnectSection()
+                            }
                         }
                     }
+                }
 
-                    OutlinedButton(
+                // 로그아웃 버튼 (하단 배치)
+                TextButton(
+                    onClick = { isLogoutDialogOpen = true },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Icon(Icons.Outlined.Logout, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("로그아웃")
+                }
+            }
+
+            Spacer(Modifier.height(40.dp))
+        }
+    }
+
+    // --- Dialogs ---
+
+    // 1. 프로필 사진 변경 옵션 다이얼로그 (새로 추가됨)
+    if (isProfileImageOptionDialogOpen) {
+        AlertDialog(
+            onDismissRequest = { isProfileImageOptionDialogOpen = false },
+            title = { Text("프로필 사진", fontWeight = FontWeight.Bold) },
+            text = { Text("프로필 사진을 어떻게 하시겠어요?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pickProfileImageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }
+                ) { Text("앨범에서 선택") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
                         onClick = {
-                            if (isLoading || isProfileImageUploading) return@OutlinedButton
                             scope.launch {
                                 isProfileImageUploading = true
-                                errorMessage = null
+                                isProfileImageOptionDialogOpen = false
                                 try {
                                     userMe = withContext(Dispatchers.IO) { BackendUserApi.deleteProfileImage() }
                                 } catch (e: Exception) {
-                                    errorMessage = e.message ?: "프로필 사진 삭제에 실패했어요"
+                                    errorMessage = e.message
                                 } finally {
                                     isProfileImageUploading = false
                                 }
                             }
                         },
-                        enabled = !isLoading && !isProfileImageUploading,
-                        shape = RoundedCornerShape(10.dp),
-                    ) {
-                        Text("프로필 사진 삭제")
-                    }
-                }
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) { Text("기본 이미지로 변경") }
 
-                if (isLoading) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                        Text(
-                            "내 정보 불러오는 중...",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                        )
-                    }
-                } else if (errorMessage != null) {
-                    Text(
-                        text = errorMessage!!,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Button(
-                        onClick = { scope.launch { refreshUser() } },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                        ),
-                    ) {
-                        Text("다시 시도")
-                    }
+                    TextButton(onClick = { isProfileImageOptionDialogOpen = false }) { Text("취소") }
                 }
             }
-        }
-
-        // 개인정보 섹션
-        SectionTitle(title = "개인정보")
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        ) {
-            Column {
-                InfoListItem(
-                    label = "사용자 ID",
-                    value = "${userMe?.userId ?: session.userId}",
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                InfoListItem(
-                    label = "이메일",
-                    value = userMe?.email ?: session.email ?: "-",
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            "닉네임",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    supportingContent = {
-                        Text(
-                            userMe?.nickname ?: session.nickname ?: "-",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    },
-                    trailingContent = {
-                        OutlinedButton(
-                            onClick = {
-                                nicknameDraft = (userMe?.nickname ?: session.nickname).orEmpty()
-                                nicknameErrorMessage = null
-                                isNicknameDialogOpen = true
-                            },
-                            enabled = !isLoading,
-                            shape = RoundedCornerShape(8.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Edit,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Text("  변경")
-                        }
-                    },
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                InfoListItem(
-                    label = "권한",
-                    value = userMe?.role ?: "-",
-                )
-            }
-        }
-
-        // 앱 설정 섹션
-        SectionTitle(title = "앱 설정")
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        ) {
-            Column(Modifier.padding(4.dp)) {
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            "커뮤니티 누적 거리 표시",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    },
-                    supportingContent = {
-                        Text(
-                            "게시글에서 닉네임 옆에 누적 km 표시",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = showTotalDistanceInCommunity,
-                            onCheckedChange = { checked ->
-                                scope.launch {
-                                    AppSettingsStore.setShowTotalDistanceInCommunity(context, checked)
-                                }
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                            ),
-                        )
-                    },
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Settings,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Text(
-                        "헬스 커넥트",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-
-                Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    HealthConnectSection()
-                }
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // 로그아웃 버튼
-        OutlinedButton(
-            onClick = { isLogoutDialogOpen = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.error,
-            ),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Logout,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                "  로그아웃",
-                fontWeight = FontWeight.Medium,
-            )
-        }
-
-        Spacer(Modifier.height(16.dp))
+        )
     }
 
-    // 로그아웃 다이얼로그
+    // 2. 프로필 편집 다이얼로그 (기존 유지 + UI 다듬기)
+    if (isProfileEditDialogOpen) {
+        AlertDialog(
+            onDismissRequest = { if (!isProfileEditSaving) isProfileEditDialogOpen = false },
+            title = { Text("프로필 편집", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    OutlinedTextField(
+                        value = profileNicknameDraft,
+                        onValueChange = { profileNicknameDraft = it; profileEditErrorMessage = null },
+                        label = { Text("닉네임") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    OutlinedTextField(
+                        value = profileIntroDraft,
+                        onValueChange = { profileIntroDraft = it; profileEditErrorMessage = null },
+                        label = { Text("한줄 소개") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    if (profileEditErrorMessage != null) {
+                        Text(profileEditErrorMessage!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (isProfileEditSaving) return@Button
+                        val nicknameTrimmed = profileNicknameDraft.trim()
+                        val introTrimmed = profileIntroDraft.trim()
+                        if (nicknameTrimmed.length !in 2..20) { profileEditErrorMessage = "닉네임은 2~20자여야 합니다."; return@Button }
+
+                        isProfileEditSaving = true
+                        scope.launch {
+                            try {
+                                if (nicknameTrimmed != rawNickname.trim()) {
+                                    userMe = withContext(Dispatchers.IO) { BackendUserApi.updateNickname(nicknameTrimmed) }
+                                }
+                                AppSettingsStore.setProfileOneLine(context, currentUserId, introTrimmed)
+                                isProfileEditDialogOpen = false
+                            } catch (e: Exception) {
+                                profileEditErrorMessage = e.message
+                            } finally {
+                                isProfileEditSaving = false
+                            }
+                        }
+                    },
+                    enabled = !isProfileEditSaving
+                ) { Text("저장") }
+            },
+            dismissButton = {
+                TextButton(onClick = { isProfileEditDialogOpen = false }) { Text("취소") }
+            }
+        )
+    }
+
+    // 3. 로그아웃 다이얼로그 (기존 유지)
     if (isLogoutDialogOpen) {
         AlertDialog(
             onDismissRequest = { isLogoutDialogOpen = false },
-            title = {
-                Text(
-                    "로그아웃",
-                    fontWeight = FontWeight.SemiBold,
-                )
-            },
+            title = { Text("로그아웃") },
             text = { Text("정말 로그아웃 하시겠어요?") },
             confirmButton = {
                 Button(
                     onClick = {
                         isLogoutDialogOpen = false
-                        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                            .requestEmail()
-                            .requestIdToken(webClientId)
-                            .build()
+                        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail().requestIdToken(webClientId).build()
                         GoogleSignIn.getClient(context, gso).signOut()
                         onLogout()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                    ),
-                ) {
-                    Text("로그아웃")
-                }
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("로그아웃") }
             },
-            dismissButton = {
-                OutlinedButton(onClick = { isLogoutDialogOpen = false }) {
-                    Text("취소")
-                }
-            },
-            shape = RoundedCornerShape(20.dp),
+            dismissButton = { TextButton(onClick = { isLogoutDialogOpen = false }) { Text("취소") } }
         )
     }
 
-    // 재로그인 다이얼로그
+    // 4. 재로그인 다이얼로그 (기존 유지)
     if (isReLoginDialogOpen) {
         AlertDialog(
-            onDismissRequest = {
-                isReLoginDialogOpen = false
-                onLogout()
-            },
-            title = {
-                Text(
-                    "다시 로그인해주세요",
-                    fontWeight = FontWeight.SemiBold,
-                )
-            },
-            text = { Text("로그인이 만료되었어요. 로그인 화면으로 이동할게요.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        isReLoginDialogOpen = false
-                        onLogout()
-                    },
-                ) {
-                    Text("확인")
-                }
-            },
-            shape = RoundedCornerShape(20.dp),
-        )
-    }
-
-    // 닉네임 변경 다이얼로그
-    if (isNicknameDialogOpen) {
-        AlertDialog(
-            onDismissRequest = {
-                if (!isNicknameSaving) {
-                    isNicknameDialogOpen = false
-                }
-            },
-            title = {
-                Text(
-                    "닉네임 변경",
-                    fontWeight = FontWeight.SemiBold,
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = nicknameDraft,
-                        onValueChange = {
-                            nicknameDraft = it
-                            nicknameErrorMessage = null
-                        },
-                        singleLine = true,
-                        label = { Text("닉네임") },
-                        enabled = !isNicknameSaving,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    if (nicknameErrorMessage != null) {
-                        Text(
-                            text = nicknameErrorMessage!!,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    } else {
-                        Text(
-                            "2~20자, 한글/영문/숫자/언더바(_)만 가능",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (isNicknameSaving) return@Button
-                        isNicknameSaving = true
-                        nicknameErrorMessage = null
-                        scope.launch {
-                            try {
-                                val updated = withContext(Dispatchers.IO) {
-                                    BackendUserApi.updateNickname(nicknameDraft)
-                                }
-                                userMe = updated
-                                isNicknameDialogOpen = false
-                            } catch (e: Exception) {
-                                nicknameErrorMessage = e.message ?: "닉네임 변경에 실패했어요"
-                            } finally {
-                                isNicknameSaving = false
-                            }
-                        }
-                    },
-                    enabled = !isNicknameSaving,
-                ) {
-                    Text(if (isNicknameSaving) "변경 중..." else "변경")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { isNicknameDialogOpen = false },
-                    enabled = !isNicknameSaving,
-                ) {
-                    Text("취소")
-                }
-            },
-            shape = RoundedCornerShape(20.dp),
+            onDismissRequest = { isReLoginDialogOpen = false; onLogout() },
+            title = { Text("세션 만료") },
+            text = { Text("로그인이 만료되었습니다. 다시 로그인해주세요.") },
+            confirmButton = { Button(onClick = { isReLoginDialogOpen = false; onLogout() }) { Text("확인") } }
         )
     }
 }
 
+// --- Helper Components ---
+
 @Composable
-private fun SectionTitle(
+fun SettingsGroup(
     title: String,
-    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = modifier.padding(top = 8.dp),
-    )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+        )
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                content()
+            }
+        }
+    }
 }
 
 @Composable
-private fun InfoListItem(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
+fun SettingsItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    value: String? = null,
+    onClick: (() -> Unit)? = null
 ) {
     ListItem(
-        headlineContent = {
-            Text(
-                label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        headlineContent = { Text(title, style = MaterialTheme.typography.bodyLarge) },
+        leadingContent = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
             )
         },
-        supportingContent = {
-            Text(
-                value,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (value != null) {
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (onClick != null) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
         },
-        modifier = modifier,
+        modifier = Modifier.clickable(enabled = onClick != null) { onClick?.invoke() },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
     )
 }
+
+// Modifier 확장 함수 (크기 조절용)
+fun Modifier.scale(scale: Float): Modifier = this.then(
+    Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
+)
