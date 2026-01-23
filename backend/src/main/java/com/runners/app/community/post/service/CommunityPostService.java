@@ -191,7 +191,7 @@ public class CommunityPostService {
 
         List<CommunityPost> fetched = communityPostRepository.findForCursor(
                 CommunityContentStatus.ACTIVE,
-                boardType == null ? CommunityPostBoardType.FREE : boardType,
+                boardType,
                 decodedCursor == null ? null : decodedCursor.createdAt(),
                 decodedCursor == null ? Long.MAX_VALUE : decodedCursor.id(),
                 PageRequest.of(0, fetchSize)
@@ -238,7 +238,6 @@ public class CommunityPostService {
         int safeSize = Math.min(50, Math.max(1, size));
         String trimmedQuery = query.trim();
         String booleanQuery = toBooleanModePrefixQuery(trimmedQuery);
-        CommunityPostBoardType safeBoardType = boardType == null ? CommunityPostBoardType.FREE : boardType;
 
         Cursor decodedCursor = decodeCursor(cursor);
         int fetchSize = safeSize + 1;
@@ -246,7 +245,7 @@ public class CommunityPostService {
         List<Long> fetchedIds = communityPostRepository.searchPostIdsForCursor(
                 CommunityContentStatus.ACTIVE.name(),
                 CommunityContentStatus.ACTIVE.name(),
-                safeBoardType.name(),
+                boardType == null ? null : boardType.name(),
                 booleanQuery,
                 decodedCursor == null ? null : decodedCursor.createdAt(),
                 decodedCursor == null ? Long.MAX_VALUE : decodedCursor.id(),
@@ -261,7 +260,7 @@ public class CommunityPostService {
 
         List<CommunityPost> fetchedPosts = communityPostRepository.findAllByIdInWithAuthor(
                 CommunityContentStatus.ACTIVE,
-                safeBoardType,
+                boardType,
                 pageIds
         );
         Map<Long, CommunityPost> postById = fetchedPosts.stream()

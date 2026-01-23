@@ -31,7 +31,7 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
     @Query("""
             select p from CommunityPost p
             where p.status = :status
-              and p.boardType = :boardType
+              and (:boardType is null or p.boardType = :boardType)
               and (
                 :cursorCreatedAt is null
                 or p.createdAt < :cursorCreatedAt
@@ -52,7 +52,7 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
             select p.id
             from community_posts p
             where p.status = :postStatus
-              and p.board_type = :boardType
+              and (:boardType is null or p.board_type = :boardType)
               and (
                 match(p.title, p.content) against (:q in boolean mode)
                 or exists (
@@ -87,7 +87,7 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
     @Query("""
             select p from CommunityPost p
             where p.status = :status
-              and p.boardType = :boardType
+              and (:boardType is null or p.boardType = :boardType)
               and p.id in :ids
             """)
     List<CommunityPost> findAllByIdInWithAuthor(

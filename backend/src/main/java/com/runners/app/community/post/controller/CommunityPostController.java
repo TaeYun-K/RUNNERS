@@ -82,7 +82,7 @@ public class CommunityPostController {
     @Operation(summary = "게시글 목록 조회", description = "최신순 커서 기반 목록 조회(nextCursor를 다음 요청의 cursor로 전달)")
     @GetMapping
     public CommunityPostCursorListResponse listPosts(
-            @RequestParam(required = false, defaultValue = "FREE") CommunityPostBoardType boardType,
+            @RequestParam(required = false) CommunityPostBoardType boardType,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size
     ) {
@@ -96,7 +96,7 @@ public class CommunityPostController {
     @GetMapping("/search")
     public CommunityPostCursorListResponse searchPosts(
             @RequestParam String q,
-            @RequestParam(required = false, defaultValue = "FREE") CommunityPostBoardType boardType,
+            @RequestParam(required = false) CommunityPostBoardType boardType,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size
     ) {
