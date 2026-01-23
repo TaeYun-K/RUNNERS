@@ -25,7 +25,6 @@ import com.runners.app.community.post.ui.list.CommunityScreen
 import com.runners.app.community.post.state.CommunityPostStatsUpdate
 import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel
-import com.runners.app.community.post.viewmodel.CommunityViewModelFactory
 import com.runners.app.community.userprofile.CommunityUserProfileScreen
 import com.runners.app.healthconnect.HealthConnectRepository
 import com.runners.app.home.HomeScreen
@@ -405,15 +404,12 @@ fun RunnersNavHost(
                     runCatching { CommunityPostBoardType.valueOf(raw) }.getOrNull()
                 }
 
-            val boardViewModel: CommunityViewModel =
-                viewModel(factory = CommunityViewModelFactory(initialBoardType = boardType))
-
             CommunityBoardScreen(
                 boardType = boardType,
                 onBack = { navController.popBackStack() },
                 onCreateClick = { navController.navigate(AppRoute.CommunityCreate.route) },
                 onPostClick = { postId -> navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) },
-                viewModel = boardViewModel,
+                viewModel = communityViewModel,
             )
         }
         composable(
@@ -432,6 +428,12 @@ fun RunnersNavHost(
                 authorPictureUrl = session.picture,
                 totalDistanceKm = totalDistanceKm,
                 onBack = { navController.popBackStack() },
+                onCreated = { postId ->
+                    navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) {
+                        popUpTo(AppRoute.CommunityCreate.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
                 viewModel = communityViewModel,
             )
         }

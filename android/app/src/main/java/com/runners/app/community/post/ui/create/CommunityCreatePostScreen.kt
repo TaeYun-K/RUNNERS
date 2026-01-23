@@ -28,6 +28,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.runners.app.community.post.ui.components.CommunityAuthorLine
 import com.runners.app.community.post.viewmodel.CommunityViewModel
+import com.runners.app.network.CommunityPostBoardType
 import com.runners.app.settings.AppSettingsStore
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +66,7 @@ fun CommunityCreatePostScreen(
     authorPictureUrl: String? = null,
     totalDistanceKm: Double?,
     onBack: () -> Unit,
+    onCreated: (Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CommunityViewModel,
 ) {
@@ -83,7 +87,13 @@ fun CommunityCreatePostScreen(
 
     LaunchedEffect(uiState.createSuccessSignal) {
         if (uiState.createSuccessSignal > initialSuccessSignal) {
-            onBack()
+            val postId = uiState.lastCreatedPostId
+            if (postId != null && postId > 0) {
+                viewModel.consumeLastCreatedPostId()
+                onCreated(postId)
+            } else {
+                onBack()
+            }
         }
     }
 
@@ -162,6 +172,15 @@ fun CommunityCreatePostScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            LaunchedEffect(Unit) {
+                if (uiState.createTitle.isBlank() && uiState.createContent.isBlank()) {
+                    val initial = uiState.selectedBoardType ?: CommunityPostBoardType.FREE
+                    if (uiState.createBoardType != initial) {
+                        viewModel.onCreateBoardTypeChange(initial)
+                    }
+                }
+            }
+
             // 작성자 정보
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -177,6 +196,46 @@ fun CommunityCreatePostScreen(
                         totalDistanceKm = totalDistanceKm,
                         showTotalDistance = showTotalDistanceInCommunity,
                     )
+                }
+            }
+
+            // 게시판 선택
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "게시판",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
+                    )
+
+                    listOf(
+                        CommunityPostBoardType.FREE,
+                        CommunityPostBoardType.QNA,
+                        CommunityPostBoardType.INFO,
+                    ).forEach { type ->
+                        FilterChip(
+                            selected = uiState.createBoardType == type,
+                            onClick = { viewModel.onCreateBoardTypeChange(type) },
+                            enabled = !uiState.isCreating,
+                            label = { Text(type.labelKo) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                labelColor = MaterialTheme.colorScheme.onSurface,
+                            )
+                        )
+                    }
                 }
             }
 

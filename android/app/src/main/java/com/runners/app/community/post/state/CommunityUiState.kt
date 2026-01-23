@@ -14,12 +14,14 @@ data class CommunityUiState(
     val isInitialLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val listErrorMessage: String? = null,
+    val createBoardType: CommunityPostBoardType = CommunityPostBoardType.FREE,
     val createTitle: String = "",
     val createContent: String = "",
     val createImageUris: List<String> = emptyList(),
     val isCreating: Boolean = false,
     val createErrorMessage: String? = null,
     val createSuccessSignal: Long = 0L,
+    val lastCreatedPostId: Long? = null,
     val scrollToTopSignal: Long = 0L,
 ) {
     val isLoading: Boolean get() = isInitialLoading || isLoadingMore

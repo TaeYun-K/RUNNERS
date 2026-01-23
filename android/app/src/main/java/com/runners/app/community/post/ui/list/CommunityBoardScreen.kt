@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -61,6 +62,10 @@ fun CommunityBoardScreen(
         AppSettingsStore.showTotalDistanceInCommunityFlow(context)
             .collectAsStateWithLifecycle(initialValue = true)
             .value
+
+    LaunchedEffect(boardType) {
+        viewModel.selectBoardType(boardType)
+    }
 
     BackHandler(enabled = uiState.isSearchMode || uiState.isSearchOpen) {
         if (uiState.isSearchMode) {
@@ -207,4 +212,3 @@ private fun CommunityBoardHeader(
         }
     }
 }
-

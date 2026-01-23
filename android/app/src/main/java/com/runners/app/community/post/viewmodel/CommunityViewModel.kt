@@ -19,16 +19,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class CommunityViewModel(
-    initialBoardType: CommunityPostBoardType? = null,
     private val repository: CommunityPostRepository = CommunityPostRepository(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CommunityUiState())
     val uiState: StateFlow<CommunityUiState> = _uiState.asStateFlow()
 
     init {
-        if (initialBoardType != null) {
-            _uiState.update { it.copy(selectedBoardType = initialBoardType) }
-        }
         refresh()
     }
 
@@ -181,7 +177,19 @@ class CommunityViewModel(
 
     fun resetCreateDraft() {
         if (_uiState.value.isCreating) return
-        _uiState.update { it.copy(createTitle = "", createContent = "", createImageUris = emptyList(), createErrorMessage = null) }
+        _uiState.update { state ->
+            state.copy(
+                createBoardType = state.selectedBoardType ?: CommunityPostBoardType.FREE,
+                createTitle = "",
+                createContent = "",
+                createImageUris = emptyList(),
+                createErrorMessage = null,
+            )
+        }
+    }
+
+    fun onCreateBoardTypeChange(value: CommunityPostBoardType) {
+        _uiState.update { it.copy(createBoardType = value, createErrorMessage = null) }
     }
 
     fun onCreateTitleChange(value: String) {
@@ -213,6 +221,10 @@ class CommunityViewModel(
         }
     }
 
+    fun consumeLastCreatedPostId() {
+        _uiState.update { it.copy(lastCreatedPostId = null) }
+    }
+
     fun submitCreatePost(context: Context) {
         viewModelScope.launch {
             val state = _uiState.value
@@ -229,18 +241,20 @@ class CommunityViewModel(
                 repository.createPost(
                     title = trimmedTitle,
                     content = trimmedContent,
-                    boardType = state.selectedBoardType ?: CommunityPostBoardType.FREE,
+                    boardType = state.createBoardType,
                     imageKeys = imageKeys
                 )
-            }.onSuccess {
+            }.onSuccess { created ->
                 _uiState.update {
                     it.copy(
                         isCreating = false,
+                        createBoardType = (it.selectedBoardType ?: CommunityPostBoardType.FREE),
                         createTitle = "",
                         createContent = "",
                         createImageUris = emptyList(),
                         createErrorMessage = null,
                         createSuccessSignal = it.createSuccessSignal + 1L,
+                        lastCreatedPostId = created.postId,
                         scrollToTopSignal = it.scrollToTopSignal + 1L,
                     )
                 }
