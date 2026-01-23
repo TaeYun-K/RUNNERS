@@ -69,6 +69,7 @@ fun CommunityPostList(
     showLatestSection: Boolean = false,
     showBoardTypeChips: Boolean = false,
     onBoardTypeChange: ((CommunityPostBoardType?) -> Unit)? = null,
+    interactionEnabled: Boolean = true,
     onPostClick: (Long) -> Unit,
     onRetryInitial: () -> Unit,
     onRetryMore: () -> Unit,
@@ -141,6 +142,7 @@ fun CommunityPostList(
                     PostCard(
                         post = post,
                         showTotalDistance = showTotalDistance,
+                        interactionEnabled = interactionEnabled,
                         onClick = { onPostClick(post.postId) },
                     )
                 }
@@ -210,13 +212,14 @@ fun CommunityPostList(
 private fun PostCard(
     post: CommunityPostSummaryResult,
     showTotalDistance: Boolean,
+    interactionEnabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(enabled = interactionEnabled, onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
@@ -358,6 +361,7 @@ fun LatestPostsSection(
     posts: List<CommunityPostSummaryResult>,
     onPostClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    interactionEnabled: Boolean = true,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -381,7 +385,7 @@ fun LatestPostsSection(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onPostClick(post.postId) }
+                            .clickable(enabled = interactionEnabled) { onPostClick(post.postId) }
                             .padding(vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),

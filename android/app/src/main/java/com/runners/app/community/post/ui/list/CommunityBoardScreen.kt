@@ -32,6 +32,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -67,12 +69,22 @@ fun CommunityBoardScreen(
         viewModel.selectBoardType(boardType)
     }
 
+    var exiting by remember { mutableStateOf(false) }
+    fun requestExit() {
+        if (exiting) return
+        exiting = true
+        onBack()
+    }
+
     BackHandler(enabled = uiState.isSearchMode || uiState.isSearchOpen) {
         if (uiState.isSearchMode) {
             viewModel.clearSearchAndRefresh()
         } else {
             viewModel.closeSearch()
         }
+    }
+    BackHandler(enabled = true) {
+        requestExit()
     }
 
     InfiniteScrollHandler(
@@ -93,9 +105,10 @@ fun CommunityBoardScreen(
     ) {
         CommunityBoardHeader(
             title = boardType?.let { "${it.labelKo} 게시판" } ?: "전체 게시판",
-            onBack = onBack,
+            onBack = ::requestExit,
             onCreateClick = onCreateClick,
             onSearchClick = viewModel::toggleSearchOpen,
+            enabled = !exiting,
         )
 
         if (uiState.isSearchOpen) {
@@ -152,7 +165,8 @@ fun CommunityBoardScreen(
                 selectedBoardType = uiState.selectedBoardType,
                 showLatestSection = false,
                 showBoardTypeChips = false,
-                onPostClick = onPostClick,
+                interactionEnabled = !exiting,
+                onPostClick = { if (!exiting) onPostClick(it) },
                 onRetryInitial = viewModel::refresh,
                 onRetryMore = viewModel::loadMore,
                 modifier = Modifier.fillMaxSize(),
@@ -167,6 +181,7 @@ private fun CommunityBoardHeader(
     onBack: () -> Unit,
     onCreateClick: () -> Unit,
     onSearchClick: () -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val isMenuExpanded = remember { mutableStateOf(false) }
@@ -177,7 +192,7 @@ private fun CommunityBoardHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = onBack, enabled = enabled) {
                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
             }
             Text(
@@ -189,11 +204,11 @@ private fun CommunityBoardHeader(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onSearchClick) {
+            IconButton(onClick = onSearchClick, enabled = enabled) {
                 Icon(imageVector = Icons.Default.Search, contentDescription = "검색")
             }
 
-            IconButton(onClick = { isMenuExpanded.value = true }) {
+            IconButton(onClick = { isMenuExpanded.value = true }, enabled = enabled) {
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "더보기")
             }
 
