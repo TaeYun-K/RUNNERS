@@ -33,13 +33,14 @@ import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
 import com.runners.app.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun CommunityTopBannerAd(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val adUnitId = context.getString(R.string.admob_banner_ad_unit_id)
+    val adUnitId = stringResource(R.string.admob_banner_ad_unit_id)
 
     Column(
         modifier = modifier
@@ -59,7 +60,7 @@ fun InlineBannerAd(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val adUnitId = context.getString(R.string.admob_banner_ad_unit_id)
+    val adUnitId = stringResource(R.string.admob_banner_ad_unit_id)
 
     Column(
         modifier = modifier

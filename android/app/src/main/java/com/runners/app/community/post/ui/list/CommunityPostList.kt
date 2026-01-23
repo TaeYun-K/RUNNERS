@@ -25,19 +25,24 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.runners.app.ads.CommunityTopBannerAd
 import com.runners.app.network.CommunityPostBoardType
@@ -231,7 +236,7 @@ private fun PostCard(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
-                        text = "${post.boardType.toKoreanBracketPrefix()} ${post.title}",
+                        text = postTitleAnnotated(post.boardType, post.title, MaterialTheme.colorScheme),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -382,7 +387,7 @@ fun LatestPostsSection(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Text(
-                            text = "${post.boardType.toKoreanBracketPrefix()} ${post.title}",
+                            text = postTitleAnnotated(post.boardType, post.title, MaterialTheme.colorScheme),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
@@ -402,6 +407,26 @@ fun LatestPostsSection(
         }
     }
 }
+
+private fun postTitleAnnotated(
+    boardType: CommunityPostBoardType,
+    title: String,
+    colorScheme: ColorScheme,
+) = buildAnnotatedString {
+    val prefix = boardType.toKoreanBracketPrefix()
+    withStyle(SpanStyle(color = boardTypeColor(boardType, colorScheme), fontWeight = FontWeight.Bold)) {
+        append(prefix)
+    }
+    append(' ')
+    append(title)
+}
+
+private fun boardTypeColor(type: CommunityPostBoardType, colorScheme: ColorScheme): Color =
+    when (type) {
+        CommunityPostBoardType.FREE -> colorScheme.primary
+        CommunityPostBoardType.QNA -> colorScheme.tertiary
+        CommunityPostBoardType.INFO -> colorScheme.secondary
+    }
 
 @Composable
 private fun BoardTypeChipsRow(
