@@ -76,11 +76,9 @@ fun MyPageScreen(
     var profileEditErrorMessage by remember { mutableStateOf<String?>(null) }
     var isProfileEditSaving by remember { mutableStateOf(false) }
 
-    val currentUserId = userMe?.userId ?: session.userId
     val rawNickname = (userMe?.nickname ?: session.nickname).orEmpty()
     val displayNickname = rawNickname.takeUnless { it.isBlank() } ?: "RUNNERS"
-    val oneLineIntro = AppSettingsStore.profileOneLineFlow(context, currentUserId)
-        .collectAsStateWithLifecycle(initialValue = null).value
+    val oneLineIntro = userMe?.intro
 
     val showTotalDistanceInCommunity = AppSettingsStore.showTotalDistanceInCommunityFlow(context)
         .collectAsStateWithLifecycle(initialValue = true).value
@@ -465,23 +463,26 @@ fun MyPageScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (isProfileEditSaving) return@Button
-                        val nicknameTrimmed = profileNicknameDraft.trim()
-                        val introTrimmed = profileIntroDraft.trim()
-                        if (nicknameTrimmed.length !in 2..20) { profileEditErrorMessage = "닉네임은 2~20자여야 합니다."; return@Button }
-
-                        isProfileEditSaving = true
-                        scope.launch {
-                            try {
-                                if (nicknameTrimmed != rawNickname.trim()) {
-                                    userMe = withContext(Dispatchers.IO) { BackendUserApi.updateNickname(nicknameTrimmed) }
-                                }
-                                AppSettingsStore.setProfileOneLine(context, currentUserId, introTrimmed)
-                                isProfileEditDialogOpen = false
-                            } catch (e: Exception) {
-                                profileEditErrorMessage = e.message
-                            } finally {
-                                isProfileEditSaving = false
+                         if (isProfileEditSaving) return@Button
+                         val nicknameTrimmed = profileNicknameDraft.trim()
+                         val introTrimmed = profileIntroDraft.trim()
+                         if (nicknameTrimmed.length !in 2..20) { profileEditErrorMessage = "닉네임은 2~20자여야 합니다."; return@Button }
+                         if (introTrimmed.length > 30) { profileEditErrorMessage = "한줄 소개는 최대 30자까지 가능해요."; return@Button }
+ 
+                         isProfileEditSaving = true
+                         scope.launch {
+                             try {
+                                 userMe = withContext(Dispatchers.IO) {
+                                     BackendUserApi.updateProfile(
+                                         nickname = nicknameTrimmed,
+                                         intro = introTrimmed,
+                                     )
+                                 }
+                                 isProfileEditDialogOpen = false
+                             } catch (e: Exception) {
+                                 profileEditErrorMessage = e.message
+                             } finally {
+                                 isProfileEditSaving = false
                             }
                         }
                     },

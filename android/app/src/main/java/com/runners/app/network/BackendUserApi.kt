@@ -12,6 +12,7 @@ data class UserMeResult(
     val email: String,
     val name: String?,
     val nickname: String?,
+    val intro: String?,
     val picture: String?,
     val role: String?,
     val totalDistanceKm: Double?,
@@ -45,6 +46,48 @@ object BackendUserApi {
                 email = json.getString("email"),
                 name = optNullableString("name"),
                 nickname = optNullableString("nickname"),
+                intro = optNullableString("intro"),
+                picture = optNullableString("picture"),
+                role = optNullableString("role"),
+                totalDistanceKm = optNullableDouble("totalDistanceKm"),
+            )
+        }
+    }
+
+    fun updateProfile(
+        nickname: String,
+        intro: String,
+    ): UserMeResult {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/users/me/profile"
+
+        val bodyJson = JSONObject()
+            .put("nickname", nickname)
+            .put("intro", intro)
+            .toString()
+
+        val request = Request.Builder()
+            .url(url)
+            .patch(bodyJson.toRequestBody(jsonMediaType))
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Update profile failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+
+            val json = JSONObject(responseBody)
+            fun optNullableString(key: String): String? =
+                json.optString(key).takeIf { it.isNotBlank() }
+            fun optNullableDouble(key: String): Double? =
+                json.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
+
+            return UserMeResult(
+                userId = json.getLong("userId"),
+                email = json.getString("email"),
+                name = optNullableString("name"),
+                nickname = optNullableString("nickname"),
+                intro = optNullableString("intro"),
                 picture = optNullableString("picture"),
                 role = optNullableString("role"),
                 totalDistanceKm = optNullableDouble("totalDistanceKm"),
@@ -81,6 +124,7 @@ object BackendUserApi {
                 email = json.getString("email"),
                 name = optNullableString("name"),
                 nickname = optNullableString("nickname"),
+                intro = optNullableString("intro"),
                 picture = optNullableString("picture"),
                 role = optNullableString("role"),
                 totalDistanceKm = optNullableDouble("totalDistanceKm"),
@@ -117,6 +161,7 @@ object BackendUserApi {
                 email = json.getString("email"),
                 name = optNullableString("name"),
                 nickname = optNullableString("nickname"),
+                intro = optNullableString("intro"),
                 picture = optNullableString("picture"),
                 role = optNullableString("role"),
                 totalDistanceKm = optNullableDouble("totalDistanceKm"),
@@ -202,6 +247,7 @@ object BackendUserApi {
                 email = json.getString("email"),
                 name = optNullableString("name"),
                 nickname = optNullableString("nickname"),
+                intro = optNullableString("intro"),
                 picture = optNullableString("picture"),
                 role = optNullableString("role"),
                 totalDistanceKm = optNullableDouble("totalDistanceKm"),
@@ -234,6 +280,7 @@ object BackendUserApi {
                 email = json.getString("email"),
                 name = optNullableString("name"),
                 nickname = optNullableString("nickname"),
+                intro = optNullableString("intro"),
                 picture = optNullableString("picture"),
                 role = optNullableString("role"),
                 totalDistanceKm = optNullableDouble("totalDistanceKm"),
