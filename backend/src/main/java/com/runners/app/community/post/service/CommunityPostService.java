@@ -229,6 +229,7 @@ public class CommunityPostService {
 
         int safeSize = Math.min(50, Math.max(1, size));
         String trimmedQuery = query.trim();
+        String booleanQuery = toBooleanModePrefixQuery(trimmedQuery);
 
         Cursor decodedCursor = decodeCursor(cursor);
         int fetchSize = safeSize + 1;
@@ -236,7 +237,7 @@ public class CommunityPostService {
         List<Long> fetchedIds = communityPostRepository.searchPostIdsForCursor(
                 CommunityContentStatus.ACTIVE.name(),
                 CommunityContentStatus.ACTIVE.name(),
-                trimmedQuery,
+                booleanQuery,
                 decodedCursor == null ? null : decodedCursor.createdAt(),
                 decodedCursor == null ? Long.MAX_VALUE : decodedCursor.id(),
                 fetchSize
@@ -289,6 +290,34 @@ public class CommunityPostService {
         }
 
         return new CommunityPostCursorListResponse(posts, nextCursor);
+    }
+
+    private String toBooleanModePrefixQuery(String rawQuery) {
+        String trimmed = rawQuery == null ? "" : rawQuery.trim();
+        if (trimmed.isEmpty()) return trimmed;
+
+        String[] tokens = trimmed.split("\\s+");
+        StringBuilder sb = new StringBuilder(trimmed.length() + tokens.length);
+        for (String token : tokens) {
+            if (token.isBlank()) continue;
+
+            String t = token.trim();
+            boolean alreadyBooleanSyntax =
+                    t.contains("*") ||
+                    t.contains("\"") ||
+                    t.startsWith("+") ||
+                    t.startsWith("-") ||
+                    t.startsWith("~") ||
+                    t.startsWith(">") ||
+                    t.startsWith("<") ||
+                    t.startsWith("(") ||
+                    t.startsWith("@");
+
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(alreadyBooleanSyntax ? t : (t + "*"));
+        }
+
+        return sb.toString();
     }
 
     private record Cursor(LocalDateTime createdAt, long id) {}

@@ -50,13 +50,13 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
             from community_posts p
             where p.status = :postStatus
               and (
-                match(p.title, p.content) against (:q in natural language mode) > 0
+                match(p.title, p.content) against (:q in boolean mode)
                 or exists (
                   select 1
                   from community_comments c
                   where c.post_id = p.id
                     and c.status = :commentStatus
-                    and match(c.content) against (:q in natural language mode) > 0
+                    and match(c.content) against (:q in boolean mode)
                 )
               )
               and (
