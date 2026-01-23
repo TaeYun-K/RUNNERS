@@ -37,7 +37,7 @@ object BackendUserApi {
 
             val json = JSONObject(responseBody)
             fun optNullableString(key: String): String? =
-                json.optString(key).takeIf { it.isNotBlank() }
+                json.optString(key).takeIf { it.isNotBlank() && it != "null" }
             fun optNullableDouble(key: String): Double? =
                 json.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
 
@@ -78,7 +78,7 @@ object BackendUserApi {
 
             val json = JSONObject(responseBody)
             fun optNullableString(key: String): String? =
-                json.optString(key).takeIf { it.isNotBlank() }
+                json.optString(key).takeIf { it.isNotBlank() && it != "null" }
             fun optNullableDouble(key: String): Double? =
                 json.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
 
@@ -115,7 +115,7 @@ object BackendUserApi {
 
             val json = JSONObject(responseBody)
             fun optNullableString(key: String): String? =
-                json.optString(key).takeIf { it.isNotBlank() }
+                json.optString(key).takeIf { it.isNotBlank() && it != "null" }
             fun optNullableDouble(key: String): Double? =
                 json.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
 
@@ -152,7 +152,7 @@ object BackendUserApi {
 
             val json = JSONObject(responseBody)
             fun optNullableString(key: String): String? =
-                json.optString(key).takeIf { it.isNotBlank() }
+                json.optString(key).takeIf { it.isNotBlank() && it != "null" }
             fun optNullableDouble(key: String): Double? =
                 json.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
 
@@ -238,7 +238,7 @@ object BackendUserApi {
 
             val json = JSONObject(responseBody)
             fun optNullableString(key: String): String? =
-                json.optString(key).takeIf { it.isNotBlank() }
+                json.optString(key).takeIf { it.isNotBlank() && it != "null" }
             fun optNullableDouble(key: String): Double? =
                 json.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
 
@@ -271,7 +271,7 @@ object BackendUserApi {
 
             val json = JSONObject(responseBody)
             fun optNullableString(key: String): String? =
-                json.optString(key).takeIf { it.isNotBlank() }
+                json.optString(key).takeIf { it.isNotBlank() && it != "null" }
             fun optNullableDouble(key: String): Double? =
                 json.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
 
