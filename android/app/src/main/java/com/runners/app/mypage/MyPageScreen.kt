@@ -86,7 +86,7 @@ fun MyPageScreen(
     // --- Logic Functions (기존 유지) ---
     suspend fun refreshUser() {
         if (isLoading) return
-        if (AuthTokenStore.peekRefreshToken().isNullOrBlank()) {
+        if (AuthTokenStore.peekAccessToken().isNullOrBlank()) {
             errorMessage = null
             isReLoginDialogOpen = true
             return
@@ -96,7 +96,7 @@ fun MyPageScreen(
         try {
             userMe = withContext(Dispatchers.IO) { BackendUserApi.getMe() }
         } catch (e: Exception) {
-            if (AuthTokenStore.peekRefreshToken().isNullOrBlank()) {
+            if (AuthTokenStore.peekAccessToken().isNullOrBlank()) {
                 errorMessage = null
                 isReLoginDialogOpen = true
             } else {

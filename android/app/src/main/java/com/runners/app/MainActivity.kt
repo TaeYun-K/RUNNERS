@@ -22,6 +22,7 @@ import com.runners.app.navigation.RunnersBottomBar
 import com.runners.app.navigation.RunnersNavHost
 import com.runners.app.network.BackendAuthApi
 import com.runners.app.auth.AuthTokenStore
+import com.runners.app.network.BackendHttpClient
 import com.runners.app.network.BackendUserApi
 import com.runners.app.network.GoogleLoginResult
 import com.runners.app.ui.theme.RUNNERSTheme
@@ -51,34 +52,38 @@ class MainActivity : ComponentActivity() {
 				LaunchedEffect(Unit) {
 					AuthTokenStore.load(context)
 
-					val refreshToken = AuthTokenStore.peekRefreshToken()
-					if (!refreshToken.isNullOrBlank() && session == null) {
-						isLoading = true
-						errorMessage = null
-						try {
-							val newAccessToken = withContext(Dispatchers.IO) {
-								BackendAuthApi.refreshAccessToken(refreshToken)
-							}
-							AuthTokenStore.setAccessToken(context, newAccessToken)
+					if (session != null) return@LaunchedEffect
 
-							val me = withContext(Dispatchers.IO) { BackendUserApi.getMe() }
-							session = GoogleLoginResult(
-								userId = me.userId,
-								email = me.email,
-								name = me.name,
-								nickname = me.nickname,
-								picture = me.picture,
-								accessToken = newAccessToken,
-								refreshToken = refreshToken,
-								isNewUser = false,
-							)
-						} catch (e: Exception) {
-							AuthTokenStore.clear(context)
-							session = null
-						} finally {
-							isLoading = false
-						}
-					}
+                    isLoading = true
+                    errorMessage = null
+                    try {
+                        val cachedAccessToken = AuthTokenStore.peekAccessToken()
+                        val accessToken = if (cachedAccessToken.isNullOrBlank()) {
+                            val refreshed = withContext(Dispatchers.IO) { BackendAuthApi.refreshAccessToken() }
+                            AuthTokenStore.setAccessToken(context, refreshed)
+                            refreshed
+                        } else {
+                            cachedAccessToken
+                        }
+
+                        val me = withContext(Dispatchers.IO) { BackendUserApi.getMe() }
+                        val finalAccessToken = AuthTokenStore.peekAccessToken() ?: accessToken
+                        session = GoogleLoginResult(
+                            userId = me.userId,
+                            email = me.email,
+                            name = me.name,
+                            nickname = me.nickname,
+                            picture = me.picture,
+                            accessToken = finalAccessToken,
+                            isNewUser = false,
+                        )
+                    } catch (e: Exception) {
+                        BackendHttpClient.clearCookies()
+                        AuthTokenStore.clear(context)
+                        session = null
+                    } finally {
+                        isLoading = false
+                    }
 				}
 
 				Scaffold(
@@ -99,7 +104,7 @@ class MainActivity : ComponentActivity() {
 										val result = withContext(Dispatchers.IO) {
 											BackendAuthApi.googleLogin(idToken)
 										}
-										AuthTokenStore.setTokens(context, result.accessToken, result.refreshToken)
+										AuthTokenStore.setAccessToken(context, result.accessToken)
 										session = result
 									} catch (e: Exception) {
 										errorMessage = e.message ?: "Backend login failed"
@@ -118,6 +123,7 @@ class MainActivity : ComponentActivity() {
 							session = session!!,
 							onLogout = {
 								scope.launch {
+                                    BackendHttpClient.clearCookies()
 									AuthTokenStore.clear(context)
 									session = null
 								}

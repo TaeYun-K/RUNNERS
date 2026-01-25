@@ -12,12 +12,21 @@ object BackendHttpClient {
     private val backendBaseUrl = BuildConfig.BACKEND_BASE_URL.trimEnd('/')
     private val backendBaseHttpUrl = backendBaseUrl.toHttpUrlOrNull()
 
+    private val cookieJar: SecureCookieJar by lazy {
+        SecureCookieJar(RunnersApplication.appContext)
+    }
+
+    fun clearCookies() {
+        cookieJar.clear()
+    }
+
     val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(Duration.ofSeconds(30))
             .readTimeout(Duration.ofSeconds(30))
             .writeTimeout(Duration.ofSeconds(30))
             .callTimeout(Duration.ofSeconds(30))
+            .cookieJar(cookieJar)
             .authenticator(TokenRefreshAuthenticator(RunnersApplication.appContext))
             .addInterceptor(
                 Interceptor { chain ->

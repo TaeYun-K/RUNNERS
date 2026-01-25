@@ -13,7 +13,6 @@ data class GoogleLoginResult(
     val nickname: String?,
     val picture: String?,
     val accessToken: String,
-    val refreshToken: String,
     val isNewUser: Boolean,
 )
 
@@ -49,22 +48,17 @@ object BackendAuthApi {
                 nickname = optNullableString("nickname"),
                 picture = optNullableString("picture"),
                 accessToken = json.getString("accessToken"),
-                refreshToken = json.getString("refreshToken"),
                 isNewUser = json.optBoolean("newUser", json.optBoolean("isNewUser", false)),
             )
         }
     }
 
-    fun refreshAccessToken(refreshToken: String): String {
+    fun refreshAccessToken(): String {
         val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/auth/refresh"
-
-        val bodyJson = JSONObject()
-            .put("refreshToken", refreshToken)
-            .toString()
 
         val request = Request.Builder()
             .url(url)
-            .post(bodyJson.toRequestBody(jsonMediaType))
+            .post(ByteArray(0).toRequestBody(null))
             .build()
 
         BackendHttpClient.client.newCall(request).execute().use { response ->

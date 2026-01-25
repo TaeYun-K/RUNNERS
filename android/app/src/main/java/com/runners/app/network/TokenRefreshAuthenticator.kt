@@ -18,9 +18,6 @@ class TokenRefreshAuthenticator(
         if (request.url.encodedPath.startsWith("/api/auth/")) return null
         if (responseCount(response) >= 2) return null
 
-        val refreshToken = AuthTokenStore.peekRefreshToken()
-        if (refreshToken.isNullOrBlank()) return null
-
         synchronized(lock) {
             val cachedAccessToken = AuthTokenStore.peekAccessToken()
             val requestToken = request.header("Authorization")
@@ -34,8 +31,9 @@ class TokenRefreshAuthenticator(
             }
 
             val newAccessToken = try {
-                BackendAuthApi.refreshAccessToken(refreshToken)
+                BackendAuthApi.refreshAccessToken()
             } catch (e: Exception) {
+                BackendHttpClient.clearCookies()
                 AuthTokenStore.clearBlocking(context)
                 return null
             }
@@ -57,4 +55,3 @@ class TokenRefreshAuthenticator(
         return result
     }
 }
-
