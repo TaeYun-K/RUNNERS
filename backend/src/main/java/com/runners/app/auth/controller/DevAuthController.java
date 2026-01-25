@@ -2,6 +2,7 @@ package com.runners.app.auth.controller;
 
 import com.runners.app.auth.dto.DevTokenRequest;
 import com.runners.app.auth.dto.GoogleLoginResponse;
+import com.runners.app.auth.cookie.RefreshTokenCookie;
 import com.runners.app.auth.service.JwtService;
 import com.runners.app.auth.service.RefreshTokenService;
 import com.runners.app.user.entity.User;
@@ -9,9 +10,12 @@ import com.runners.app.user.repository.UserRepository;
 import com.runners.app.user.service.NicknameService;
 import com.runners.app.user.service.UserProfileImageResolver;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,7 +58,11 @@ public class DevAuthController {
     )
     @PostMapping("/token")
     @ResponseStatus(HttpStatus.CREATED)
-    public GoogleLoginResponse issueDevToken(@Valid @RequestBody DevTokenRequest request) {
+    public GoogleLoginResponse issueDevToken(
+            @Valid @RequestBody DevTokenRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse
+    ) {
         if (!enabled) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Not found");
         }
@@ -84,7 +92,7 @@ public class DevAuthController {
         String refreshToken = jwtService.createRefreshToken(user);
         refreshTokenService.save(user.getId(), refreshToken, jwtService.refreshTokenTtl());
 
-        return new GoogleLoginResponse(
+        GoogleLoginResponse result = new GoogleLoginResponse(
                 user.getId(),
                 user.getEmail(),
                 user.getName(),
@@ -94,5 +102,10 @@ public class DevAuthController {
                 refreshToken,
                 isNewUser
         );
+        httpResponse.addHeader(
+                HttpHeaders.SET_COOKIE,
+                RefreshTokenCookie.create(httpRequest, refreshToken, jwtService.refreshTokenTtl()).toString()
+        );
+        return result;
     }
 }

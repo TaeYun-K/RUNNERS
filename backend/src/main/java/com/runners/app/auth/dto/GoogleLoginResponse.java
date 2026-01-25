@@ -1,5 +1,7 @@
 package com.runners.app.auth.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public record GoogleLoginResponse(
         Long userId,
         String email,
@@ -7,6 +9,6 @@ public record GoogleLoginResponse(
         String nickname,
         String picture,
         String accessToken,
-        String refreshToken,
+        @JsonIgnore String refreshToken,
         boolean isNewUser
 ) {}
