@@ -46,8 +46,12 @@ public class AuthController {
     @Operation(summary = "Access Token 재발급", description = "Refresh Token을 검증한 뒤 Access Token을 재발급합니다.")
     @PostMapping("/refresh")
     public TokenRefreshResponse refresh(
-            @CookieValue(name = RefreshTokenCookie.COOKIE_NAME, required = false) String refreshToken
+            @CookieValue(name = RefreshTokenCookie.COOKIE_NAME, required = false) String refreshToken,
+            HttpServletRequest request
     ) {
+        if (request.getContentLengthLong() > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is not allowed");
+        }
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing refresh token");
         }
