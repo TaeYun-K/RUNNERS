@@ -154,12 +154,14 @@ public class CommunityPostService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
         }
 
-        var viewer = userRepository.findById(viewerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        if (viewerId != null) {
+            userRepository.findById(viewerId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        boolean isFirstViewToday = communityPostViewTracker.markViewedTodayIfFirst(postId, viewerId);
-        if (isFirstViewToday) {
-            post.increaseViewCount();
+            boolean isFirstViewToday = communityPostViewTracker.markViewedTodayIfFirst(postId, viewerId);
+            if (isFirstViewToday) {
+                post.increaseViewCount();
+            }
         }
 
         var author = post.getAuthor();

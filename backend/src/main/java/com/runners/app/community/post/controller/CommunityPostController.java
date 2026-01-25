@@ -75,8 +75,8 @@ public class CommunityPostController {
             Authentication authentication,
             @PathVariable Long postId
     ) {
-        Long userId = SecurityUtils.extractUserId(authentication);
-        return communityPostService.getPost(userId, postId);
+        Long viewerId = authentication == null ? null : SecurityUtils.extractUserId(authentication);
+        return communityPostService.getPost(viewerId, postId);
     }
 
     @Operation(summary = "게시글 목록 조회", description = "최신순 커서 기반 목록 조회(nextCursor를 다음 요청의 cursor로 전달)")

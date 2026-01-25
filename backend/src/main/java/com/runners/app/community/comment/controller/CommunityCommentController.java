@@ -59,12 +59,10 @@ public class CommunityCommentController {
     @Operation(summary = "댓글 목록 조회", description = "커서 기반 페이지네이션(nextCursor를 다음 요청의 cursor로 전달)")
     @GetMapping
     public CommunityCommentCursorListResponse listComments(
-            Authentication authentication,
             @PathVariable Long postId,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size
     ) {
-        SecurityUtils.extractUserId(authentication);
         return communityCommentService.listComments(postId, cursor, size);
     }
 
