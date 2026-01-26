@@ -1,28 +1,153 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  ChevronRight,
-  Star,
-  Play,
-  TrendingUp,
-  Flame,
-  MapPin,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, Play } from "lucide-react";
+
+const HERO_IMAGES = ["/main.jpg", "/main2.jpg", "/main3.jpg"];
+const AUTO_ROTATE_MS = 4500;
+const TRANSITION_MS = 800;
 
 interface HeroSectionProps {
   isLoggedIn: boolean;
+}
+
+function PhoneMockup({
+  src,
+  isActive,
+}: {
+  src: string;
+  isActive: boolean;
+}) {
+  return (
+    <div className="relative">
+      {/* Glow Effect */}
+      <div
+        className={`absolute -inset-4 rounded-[3rem] bg-gradient-to-b from-blue-500/20 via-transparent to-transparent blur-2xl transition-opacity duration-500 ${
+          isActive ? "opacity-100" : "opacity-40"
+        }`}
+      />
+
+      {/* Phone Frame */}
+      <div className="relative rounded-[2.5rem] border border-border/50 bg-secondary/30 p-3 shadow-2xl backdrop-blur-sm">
+        <div className="relative overflow-hidden rounded-[2rem] bg-card">
+          <div className="relative w-[270px] max-w-full aspect-[1080/2137] overflow-hidden rounded-[2rem] bg-background lg:w-[290px]">
+            {/* App Screen Content (1080 x 2137) */}
+            <img
+              src={src}
+              alt={isActive ? "RUNNERS 앱 화면" : ""}
+              aria-hidden={!isActive}
+              className="absolute inset-0 h-full w-full object-contain"
+              loading={isActive ? "eager" : "lazy"}
+              draggable={false}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function HeroSection({ isLoggedIn }: HeroSectionProps) {
   const PLAY_STORE_URL =
     "https://github.com/TaeYun-K/RUNNERS_release/releases/tag/v1.0.1";
 
+  // --- Carousel state (3-up mockups: prev/current/next) ---
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const deckRef = useRef<HTMLDivElement | null>(null);
+  const [deckWidth, setDeckWidth] = useState<number | null>(null);
+
+  const timeoutIdRef = useRef<number | null>(null);
+  const isAnimatingRef = useRef(false);
+
+  const clampIndex = useCallback(
+    (i: number) => (i + HERO_IMAGES.length) % HERO_IMAGES.length,
+    [],
+  );
+
+  // preload
+  useEffect(() => {
+    const preloaded: HTMLImageElement[] = [];
+    for (const src of HERO_IMAGES) {
+      const img = new Image();
+      img.src = src;
+      preloaded.push(img);
+    }
+  }, []);
+
+  // cleanup timer
+  useEffect(() => {
+    return () => {
+      if (timeoutIdRef.current !== null) {
+        window.clearTimeout(timeoutIdRef.current);
+      }
+    };
+  }, []);
+
+  // keep layout responsive to avoid horizontal overflow
+  useEffect(() => {
+    const el = deckRef.current;
+    if (!el) return;
+
+    const update = () => setDeckWidth(el.clientWidth);
+    update();
+
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+
+    return () => ro.disconnect();
+  }, []);
+
+  const go = useCallback(
+    (dir: "next" | "prev", targetIndex?: number) => {
+      if (isAnimatingRef.current) return;
+
+      const current = activeImageIndex;
+
+      // dot click: decide direction (one-step only)
+      if (typeof targetIndex === "number") {
+        if (targetIndex === current) return;
+        dir = targetIndex > current ? "next" : "prev";
+      }
+
+      isAnimatingRef.current = true;
+      setIsAnimating(true);
+      setActiveImageIndex((prev) =>
+        clampIndex(dir === "next" ? prev + 1 : prev - 1),
+      );
+
+      if (timeoutIdRef.current !== null) window.clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = window.setTimeout(() => {
+        isAnimatingRef.current = false;
+        setIsAnimating(false);
+      }, TRANSITION_MS);
+    },
+    [activeImageIndex, clampIndex],
+  );
+
+  // auto rotate
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      go("next");
+    }, AUTO_ROTATE_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [go]);
+
+  const prevIndex = clampIndex(activeImageIndex - 1);
+  const nextIndex = clampIndex(activeImageIndex + 1);
+  const sideOffsetPx =
+    deckWidth === null
+      ? 110
+      : Math.min(140, Math.max(80, Math.round(deckWidth * 0.23)));
+  const sideScale = deckWidth !== null && deckWidth < 420 ? 0.7 : 0.76;
+
   return (
     <section className="relative min-h-screen overflow-hidden bg-background">
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-0 left-1/4 h-[600px] w-[600px] rounded-full bg-blue-500/10 blur-[120px]" />
+        <div className="absolute left-1/4 top-0 h-[600px] w-[600px] rounded-full bg-blue-500/10 blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-[100px]" />
       </div>
 
@@ -97,9 +222,7 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
                     />
                   ))}
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  +10K 러너
-                </span>
+                <span className="text-sm text-muted-foreground">+10K 러너</span>
               </div>
 
               <div className="h-6 w-px bg-border" />
@@ -107,10 +230,7 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <Star
-                      key={i}
-                      className="h-4 w-4 fill-blue-500 text-blue-500"
-                    />
+                    <Star key={i} className="h-4 w-4 fill-blue-500 text-blue-500" />
                   ))}
                 </div>
                 <span className="text-sm text-muted-foreground">4.8 평점</span>
@@ -118,133 +238,116 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
             </div>
           </div>
 
-          {/* Right Content - Phone Mockup */}
+          {/* Right Content - Phone Mockup (SLIDE) */}
           <div className="relative flex justify-center lg:justify-end">
             <div className="relative">
-              {/* Glow Effect */}
-              <div className="absolute -inset-4 rounded-[3rem] bg-gradient-to-b from-blue-500/20 via-transparent to-transparent blur-2xl" />
+              {/* 3-up mockups deck */}
+              <div
+                ref={deckRef}
+                className="relative h-[600px] w-[420px] max-w-[calc(100vw-3rem)] overflow-hidden lg:h-[640px] lg:w-[520px]"
+                style={{ perspective: "1200px" }}
+              >
+                {[prevIndex, activeImageIndex, nextIndex].map((imageIndex) => {
+                  const position =
+                    imageIndex === activeImageIndex
+                      ? ("center" as const)
+                      : imageIndex === prevIndex
+                        ? ("left" as const)
+                        : ("right" as const);
+                  const isActive = position === "center";
 
-              {/* Phone Frame */}
-              <div className="relative rounded-[2.5rem] border border-border/50 bg-secondary/30 p-3 shadow-2xl backdrop-blur-sm">
-                <div className="relative overflow-hidden rounded-[2rem] bg-card">
-                  {/* Phone Notch */}
-                  <div className="absolute left-1/2 top-2 z-10 h-6 w-24 -translate-x-1/2 rounded-full bg-background" />
-
-                  {/* App Screen Content */}
-                  <div className="h-[580px] w-[280px] overflow-hidden bg-gradient-to-b from-card to-secondary/50 lg:h-[640px] lg:w-[300px]">
-                    {/* Status Bar */}
-                    <div className="flex items-center justify-between px-6 pt-10 text-xs text-muted-foreground">
-                      <span>9:41</span>
-                      <div className="flex items-center gap-1">
-                        <div className="h-2 w-4 rounded-sm bg-muted-foreground/50" />
-                        <div className="h-2 w-2 rounded-full bg-muted-foreground/50" />
+                  const targetTransform =
+                    position === "center"
+                      ? "translate(-50%, -50%) translateX(0px) scale(1)"
+                      : position === "left"
+                        ? `translate(-50%, -50%) translateX(-${sideOffsetPx}px) scale(${sideScale})`
+                        : `translate(-50%, -50%) translateX(${sideOffsetPx}px) scale(${sideScale})`;
+                  return (
+                    <button
+                      key={imageIndex}
+                      type="button"
+                      aria-label={
+                        position === "left"
+                          ? "이전 화면 보기"
+                          : position === "right"
+                            ? "다음 화면 보기"
+                            : "현재 화면"
+                      }
+                      onClick={() => {
+                        if (position === "left") go("prev");
+                        if (position === "right") go("next");
+                      }}
+                      disabled={isAnimating || isActive}
+                      className="absolute left-1/2 top-1/2 outline-none disabled:cursor-default"
+                      style={{
+                        transform: targetTransform,
+                        transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+                        opacity: isActive ? 1 : 0.45,
+                        zIndex: isActive ? 30 : 10,
+                      }}
+                    >
+                      <div className={isActive ? "" : "brightness-90"}>
+                        <PhoneMockup
+                          src={HERO_IMAGES[imageIndex] || "/placeholder.svg"}
+                          isActive={isActive}
+                        />
                       </div>
-                    </div>
+                      {!isActive && (
+                        <div className="pointer-events-none absolute inset-0 rounded-[2.5rem] bg-black/15" />
+                      )}
+                    </button>
+                  );
+                })}
 
-                    {/* App Header */}
-                    <div className="px-6 pt-8">
-                      <p className="text-xs font-medium uppercase tracking-widest text-blue-600">
-                        RUNNERS
-                      </p>
-                      <h3 className="mt-2 text-2xl font-bold text-foreground">
-                        안녕하세요, 러너!
-                      </h3>
-                    </div>
+                {/* Prev/Next buttons */}
+                <button
+                  type="button"
+                  aria-label="이전 화면"
+                  onClick={() => go("prev")}
+                  disabled={isAnimating}
+                  className="absolute left-2 top-1/2 z-40 -translate-y-1/2 rounded-full border border-border bg-secondary/60 p-2 backdrop-blur-sm transition hover:bg-secondary disabled:opacity-50"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
 
-                    {/* Stats Cards */}
-                    <div className="mt-6 space-y-4 px-6">
-                      <div className="rounded-2xl border border-border bg-secondary/50 p-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            이번 주 달린 거리
-                          </span>
-                          <TrendingUp className="h-4 w-4 text-blue-500" />
-                        </div>
-                        <p className="mt-2 text-3xl font-black text-foreground">
-                          24.8
-                          <span className="ml-1 text-lg font-normal text-muted-foreground">
-                            km
-                          </span>
-                        </p>
-                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500"
-                            style={{ width: "75%" }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-2xl border border-border bg-secondary/50 p-4">
-                          <Flame className="h-5 w-5 text-blue-500" />
-                          <p className="mt-2 text-2xl font-bold text-foreground">
-                            12
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            연속 러닝
-                          </p>
-                        </div>
-                        <div className="rounded-2xl border border-border bg-secondary/50 p-4">
-                          <Star className="h-5 w-5 text-blue-500" />
-                          <p className="mt-2 text-2xl font-bold text-foreground">
-                            Lv.8
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            골드 러너
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Recent Activity */}
-                      <div className="rounded-2xl border border-border bg-secondary/50 p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20">
-                            <MapPin className="h-5 w-5 text-blue-500" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-semibold text-foreground">
-                              한강 러닝 코스
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              오늘 오전 6:30
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-blue-500/20 px-3 py-1 text-sm font-bold text-blue-600">
-                            5.2km
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  aria-label="다음 화면"
+                  onClick={() => go("next")}
+                  disabled={isAnimating}
+                  className="absolute right-2 top-1/2 z-40 -translate-y-1/2 rounded-full border border-border bg-secondary/60 p-2 backdrop-blur-sm transition hover:bg-secondary disabled:opacity-50"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
 
-              {/* Floating Badge - Top Right */}
-              <div className="absolute -right-4 -top-4 rounded-2xl border border-border bg-card/90 p-4 shadow-xl backdrop-blur-sm lg:-right-8">
-                <div className="flex items-center gap-3">
-<div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20">
-                  <TrendingUp className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">이번 달</p>
-                    <p className="text-lg font-bold text-foreground">
-                      +156.8 km
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Badge - Bottom Left */}
-              <div className="absolute -bottom-4 -left-4 rounded-2xl border border-border bg-card/90 p-4 shadow-xl backdrop-blur-sm lg:-left-8">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/20">
-                    <Flame className="h-5 w-5 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">연속 기록</p>
-                    <p className="text-lg font-bold text-foreground">12일</p>
-                  </div>
-                </div>
+              {/* Dot Indicator Controls */}
+              <div className="absolute -bottom-12 left-1/2 flex -translate-x-1/2 items-center gap-3">
+                {HERO_IMAGES.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    aria-label={`화면 ${index + 1}로 이동`}
+                    onClick={() => go(index > activeImageIndex ? "next" : "prev", index)}
+                    disabled={isAnimating}
+                    className={`group relative transition-all duration-300 ${
+                      index === activeImageIndex
+                        ? "scale-100"
+                        : "scale-90 hover:scale-100"
+                    } disabled:opacity-60`}
+                  >
+                    <span
+                      className={`block h-3 w-3 rounded-full border-2 transition-all duration-300 ${
+                        index === activeImageIndex
+                          ? "border-blue-500 bg-blue-500"
+                          : "border-border bg-secondary/50 hover:border-blue-400 hover:bg-blue-400/30"
+                      }`}
+                    />
+                    {index === activeImageIndex && (
+                      <span className="absolute inset-0 animate-ping rounded-full bg-blue-500/40" />
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
