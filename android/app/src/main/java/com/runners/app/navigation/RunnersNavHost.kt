@@ -65,6 +65,8 @@ fun RunnersNavHost(
     var firstRunDate by remember { mutableStateOf<LocalDate?>(null) }
     var recentRuns by remember { mutableStateOf<List<RecentRunUiModel>>(emptyList()) }
     var allRuns by remember { mutableStateOf<List<RunRecordUiModel>>(emptyList()) }
+    var isHomeRefreshing by remember { mutableStateOf(false) }
+    var homeRefreshNonce by remember { mutableStateOf(0) }
 
     data class RunningStatsSnapshot(
         val totalDistanceKm: Double,
@@ -80,19 +82,25 @@ fun RunnersNavHost(
         firstRunDate = null
         recentRuns = emptyList()
         allRuns = emptyList()
+        isHomeRefreshing = false
+        lastSyncedRunningStats = null
+    }
 
-        runCatching {
-            val client = HealthConnectRepository.getClient(context, providerPackage)
-            val hasCorePermissions = HealthConnectRepository.hasAllPermissions(
-                client = client,
-                permissions = HealthConnectRepository.corePermissions,
-            )
-            if (!hasCorePermissions) return@runCatching
+    LaunchedEffect(providerPackage, homeRefreshNonce) {
+        isHomeRefreshing = true
+        try {
+            runCatching {
+                val client = HealthConnectRepository.getClient(context, providerPackage)
+                val hasCorePermissions = HealthConnectRepository.hasAllPermissions(
+                    client = client,
+                    permissions = HealthConnectRepository.corePermissions,
+                )
+                if (!hasCorePermissions) return@runCatching
 
-            val hasHistoryPermission = HealthConnectRepository.hasAllPermissions(
-                client = client,
-                permissions = HealthConnectRepository.historyPermission,
-            )
+                val hasHistoryPermission = HealthConnectRepository.hasAllPermissions(
+                    client = client,
+                    permissions = HealthConnectRepository.historyPermission,
+                )
 
             data class Stats(
                 val totalKm: Double?,
@@ -230,7 +238,10 @@ fun RunnersNavHost(
             monthDistanceKm = stats.monthKm
             firstRunDate = stats.firstDate
             recentRuns = stats.recentRuns
-            allRuns = stats.runs
+                allRuns = stats.runs
+            }
+        } finally {
+            isHomeRefreshing = false
         }
     }
 
@@ -300,6 +311,10 @@ fun RunnersNavHost(
                     recentRuns = recentRuns,
                     popularPosts = popularPosts,
                 ),
+                isRefreshing = isHomeRefreshing,
+                onRefresh = {
+                    if (!isHomeRefreshing) homeRefreshNonce += 1
+                },
                 onOpenCommunity = {
                     navController.navigate(
                         route = AppRoute.Community.route,
@@ -491,6 +506,12 @@ fun RunnersNavHost(
                 viewModel = viewModel,
             )
         }
-        composable(AppRoute.MyPage.route) { MyPageScreen(session = session, onLogout = onLogout) }
+        composable(AppRoute.MyPage.route) {
+            MyPageScreen(
+                session = session,
+                onLogout = onLogout,
+                onHealthConnectUpdated = { homeRefreshNonce += 1 },
+            )
+        }
     }
 }

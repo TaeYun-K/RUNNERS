@@ -8,12 +8,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -62,79 +66,101 @@ data class PopularPostUiModel(
 )
 
 @Composable
+@OptIn(ExperimentalMaterialApi::class)
 fun HomeScreen(
     uiState: HomeUiState,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onOpenCommunity: () -> Unit = {},
     onPopularPostClick: (postId: String) -> Unit = {},
     onRecentRunClick: (LocalDate) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = onRefresh,
+    )
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 20.dp),
-            verticalArrangement = spacedBy(16.dp),
+                .pullRefresh(pullRefreshState),
         ) {
-            // 환영 헤더
-            Column(verticalArrangement = spacedBy(4.dp)) {
-                Text(
-                    text = "안녕하세요,",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "${uiState.nickname}님",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-            }
-
-            TotalDistanceHeroCard(
-                totalDistanceKm = uiState.totalDistanceKm,
-                weekDistanceKm = uiState.weekDistanceKm,
-                monthDistanceKm = uiState.monthDistanceKm,
-                firstRunDate = uiState.firstRunDate,
-            )
-
-            // 주간/월간 통계 그리드
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = spacedBy(12.dp),
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 20.dp),
+                verticalArrangement = spacedBy(16.dp),
             ) {
-                StatMiniCard(
-                    icon = Icons.Outlined.CalendarMonth,
-                    label = "이번 주",
-                    value = uiState.weekDistanceKm?.toKmText() ?: "0.0 km",
-                    gradientColors = listOf(Blue40, Blue60),
-                    modifier = Modifier.weight(1f),
+                // 환영 헤더
+                Column(verticalArrangement = spacedBy(4.dp)) {
+                    Text(
+                        text = "안녕하세요,",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "${uiState.nickname}님",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+
+                TotalDistanceHeroCard(
+                    totalDistanceKm = uiState.totalDistanceKm,
+                    weekDistanceKm = uiState.weekDistanceKm,
+                    monthDistanceKm = uiState.monthDistanceKm,
+                    firstRunDate = uiState.firstRunDate,
                 )
-                StatMiniCard(
-                    icon = Icons.Filled.TrendingUp,
-                    label = "이번 달",
-                    value = uiState.monthDistanceKm?.toKmText() ?: "0.0 km",
-                    gradientColors = listOf(Teal40, Teal60),
-                    modifier = Modifier.weight(1f),
+
+                // 주간/월간 통계 그리드
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = spacedBy(12.dp),
+                ) {
+                    StatMiniCard(
+                        icon = Icons.Outlined.CalendarMonth,
+                        label = "이번 주",
+                        value = uiState.weekDistanceKm?.toKmText() ?: "0.0 km",
+                        gradientColors = listOf(Blue40, Blue60),
+                        modifier = Modifier.weight(1f),
+                    )
+                    StatMiniCard(
+                        icon = Icons.Filled.TrendingUp,
+                        label = "이번 달",
+                        value = uiState.monthDistanceKm?.toKmText() ?: "0.0 km",
+                        gradientColors = listOf(Teal40, Teal60),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                RecentRunsCard(
+                    runs = uiState.recentRuns,
+                    onRunClick = onRecentRunClick,
                 )
+
+                PopularPostsCard(
+                    posts = uiState.popularPosts,
+                    onOpenCommunity = onOpenCommunity,
+                    onPostClick = onPopularPostClick,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
-            RecentRunsCard(
-                runs = uiState.recentRuns,
-                onRunClick = onRecentRunClick,
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
             )
-
-            PopularPostsCard(
-                posts = uiState.popularPosts,
-                onOpenCommunity = onOpenCommunity,
-                onPostClick = onPopularPostClick,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }

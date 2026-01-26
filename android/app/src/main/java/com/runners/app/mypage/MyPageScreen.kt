@@ -52,6 +52,7 @@ import kotlinx.coroutines.withContext
 fun MyPageScreen(
     session: GoogleLoginResult,
     onLogout: () -> Unit,
+    onHealthConnectUpdated: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -370,7 +371,9 @@ fun MyPageScreen(
                         // 펼쳐졌을 때만 내용 보이기 (애니메이션 적용)
                         AnimatedVisibility(visible = isHealthConnectExpanded) {
                             Box(modifier = Modifier.padding(top = 16.dp)) {
-                                HealthConnectSection()
+                                HealthConnectSection(
+                                    onHealthConnectUpdated = onHealthConnectUpdated,
+                                )
                             }
                         }
                     }

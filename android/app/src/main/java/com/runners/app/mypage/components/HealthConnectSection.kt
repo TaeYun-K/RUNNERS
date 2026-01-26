@@ -34,7 +34,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun HealthConnectSection() {
+fun HealthConnectSection(
+    onHealthConnectUpdated: () -> Unit = {},
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -67,6 +69,7 @@ fun HealthConnectSection() {
                     }
                     message = "러닝 기록 ${runningCount}개를 읽었어요."
                     isSuccess = true
+                    onHealthConnectUpdated()
                 } catch (e: Exception) {
                     message = e.message ?: "Health Connect 처리 중 오류가 발생했어요."
                 } finally {
@@ -111,6 +114,7 @@ fun HealthConnectSection() {
                                     missingPermissions = emptySet()
                                     message = "이미 권한이 있어요. 러닝 기록 ${runningCount}개를 읽었어요."
                                     isSuccess = true
+                                    onHealthConnectUpdated()
                                 } else {
                                     missingPermissions = HealthConnectRepository.requestedPermissions
                                     permissionsLauncher.launch(HealthConnectRepository.requestedPermissions)
