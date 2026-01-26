@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, ChevronDown } from "lucide-react";
 
 const HERO_IMAGES = ["/main.jpg", "/main2.jpg", "/main3.jpg"];
 const AUTO_ROTATE_MS = 4500;
@@ -340,8 +340,8 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
             }}
           >
             <span className="text-sm">더 알아보기</span>
-            <div className="flex h-10 w-6 items-start justify-center rounded-full border border-border p-1">
-              <div className="h-2 w-1 animate-bounce rounded-full bg-muted-foreground" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-secondary/30 backdrop-blur-sm">
+              <ChevronDown className="h-6 w-6 motion-safe:animate-bounce" />
             </div>
           </button>
         </div>
