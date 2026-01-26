@@ -16,7 +16,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ isLoggedIn }: HeroSectionProps) {
   const PLAY_STORE_URL =
-    "https://play.google.com/store/apps/details?id=YOUR_APP_PACKAGE";
+    "https://github.com/TaeYun-K/RUNNERS_release/releases/tag/v1.0.1";
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-background">

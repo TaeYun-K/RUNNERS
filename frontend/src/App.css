@@ -23,6 +23,11 @@
   user-select: none;
 }
 
+.app-brand img {
+  height: 32px;
+  width: auto;
+}
+
 .app-nav {
   display: flex;
   gap: 10px;
