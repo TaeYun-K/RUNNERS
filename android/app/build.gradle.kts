@@ -15,6 +15,7 @@ if (localPropertiesFile.exists()) {
 }
 val backendBaseUrl = properties.getProperty("backend_base_url")?.takeIf { it.isNotBlank() }
     ?: "http://runners.io.kr"
+val googleWebClientId = properties.getProperty("google_web_client_id")?.takeIf { it.isNotBlank() }
 
 android {
     namespace = "com.runners.app"
@@ -28,7 +29,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        resValue("string", "google_web_client_id", properties.getProperty("google_web_client_id", ""))
+        if (googleWebClientId != null) {
+            resValue("string", "google_web_client_id", googleWebClientId)
+        }
         buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
 
         manifestPlaceholders["admob_app_id"] = "ca-app-pub-3940256099942544~3347511713"

@@ -1,5 +1,8 @@
 package com.runners.app.auth
 
+import android.content.Context
+import android.content.pm.PackageManager
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -42,10 +45,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
 import com.runners.app.R
 import com.runners.app.ui.theme.Blue40
 import com.runners.app.ui.theme.Blue60
+import java.security.MessageDigest
 
 @Composable
 fun LoginScreen(
@@ -58,6 +63,7 @@ fun LoginScreen(
 ) {
     val context = LocalContext.current
     val webClientId = stringResource(R.string.google_web_client_id)
+    val isGoogleConfigured = webClientId.isNotBlank() && !webClientId.contains("YOUR_WEB_CLIENT_ID")
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val signInClient = remember(webClientId) {
@@ -86,7 +92,32 @@ fun LoginScreen(
                 onIdToken(idToken)
             }
         } catch (exception: ApiException) {
-            errorMessage = "구글 로그인에 실패했어요. (${exception.statusCode})"
+            val statusCode = exception.statusCode
+            val statusText = GoogleSignInStatusCodes.getStatusCodeString(statusCode)
+            val diagnostics = if (statusCode == GoogleSignInStatusCodes.DEVELOPER_ERROR) {
+                val sha1s = getAppSigningSha1Fingerprints(context).joinToString(", ")
+                "package=${context.packageName}, sha1=$sha1s"
+            } else {
+                null
+            }
+
+            Log.w("LoginScreen", "Google sign-in failed ($statusCode: $statusText)", exception)
+            if (diagnostics != null) {
+                Log.w("LoginScreen", "Google sign-in diagnostics: $diagnostics")
+            }
+
+            errorMessage = buildString {
+                append("구글 로그인에 실패했어요. ($statusCode: $statusText)")
+                if (!isGoogleConfigured) {
+                    append("\n설정값(google_web_client_id)이 비어있거나 플레이스홀더예요.")
+                }
+                if (statusCode == GoogleSignInStatusCodes.DEVELOPER_ERROR) {
+                    append("\nDEVELOPER_ERROR(10)은 보통 SHA-1/패키지명/OAuth 설정 불일치예요.")
+                    if (diagnostics != null) {
+                        append("\n$diagnostics")
+                    }
+                }
+            }
         }
     }
 
@@ -151,7 +182,7 @@ fun LoginScreen(
                     // Google 로그인 버튼 - Primary 스타일
                     Button(
                         onClick = { launcher.launch(signInClient.signInIntent) },
-                        enabled = !isLoading,
+                        enabled = !isLoading && isGoogleConfigured,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -182,6 +213,16 @@ fun LoginScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Text("Google로 시작하기", fontWeight = FontWeight.SemiBold)
                         }
+                    }
+
+                    if (!isGoogleConfigured) {
+                        Text(
+                            text = "google_web_client_id 설정이 필요해요. (android/local.properties 또는 strings.xml 확인)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
 
 //                    // 카카오 로그인 버튼
@@ -268,6 +309,21 @@ fun LoginScreen(
                 )
             }
         }
+    }
+}
+
+private fun getAppSigningSha1Fingerprints(context: Context): List<String> {
+    val packageManager = context.packageManager
+    val packageInfo = packageManager.getPackageInfo(
+        context.packageName,
+        PackageManager.GET_SIGNING_CERTIFICATES
+    )
+
+    val signingInfo = packageInfo.signingInfo ?: return emptyList()
+    val signatures = signingInfo.apkContentsSigners
+    return signatures.map { signature ->
+        val digest = MessageDigest.getInstance("SHA1").digest(signature.toByteArray())
+        digest.joinToString(":") { "%02X".format(it) }
     }
 }
 
