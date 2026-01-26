@@ -248,10 +248,17 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
                 style={{ perspective: "1200px" }}
               >
               {HERO_IMAGES.map((src, imageIndex) => {
-                const isCenter = imageIndex === activeImageIndex
-                const isLeft = imageIndex === prevIndex
-                const position = isCenter ? "center" : isLeft ? "left" : "right"
+                const position =
+                  imageIndex === activeImageIndex
+                    ? ("center" as const)
+                    : imageIndex === prevIndex
+                      ? ("left" as const)
+                      : imageIndex === nextIndex
+                        ? ("right" as const)
+                        : ("hidden" as const) // length>3 확장 대비
+
                 const isActive = position === "center"
+                if (position === "hidden") return null
 
                 const targetTransform =
                   position === "center"
