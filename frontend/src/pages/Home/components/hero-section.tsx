@@ -247,58 +247,53 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
                 className="relative h-[600px] w-[420px] max-w-[calc(100vw-3rem)] overflow-hidden lg:h-[640px] lg:w-[520px]"
                 style={{ perspective: "1200px" }}
               >
-                {[prevIndex, activeImageIndex, nextIndex].map((imageIndex) => {
-                  const position =
-                    imageIndex === activeImageIndex
-                      ? ("center" as const)
-                      : imageIndex === prevIndex
-                        ? ("left" as const)
-                        : ("right" as const);
-                  const isActive = position === "center";
+              {HERO_IMAGES.map((src, imageIndex) => {
+                const isCenter = imageIndex === activeImageIndex
+                const isLeft = imageIndex === prevIndex
+                const position = isCenter ? "center" : isLeft ? "left" : "right"
+                const isActive = position === "center"
 
-                  const targetTransform =
-                    position === "center"
-                      ? "translate(-50%, -50%) translateX(0px) scale(1)"
-                      : position === "left"
-                        ? `translate(-50%, -50%) translateX(-${sideOffsetPx}px) scale(${sideScale})`
-                        : `translate(-50%, -50%) translateX(${sideOffsetPx}px) scale(${sideScale})`;
-                  return (
-                    <button
-                      key={imageIndex}
-                      type="button"
-                      aria-label={
-                        position === "left"
-                          ? "이전 화면 보기"
-                          : position === "right"
-                            ? "다음 화면 보기"
-                            : "현재 화면"
-                      }
-                      onClick={() => {
-                        if (position === "left") go("prev");
-                        if (position === "right") go("next");
-                      }}
-                      disabled={isAnimating || isActive}
-                      className="absolute left-1/2 top-1/2 outline-none disabled:cursor-default"
-                      style={{
-                        transform: targetTransform,
-                        transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-                        opacity: isActive ? 1 : 0.45,
-                        zIndex: isActive ? 30 : 10,
-                      }}
-                    >
-                      <div className={isActive ? "" : "brightness-90"}>
-                        <PhoneMockup
-                          src={HERO_IMAGES[imageIndex] || "/placeholder.svg"}
-                          isActive={isActive}
-                        />
-                      </div>
-                      {!isActive && (
-                        <div className="pointer-events-none absolute inset-0 rounded-[2.5rem] bg-black/15" />
-                      )}
-                    </button>
-                  );
-                })}
+                const targetTransform =
+                  position === "center"
+                    ? "translate(-50%, -50%) translateX(0px) scale(1)"
+                    : position === "left"
+                      ? `translate(-50%, -50%) translateX(-${sideOffsetPx}px) scale(${sideScale})`
+                      : `translate(-50%, -50%) translateX(${sideOffsetPx}px) scale(${sideScale})`
 
+                return (
+                  <button
+                    key={imageIndex}
+                    type="button"
+                    aria-label={
+                      position === "left"
+                        ? "이전 화면 보기"
+                        : position === "right"
+                          ? "다음 화면 보기"
+                          : "현재 화면"
+                    }
+                    onClick={() => {
+                      if (position === "left") go("prev")
+                      if (position === "right") go("next")
+                    }}
+                    disabled={isAnimating || isActive}
+                    className="absolute left-1/2 top-1/2 outline-none disabled:cursor-default"
+                    style={{
+                      transform: targetTransform,
+                      transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+                      opacity: isActive ? 1 : 0.45,
+                      zIndex: isActive ? 30 : 10,
+                      willChange: "transform, opacity",
+                    }}
+                  >
+                    <div className={isActive ? "" : "brightness-90"}>
+                      <PhoneMockup src={src} isActive={isActive} />
+                    </div>
+                    {!isActive && (
+                      <div className="pointer-events-none absolute inset-0 rounded-[2.5rem] bg-black/15" />
+                    )}
+                  </button>
+                )
+              })}
                 {/* Prev/Next buttons */}
                 <button
                   type="button"
