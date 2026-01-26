@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Star, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 
 const HERO_IMAGES = ["/main.jpg", "/main2.jpg", "/main3.jpg"];
 const AUTO_ROTATE_MS = 4500;
@@ -199,7 +199,7 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
                 className="group inline-flex w-full items-center justify-center gap-3 rounded-full bg-blue-600 px-8 py-4 text-base font-bold text-white transition-all hover:scale-[1.02] hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 sm:w-auto"
               >
                 <Play className="h-5 w-5 fill-current" />
-                Google Play에서 다운로드
+                Google Play에서 다운로드 (출시 준비 중)
               </a>
 
               <Link
@@ -209,32 +209,6 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
                 {isLoggedIn ? "대시보드" : "시작하기"}
                 <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
-            </div>
-
-            {/* Stats Row */}
-            <div className="mt-12 flex items-center justify-center gap-8 lg:justify-start">
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="h-8 w-8 rounded-full border-2 border-background bg-gradient-to-br from-secondary to-muted"
-                    />
-                  ))}
-                </div>
-                <span className="text-sm text-muted-foreground">+10K 러너</span>
-              </div>
-
-              <div className="h-6 w-px bg-border" />
-
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Star key={i} className="h-4 w-4 fill-blue-500 text-blue-500" />
-                  ))}
-                </div>
-                <span className="text-sm text-muted-foreground">4.8 평점</span>
-              </div>
             </div>
           </div>
 

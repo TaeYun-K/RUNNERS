@@ -8,8 +8,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (bootstrapping) {
     return (
-      <section className="card">
-        <p className="muted">인증 상태 확인 중…</p>
+      <section className="mx-auto max-w-4xl rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <p className="text-sm text-muted-foreground">인증 상태 확인 중…</p>
       </section>
     )
   }

@@ -1,5 +1,4 @@
 import { HashRouter, Route, Routes } from 'react-router-dom'
-import './App.css'
 import AppLayout from './layout/AppLayout'
 import { CommunityPage } from './pages/Community/CommunityPage'
 import { DashboardPage } from './pages/MyPage/DashboardPage'
