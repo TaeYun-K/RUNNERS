@@ -4,15 +4,14 @@ import com.runners.app.auth.dto.GoogleLoginRequest;
 import com.runners.app.auth.dto.GoogleLoginResponse;
 import com.runners.app.auth.dto.TokenRefreshResponse;
 import com.runners.app.auth.cookie.RefreshTokenCookie;
+import com.runners.app.auth.exception.AuthDomainException;
 import com.runners.app.auth.service.AuthService;
 import com.runners.app.auth.service.JwtService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/auth")
@@ -50,10 +49,10 @@ public class AuthController {
             HttpServletRequest request
     ) {
         if (request.getContentLengthLong() > 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is not allowed");
+            throw AuthDomainException.requestBodyNotAllowed();
         }
         if (refreshToken == null || refreshToken.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing refresh token");
+            throw AuthDomainException.refreshTokenMissing();
         }
         return authService.refreshAccessToken(refreshToken);
     }

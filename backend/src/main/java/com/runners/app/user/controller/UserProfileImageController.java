@@ -5,6 +5,7 @@ import com.runners.app.community.upload.dto.response.PresignCommunityImageUpload
 import com.runners.app.global.util.SecurityUtils;
 import com.runners.app.user.dto.UpdateProfileImageRequest;
 import com.runners.app.user.dto.UserMeResponse;
+import com.runners.app.user.exception.UserDomainException;
 import com.runners.app.user.service.UserService;
 import com.runners.app.community.upload.service.CommunityUploadService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/users/me/profile-image")
@@ -42,7 +42,7 @@ public class UserProfileImageController {
             @Valid @RequestBody PresignCommunityImageUploadRequest request
     ) {
         if (request == null || request.files() == null || request.files().size() != 1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "files must have exactly 1 item");
+            throw UserDomainException.profileImageFilesCountInvalid();
         }
         Long userId = SecurityUtils.extractUserId(authentication);
         return communityUploadService.presignUserProfileImageUpload(userId, request);

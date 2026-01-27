@@ -7,12 +7,11 @@ import com.runners.app.community.recommend.entity.CommunityPostRecommendId;
 import com.runners.app.community.recommend.dto.response.CommunityPostRecommendResponse;
 import com.runners.app.community.recommend.repository.CommunityPostRecommendRepository;
 import com.runners.app.global.status.CommunityContentStatus;
+import com.runners.app.community.exception.CommunityDomainException;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CommunityPostRecommendService {
@@ -81,16 +80,16 @@ public class CommunityPostRecommendService {
 
     private void validatePositiveIdOrThrow(Long id, String fieldName) {
         if (id == null || id <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid " + fieldName);
+            throw CommunityDomainException.invalidId(fieldName);
         }
     }
 
     private CommunityPost findActivePostOrThrow(Long postId) {
         validatePositiveIdOrThrow(postId, "postId");
         CommunityPost post = communityPostRepository.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+                .orElseThrow(CommunityDomainException::postNotFound);
         if (post.getStatus() == CommunityContentStatus.DELETED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
+            throw CommunityDomainException.postNotFound();
         }
         return post;
     }
@@ -98,9 +97,9 @@ public class CommunityPostRecommendService {
     private CommunityPost findActivePostForUpdateOrThrow(Long postId) {
         validatePositiveIdOrThrow(postId, "postId");
         CommunityPost post = communityPostRepository.findByIdForUpdate(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+                .orElseThrow(CommunityDomainException::postNotFound);
         if (post.getStatus() == CommunityContentStatus.DELETED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
+            throw CommunityDomainException.postNotFound();
         }
         return post;
     }
@@ -108,6 +107,6 @@ public class CommunityPostRecommendService {
     private User findUserOrThrow(Long userId) {
         validatePositiveIdOrThrow(userId, "userId");
         return userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(CommunityDomainException::userNotFound);
     }
 }

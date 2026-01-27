@@ -3,6 +3,7 @@ package com.runners.app.auth.controller;
 import com.runners.app.auth.dto.DevTokenRequest;
 import com.runners.app.auth.dto.GoogleLoginResponse;
 import com.runners.app.auth.cookie.RefreshTokenCookie;
+import com.runners.app.auth.exception.AuthDomainException;
 import com.runners.app.auth.service.JwtService;
 import com.runners.app.auth.service.RefreshTokenService;
 import com.runners.app.user.entity.User;
@@ -22,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/auth/dev")
@@ -64,7 +64,7 @@ public class DevAuthController {
             HttpServletResponse httpResponse
     ) {
         if (!enabled) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Not found");
+            throw AuthDomainException.notFound();
         }
 
         boolean isNewUser = false;
