@@ -482,6 +482,10 @@ fun MyPageScreen(
                                      )
                                  }
                                  isProfileEditDialogOpen = false
+                             } catch (e: BackendApiException) {
+                                 profileEditErrorMessage =
+                                     if (e.statusCode == 409) "중복된 닉네임입니다."
+                                     else e.message
                              } catch (e: Exception) {
                                  profileEditErrorMessage = e.message
                              } finally {

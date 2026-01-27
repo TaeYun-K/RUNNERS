@@ -32,6 +32,25 @@ data class UserPublicProfileResult(
 object BackendUserApi {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
+    private fun parseErrorMessage(responseBody: String): String? {
+        return try {
+            val json = JSONObject(responseBody)
+            json.optString("message").takeIf { it.isNotBlank() }
+                ?: json.optString("error").takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun toKoreanBadRequestMessage(serverMessage: String?): String {
+        if (serverMessage.isNullOrBlank()) return "입력값을 확인해주세요."
+        if (serverMessage.equals("Bad Request", ignoreCase = true)) return "입력값을 확인해주세요."
+        if (serverMessage.contains("Nickname can contain")) {
+            return "닉네임은 한글/영문/숫자/언더바(_)와 공백만 사용할 수 있어요."
+        }
+        return serverMessage
+    }
+
     fun getMe(): UserMeResult {
         val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/users/me"
 
@@ -121,7 +140,12 @@ object BackendUserApi {
         BackendHttpClient.client.newCall(request).execute().use { response ->
             val responseBody = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
-                throw IllegalStateException("Update profile failed: HTTP ${response.code} ${responseBody.take(300)}")
+                val serverMessage = parseErrorMessage(responseBody)
+                val message =
+                    if (response.code == 409) "중복된 닉네임입니다."
+                    else if (response.code == 400) toKoreanBadRequestMessage(serverMessage)
+                    else serverMessage ?: "프로필 수정에 실패했습니다. (HTTP ${response.code})"
+                throw BackendApiException(response.code, message)
             }
 
             val json = JSONObject(responseBody)
@@ -158,7 +182,12 @@ object BackendUserApi {
         BackendHttpClient.client.newCall(request).execute().use { response ->
             val responseBody = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
-                throw IllegalStateException("Update nickname failed: HTTP ${response.code} ${responseBody.take(300)}")
+                val serverMessage = parseErrorMessage(responseBody)
+                val message =
+                    if (response.code == 409) "중복된 닉네임입니다."
+                    else if (response.code == 400) toKoreanBadRequestMessage(serverMessage)
+                    else serverMessage ?: "닉네임 수정에 실패했습니다. (HTTP ${response.code})"
+                throw BackendApiException(response.code, message)
             }
 
             val json = JSONObject(responseBody)
