@@ -3,6 +3,7 @@ package com.runners.app.user.service;
 import com.runners.app.user.dto.UserMeResponse;
 import com.runners.app.user.dto.UserPublicProfileResponse;
 import com.runners.app.user.entity.User;
+import com.runners.app.user.exception.UserDomainException;
 import com.runners.app.user.repository.UserRepository;
 import com.runners.app.community.upload.service.CommunityUploadService;
 import java.util.Objects;
@@ -169,7 +170,7 @@ public class UserService {
     private boolean applyNicknameUpdate(User user, String nickname) {
         String newNickname = nickname == null ? "" : nickname.trim();
         if (newNickname.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nickname is required");
+            throw UserDomainException.nicknameRequired();
         }
 
         if (Objects.equals(newNickname, user.getNickname())) {
@@ -177,7 +178,7 @@ public class UserService {
         }
 
         if (userRepository.existsByNickname(newNickname)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nickname already in use");
+            throw UserDomainException.nicknameDuplicated();
         }
 
         user.updateNickname(newNickname);
