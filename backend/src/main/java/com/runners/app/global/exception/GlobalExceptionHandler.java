@@ -8,7 +8,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -44,15 +43,6 @@ public class GlobalExceptionHandler {
                 .body(new ApiErrorResponse(HttpStatus.BAD_REQUEST.value(), messageKey, messageKey));
     }
 
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<ApiErrorResponse> handleResponseStatus(ResponseStatusException e) {
-        HttpStatus status = HttpStatus.valueOf(e.getStatusCode().value());
-        ErrorCode code = toErrorCode(status);
-        String reason = e.getReason();
-        String message = (reason == null || reason.isBlank()) ? status.getReasonPhrase() : reason;
-        return error(status, code, message);
-    }
-
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
         String message = e.getMessage() == null ? "Invalid request" : e.getMessage();
@@ -77,16 +67,5 @@ public class GlobalExceptionHandler {
             return value.substring(1, value.length() - 1).trim();
         }
         return value;
-    }
-
-    private ErrorCode toErrorCode(HttpStatus status) {
-        return switch (status) {
-            case BAD_REQUEST -> ErrorCode.BAD_REQUEST;
-            case UNAUTHORIZED -> ErrorCode.UNAUTHORIZED;
-            case FORBIDDEN -> ErrorCode.FORBIDDEN;
-            case NOT_FOUND -> ErrorCode.NOT_FOUND;
-            case CONFLICT -> ErrorCode.CONFLICT;
-            default -> ErrorCode.INTERNAL_ERROR;
-        };
     }
 }
