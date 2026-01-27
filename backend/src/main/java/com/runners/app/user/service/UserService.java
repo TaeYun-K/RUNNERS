@@ -10,7 +10,6 @@ import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UserService {
@@ -32,7 +31,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserMeResponse getMe(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(UserDomainException::userNotFound);
 
         return toMeResponse(user);
     }
@@ -40,11 +39,11 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserPublicProfileResponse getPublicProfile(Long userId) {
         if (userId == null || userId <= 0L) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid userId");
+            throw UserDomainException.userIdInvalid();
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(UserDomainException::userNotFound);
 
         return new UserPublicProfileResponse(
                 user.getId(),
@@ -61,7 +60,7 @@ public class UserService {
     @Transactional
     public UserMeResponse updateProfile(Long userId, String nickname, String intro) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(UserDomainException::userNotFound);
 
         boolean changed = false;
         if (nickname != null) {
@@ -85,7 +84,7 @@ public class UserService {
     @Transactional
     public UserMeResponse updateTotalDistanceKm(Long userId, Double totalDistanceKm) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(UserDomainException::userNotFound);
 
         if (Objects.equals(user.getTotalDistanceKm(), totalDistanceKm)) {
             return toMeResponse(user);
@@ -99,7 +98,7 @@ public class UserService {
     @Transactional
     public UserMeResponse updateRunningStats(Long userId, Double totalDistanceKm, Long totalDurationMinutes, Integer runCount) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(UserDomainException::userNotFound);
 
         boolean same =
                 Objects.equals(user.getTotalDistanceKm(), totalDistanceKm)
@@ -117,15 +116,15 @@ public class UserService {
     @Transactional
     public UserMeResponse updateProfileImage(Long userId, String key) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(UserDomainException::userNotFound);
 
         String trimmedKey = key == null ? "" : key.trim();
         if (trimmedKey.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "key is required");
+            throw UserDomainException.profileImageKeyRequired();
         }
 
         if (!communityUploadService.isUserProfileImageKey(userId, trimmedKey)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid key");
+            throw UserDomainException.profileImageKeyInvalid();
         }
 
         String prevKey = user.getCustomPictureKey();
@@ -142,7 +141,7 @@ public class UserService {
     @Transactional
     public UserMeResponse deleteProfileImage(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(UserDomainException::userNotFound);
 
         String prevKey = user.getCustomPictureKey();
         if (prevKey != null && !prevKey.isBlank()) {

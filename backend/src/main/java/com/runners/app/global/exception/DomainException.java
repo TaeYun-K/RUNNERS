@@ -1,7 +1,9 @@
 package com.runners.app.global.exception;
 
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
+@Getter
 public class DomainException extends RuntimeException {
 
     private final HttpStatus status;
@@ -13,12 +15,5 @@ public class DomainException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public HttpStatus getStatus() {
-        return status;
-    }
-
-    public ErrorCode getErrorCode() {
-        return errorCode;
-    }
 }
 

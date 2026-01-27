@@ -14,6 +14,7 @@ import com.runners.app.community.post.repository.CommunityPostImageRepository;
 import com.runners.app.community.post.repository.CommunityPostRepository;
 import com.runners.app.community.upload.service.CommunityUploadService;
 import com.runners.app.community.view.CommunityPostViewTracker;
+import com.runners.app.community.exception.CommunityDomainException;
 import com.runners.app.user.repository.UserRepository;
 import com.runners.app.user.service.UserProfileImageResolver;
 import java.nio.charset.StandardCharsets;
@@ -27,10 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CommunityPostService {
@@ -61,7 +60,7 @@ public class CommunityPostService {
     @Transactional
     public CommunityPostResponse createPost(Long authorId, CreateCommunityPostRequest request) {
         var author = userRepository.findById(authorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(CommunityDomainException::userNotFound);
 
         CommunityPost post = CommunityPost.builder()
                 .author(author)
@@ -92,14 +91,14 @@ public class CommunityPostService {
     @Transactional
     public CommunityPostResponse updatePost(Long authorId, Long postId, CreateCommunityPostRequest request) {
         var author = userRepository.findById(authorId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            .orElseThrow(CommunityDomainException::userNotFound);
 
         var post = communityPostRepository.findById(postId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+            .orElseThrow(CommunityDomainException::postNotFound);
 
         // 작성자 검증
         if (!post.getAuthor().getId().equals(author.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission to update this post");
+            throw CommunityDomainException.noPermission("No permission to update this post");
         }
 
         post.updateContent(request.title(), request.content());
@@ -127,11 +126,11 @@ public class CommunityPostService {
     @Transactional
     public void deletePost(Long userId, Long postId) {
         var post = communityPostRepository.findById(postId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+            .orElseThrow(CommunityDomainException::postNotFound);
 
         // 작성자 검증
         if (!post.getAuthor().getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission");
+            throw CommunityDomainException.noPermission("No permission");
         }
 
         // 이미 삭제된 경우
@@ -148,15 +147,15 @@ public class CommunityPostService {
     @Transactional
     public CommunityPostDetailResponse getPost(Long viewerId, Long postId) {
         CommunityPost post = communityPostRepository.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+                .orElseThrow(CommunityDomainException::postNotFound);
 
         if (post.getStatus() == CommunityContentStatus.DELETED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
+            throw CommunityDomainException.postNotFound();
         }
 
         if (viewerId != null) {
             userRepository.findById(viewerId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                    .orElseThrow(CommunityDomainException::userNotFound);
 
             boolean isFirstViewToday = communityPostViewTracker.markViewedTodayIfFirst(postId, viewerId);
             if (isFirstViewToday) {
@@ -234,7 +233,7 @@ public class CommunityPostService {
     @Transactional(readOnly = true)
     public CommunityPostCursorListResponse searchPosts(String query, CommunityPostBoardType boardType, String cursor, int size) {
         if (query == null || query.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Query is required");
+            throw CommunityDomainException.queryRequired();
         }
 
         int safeSize = Math.min(50, Math.max(1, size));
