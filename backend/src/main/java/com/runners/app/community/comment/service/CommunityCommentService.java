@@ -10,6 +10,7 @@ import com.runners.app.community.comment.dto.response.DeleteCommunityCommentResp
 import com.runners.app.community.comment.repository.CommunityCommentRepository;
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.community.post.repository.CommunityPostRepository;
+import com.runners.app.community.exception.CommunityDomainException;
 import com.runners.app.user.repository.UserRepository;
 import com.runners.app.user.service.UserProfileImageResolver;
 import java.nio.charset.StandardCharsets;
@@ -17,10 +18,8 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CommunityCommentService {
@@ -47,7 +46,7 @@ public class CommunityCommentService {
         CommunityPost post = findActivePostOrThrow(postId);
 
         var author = userRepository.findById(authorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(CommunityDomainException::userNotFound);
 
         CommunityComment parent = findActiveParentCommentForPostOrThrow(request.parentId(), post);
 
@@ -91,8 +90,8 @@ public class CommunityCommentService {
     ) {
         CommunityPost post = findActivePostOrThrow(postId);
         CommunityComment comment = findActiveCommentOrThrow(commentId);
-        validateCommentBelongsToPostOrThrow(comment, post.getId(), HttpStatus.BAD_REQUEST, "Comment does not belong to the post");
-        validateAuthorOrThrow(comment, editorId, HttpStatus.FORBIDDEN, "No permission to update comment");
+        validateCommentBelongsToPostOrThrow(comment, post.getId());
+        validateAuthorOrThrow(comment, editorId, "No permission to update comment");
 
         // 내용 변경
         comment.updateContent(request.content());
@@ -120,7 +119,9 @@ public class CommunityCommentService {
         validatePositiveIdsOrThrow("Invalid postId or commentId", postId, commentId);
         CommunityPost post = findActivePostOrThrow(postId);
         CommunityComment comment = findCommentOrThrow(commentId);
-        validateCommentBelongsToPostOrThrow(comment, postId, HttpStatus.NOT_FOUND, "Comment not found");
+        if (!Objects.equals(comment.getPost().getId(), postId)) {
+            throw CommunityDomainException.commentNotFound();
+        }
         if (comment.getStatus() == CommunityContentStatus.DELETED) {
             return new DeleteCommunityCommentResponse(
                     comment.getId(),
@@ -129,7 +130,7 @@ public class CommunityCommentService {
                     comment.getDeletedAt()
             );
         }
-        validateAuthorOrThrow(comment, requesterId, HttpStatus.FORBIDDEN, "Forbidden");
+        validateAuthorOrThrow(comment, requesterId, "Forbidden");
 
         comment.markDeleted();
         post.decreaseCommentCount();
@@ -191,14 +192,14 @@ public class CommunityCommentService {
 
     private void validatePositiveIdOrThrow(Long id, String fieldName) {
         if (id == null || id <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid " + fieldName);
+            throw CommunityDomainException.invalidId(fieldName);
         }
     }
 
     private void validatePositiveIdsOrThrow(String message, Long... ids) {
         for (Long id : ids) {
             if (id == null || id <= 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+                throw CommunityDomainException.badRequest(message);
             }
         }
     }
@@ -206,9 +207,9 @@ public class CommunityCommentService {
     private CommunityPost findActivePostOrThrow(Long postId) {
         validatePositiveIdOrThrow(postId, "postId");
         CommunityPost post = communityPostRepository.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+                .orElseThrow(CommunityDomainException::postNotFound);
         if (post.getStatus() == CommunityContentStatus.DELETED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
+            throw CommunityDomainException.postNotFound();
         }
         return post;
     }
@@ -216,13 +217,13 @@ public class CommunityCommentService {
     private CommunityComment findCommentOrThrow(Long commentId) {
         validatePositiveIdOrThrow(commentId, "commentId");
         return communityCommentRepository.findById(commentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+                .orElseThrow(CommunityDomainException::commentNotFound);
     }
 
     private CommunityComment findActiveCommentOrThrow(Long commentId) {
         CommunityComment comment = findCommentOrThrow(commentId);
         if (comment.getStatus() == CommunityContentStatus.DELETED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
+            throw CommunityDomainException.commentNotFound();
         }
         return comment;
     }
@@ -231,28 +232,29 @@ public class CommunityCommentService {
         if (parentId == null) return null;
 
         CommunityComment parent = communityCommentRepository.findById(parentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent comment not found"));
+                .orElseThrow(CommunityDomainException::parentCommentNotFound);
         if (parent.getStatus() == CommunityContentStatus.DELETED) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent comment not found");
+            throw CommunityDomainException.parentCommentNotFound();
         }
-        validateCommentBelongsToPostOrThrow(parent, post.getId(), HttpStatus.BAD_REQUEST, "Parent comment does not belong to the post");
+        validateParentCommentBelongsToPostOrThrow(parent, post.getId());
         return parent;
     }
 
-    private void validateCommentBelongsToPostOrThrow(
-            CommunityComment comment,
-            Long postId,
-            HttpStatus status,
-            String message
-    ) {
+    private void validateCommentBelongsToPostOrThrow(CommunityComment comment, Long postId) {
         if (!Objects.equals(comment.getPost().getId(), postId)) {
-            throw new ResponseStatusException(status, message);
+            throw CommunityDomainException.commentNotInPost();
         }
     }
 
-    private void validateAuthorOrThrow(CommunityComment comment, Long userId, HttpStatus status, String message) {
+    private void validateParentCommentBelongsToPostOrThrow(CommunityComment comment, Long postId) {
+        if (!Objects.equals(comment.getPost().getId(), postId)) {
+            throw CommunityDomainException.parentCommentNotInPost();
+        }
+    }
+
+    private void validateAuthorOrThrow(CommunityComment comment, Long userId, String message) {
         if (!Objects.equals(comment.getAuthor().getId(), userId)) {
-            throw new ResponseStatusException(status, message);
+            throw CommunityDomainException.noPermission(message);
         }
     }
 

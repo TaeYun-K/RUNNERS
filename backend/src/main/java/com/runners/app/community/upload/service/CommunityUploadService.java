@@ -4,6 +4,7 @@ import com.runners.app.community.upload.dto.request.PresignCommunityImageUploadF
 import com.runners.app.community.upload.dto.request.PresignCommunityImageUploadRequest;
 import com.runners.app.community.upload.dto.response.PresignCommunityImageUploadResponse;
 import com.runners.app.community.upload.dto.response.PresignedCommunityUploadItem;
+import com.runners.app.community.upload.exception.UploadDomainException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -15,9 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -78,7 +77,7 @@ public class CommunityUploadService {
         String trimmedKey = key == null ? "" : key.trim();
         if (trimmedKey.isBlank()) return;
         if (!isUserProfileImageKey(userId, trimmedKey)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid key");
+            throw UploadDomainException.invalidKey();
         }
 
         String normalizedKey = normalizeKey(trimmedKey);
@@ -88,7 +87,7 @@ public class CommunityUploadService {
                     .key(normalizedKey)
                     .build());
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete profile image");
+            throw UploadDomainException.deleteProfileImageFailed();
         }
     }
 
@@ -101,10 +100,10 @@ public class CommunityUploadService {
         validateS3Config(keyPrefix);
 
         if (request == null || request.files() == null || request.files().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "files is required");
+            throw UploadDomainException.filesRequired();
         }
         if (request.files().size() > maxFiles) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Too many files");
+            throw UploadDomainException.tooManyFiles();
         }
 
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(presignExpirationMinutes);
@@ -149,19 +148,19 @@ public class CommunityUploadService {
 
     private void validateS3Config(String keyPrefix) {
         if (region == null || region.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.region is not configured");
+            throw UploadDomainException.s3ConfigInvalid("app.s3.region is not configured");
         }
         if (bucket == null || bucket.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.bucket is not configured");
+            throw UploadDomainException.s3ConfigInvalid("app.s3.bucket is not configured");
         }
         if (keyPrefix == null || keyPrefix.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 key prefix is not configured");
+            throw UploadDomainException.s3ConfigInvalid("S3 key prefix is not configured");
         }
         if (presignExpirationMinutes <= 0 || presignExpirationMinutes > 60) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.presign-exp-minutes must be between 1 and 60");
+            throw UploadDomainException.s3ConfigInvalid("app.s3.presign-exp-minutes must be between 1 and 60");
         }
         if (maxUploadBytes <= 0) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.max-upload-bytes must be positive");
+            throw UploadDomainException.s3ConfigInvalid("app.s3.max-upload-bytes must be positive");
         }
 
         requiredPublicBaseUrl();
@@ -169,35 +168,32 @@ public class CommunityUploadService {
 
     private String requiredPublicBaseUrl() {
         if (publicBaseUrl == null || publicBaseUrl.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "app.s3.public-base-url is not configured");
+            throw UploadDomainException.s3ConfigInvalid("app.s3.public-base-url is not configured");
         }
 
         String trimmed = publicBaseUrl.trim().replaceAll("/+$", "");
         if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "app.s3.public-base-url must start with http:// or https://"
-            );
+            throw UploadDomainException.s3ConfigInvalid("app.s3.public-base-url must start with http:// or https://");
         }
         return trimmed;
     }
 
     private void validateFile(PresignCommunityImageUploadFileRequest file) {
         if (file == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "file is required");
+            throw UploadDomainException.fileRequired();
         }
         String contentType = file.contentType();
         if (contentType == null || contentType.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "contentType is required");
+            throw UploadDomainException.contentTypeRequired();
         }
         if (!contentType.toLowerCase(Locale.ROOT).startsWith("image/")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only image/* contentType is allowed");
+            throw UploadDomainException.contentTypeNotAllowed();
         }
         if (file.contentLength() <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "contentLength must be positive");
+            throw UploadDomainException.contentLengthInvalid();
         }
         if (file.contentLength() > maxUploadBytes) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is too large");
+            throw UploadDomainException.fileTooLarge();
         }
     }
 

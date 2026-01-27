@@ -7,12 +7,11 @@ import com.runners.app.community.recommend.entity.CommunityCommentRecommendId;
 import com.runners.app.community.recommend.dto.response.CommunityCommentRecommendResponse;
 import com.runners.app.community.recommend.repository.CommunityCommentRecommendRepository;
 import com.runners.app.global.status.CommunityContentStatus;
+import com.runners.app.community.exception.CommunityDomainException;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CommunityCommentRecommendService {
@@ -81,7 +80,7 @@ public class CommunityCommentRecommendService {
 
     private void validatePositiveIdOrThrow(Long id, String fieldName) {
         if (id == null || id <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid " + fieldName);
+            throw CommunityDomainException.invalidId(fieldName);
         }
     }
 
@@ -89,9 +88,9 @@ public class CommunityCommentRecommendService {
         validatePositiveIdOrThrow(postId, "postId");
         validatePositiveIdOrThrow(commentId, "commentId");
         CommunityComment comment = communityCommentRepository.findById(commentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+                .orElseThrow(CommunityDomainException::commentNotFound);
         if (comment.getStatus() == CommunityContentStatus.DELETED || !comment.getPost().getId().equals(postId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
+            throw CommunityDomainException.commentNotFound();
         }
         return comment;
     }
@@ -100,9 +99,9 @@ public class CommunityCommentRecommendService {
         validatePositiveIdOrThrow(postId, "postId");
         validatePositiveIdOrThrow(commentId, "commentId");
         CommunityComment comment = communityCommentRepository.findByIdForUpdate(commentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+                .orElseThrow(CommunityDomainException::commentNotFound);
         if (comment.getStatus() == CommunityContentStatus.DELETED || !comment.getPost().getId().equals(postId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
+            throw CommunityDomainException.commentNotFound();
         }
         return comment;
     }
@@ -110,6 +109,6 @@ public class CommunityCommentRecommendService {
     private User findUserOrThrow(Long userId) {
         validatePositiveIdOrThrow(userId, "userId");
         return userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(CommunityDomainException::userNotFound);
     }
 }

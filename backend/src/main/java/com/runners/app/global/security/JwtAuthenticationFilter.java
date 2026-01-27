@@ -1,6 +1,9 @@
 package com.runners.app.global.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.runners.app.auth.service.JwtService;
+import com.runners.app.global.exception.ApiErrorWriter;
+import com.runners.app.global.exception.ErrorCode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -17,9 +20,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final ObjectMapper objectMapper;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, ObjectMapper objectMapper) {
         this.jwtService = jwtService;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -47,9 +52,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } catch (JwtException | IllegalArgumentException e) {
             SecurityContextHolder.clearContext();
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"message\":\"Invalid or expired token\"}");
+            ApiErrorWriter.write(
+                    response,
+                    objectMapper,
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    ErrorCode.INVALID_TOKEN,
+                    "Invalid or expired token"
+            );
         }
     }
 }
