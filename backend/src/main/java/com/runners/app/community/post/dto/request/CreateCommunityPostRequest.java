@@ -10,7 +10,9 @@ public record CreateCommunityPostRequest(
         @NotBlank(message = ValidationMessageKey.TITLE_REQUIRED)
         @Size(max = 200, message = ValidationMessageKey.TITLE_TOO_LONG)
         String title,
-        @NotBlank(message = ValidationMessageKey.CONTENT_REQUIRED) String content,
+        @NotBlank(message = ValidationMessageKey.CONTENT_REQUIRED)
+        @Size(max = 16000, message = ValidationMessageKey.CONTENT_TOO_LONG)
+        String content,
         @Size(max = 10, message = ValidationMessageKey.IMAGE_TOO_MANY)
         List<@NotBlank(message = ValidationMessageKey.IMAGE_KEY_REQUIRED) @Size(max = 512, message = ValidationMessageKey.IMAGE_KEY_TOO_LONG) String> imageKeys,
         CommunityPostBoardType boardType

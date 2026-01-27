@@ -31,6 +31,7 @@ public final class ValidationMessageKey {
     public static final String TITLE_REQUIRED = "TITLE_REQUIRED";
     public static final String TITLE_TOO_LONG = "TITLE_TOO_LONG";
     public static final String CONTENT_REQUIRED = "CONTENT_REQUIRED";
+    public static final String CONTENT_TOO_LONG = "CONTENT_TOO_LONG";
     public static final String IMAGE_TOO_MANY = "IMAGE_TOO_MANY";
     public static final String IMAGE_KEY_REQUIRED = "IMAGE_KEY_REQUIRED";
     public static final String IMAGE_KEY_TOO_LONG = "IMAGE_KEY_TOO_LONG";
