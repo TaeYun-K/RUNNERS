@@ -27,7 +27,8 @@ public class GlobalExceptionHandler {
         }
 
         String messageKey = normalizeMessageKey(fieldError.getDefaultMessage());
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, messageKey);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiErrorResponse(HttpStatus.BAD_REQUEST.value(), messageKey, messageKey));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -39,7 +40,8 @@ public class GlobalExceptionHandler {
         String template = violation.getMessageTemplate();
         String raw = (template == null || template.isBlank()) ? violation.getMessage() : template;
         String messageKey = normalizeMessageKey(raw);
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, messageKey);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiErrorResponse(HttpStatus.BAD_REQUEST.value(), messageKey, messageKey));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
