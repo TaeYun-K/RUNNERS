@@ -9,6 +9,17 @@ export type MyProfile = {
   totalDistanceKm: number | null
 }
 
+export type UserPublicProfile = {
+  userId: number
+  displayName: string
+  nickname: string | null
+  intro: string | null
+  picture: string | null
+  totalDistanceKm: number | null
+  totalDurationMinutes: number | null
+  runCount: number | null
+}
+
 export type UpdateMyProfileRequest = {
   nickname?: string | null
   intro?: string | null
