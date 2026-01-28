@@ -120,7 +120,10 @@ export function CommunityPostDetailPage() {
             </h3>
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
+              <Link
+                to={`/users/${post.authorId}`}
+                className="flex items-center gap-3"
+              >
                 <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-secondary text-sm font-bold text-muted-foreground">
                   {post.authorPicture ? (
                     <img
@@ -144,7 +147,7 @@ export function CommunityPostDetailPage() {
                     </p>
                   ) : null}
                 </div>
-              </div>
+              </Link>
 
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
@@ -199,9 +202,6 @@ export function CommunityPostDetailPage() {
             <h3 className="text-lg font-bold text-foreground">
               댓글 {post ? post.commentCount : ''}
             </h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              `GET /api/community/posts/{'{postId}'}/comments` / `POST .../comments`
-            </p>
           </div>
         </div>
 

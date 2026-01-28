@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { MessageCircle } from 'lucide-react'
 import type { CommunityComment } from '../types'
 import { formatRelativeTime } from '../../shared/formatRelativeTime'
@@ -17,7 +18,7 @@ export function CommunityCommentItem(props: {
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <Link to={`/users/${comment.authorId}`} className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-secondary text-xs font-bold text-muted-foreground">
             {comment.authorPicture ? (
               <img
@@ -39,7 +40,7 @@ export function CommunityCommentItem(props: {
               {formatRelativeTime(comment.createdAt)}
             </p>
           </div>
-        </div>
+        </Link>
 
         {onReply ? (
           <button
@@ -59,4 +60,3 @@ export function CommunityCommentItem(props: {
     </div>
   )
 }
-

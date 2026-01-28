@@ -26,9 +26,6 @@ export function CommunityPage() {
           <h2 className="text-xl font-bold tracking-tight text-foreground">
             커뮤니티
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            `GET /api/community/posts` 조회 결과를 목록 UI로 렌더링합니다.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

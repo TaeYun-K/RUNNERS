@@ -8,6 +8,7 @@ import MainPage from '../pages/Home/MainPage'
 import { NotFoundPage } from '../pages/Error/NotFoundPage'
 import { DashboardPage } from '../pages/MyPage/DashboardPage'
 import { ProfilePage } from '../pages/MyPage/ProfilePage'
+import { UserPublicProfilePage } from '../pages/User/UserPublicProfilePage'
 import { RequireAuth } from '../features/auth'
 
 export default function AppRouter() {
@@ -26,6 +27,7 @@ export default function AppRouter() {
           }
         />
         <Route path="community/:postId" element={<CommunityPostDetailPage />} />
+        <Route path="users/:userId" element={<UserPublicProfilePage />} />
         <Route
           path="dashboard"
           element={

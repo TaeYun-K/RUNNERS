@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Eye, Heart, MessageCircle } from 'lucide-react'
 import { COMMUNITY_BOARD_LABEL } from '../constants'
 import type { CommunityPostSummary } from '../types'
@@ -6,11 +6,20 @@ import { formatRelativeTime } from '../../shared/formatRelativeTime'
 
 export function CommunityPostCard(props: { post: CommunityPostSummary }) {
   const { post } = props
+  const navigate = useNavigate()
 
   return (
-    <Link
-      to={`/community/${post.postId}`}
+    <article
       className="group block overflow-hidden rounded-2xl border border-border bg-background transition hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5"
+      role="link"
+      tabIndex={0}
+      onClick={() => navigate(`/community/${post.postId}`)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          navigate(`/community/${post.postId}`)
+        }
+      }}
     >
       <div className="grid gap-4 p-5 sm:grid-cols-[1fr_140px] sm:items-start">
         <div className="min-w-0">
@@ -85,7 +94,6 @@ export function CommunityPostCard(props: { post: CommunityPostSummary }) {
           </div>
         ) : null}
       </div>
-    </Link>
+    </article>
   )
 }
-
