@@ -71,4 +71,20 @@ object BackendAuthApi {
             return json.getString("accessToken")
         }
     }
+
+    fun logout() {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/auth/logout"
+
+        val request = Request.Builder()
+            .url(url)
+            .post(ByteArray(0).toRequestBody(null))
+            .build()
+
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Backend logout failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+        }
+    }
 }

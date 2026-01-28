@@ -123,7 +123,10 @@ class MainActivity : ComponentActivity() {
 							session = session!!,
 							onLogout = {
 								scope.launch {
-                                    BackendHttpClient.clearCookies()
+									withContext(Dispatchers.IO) {
+										runCatching { BackendAuthApi.logout() }
+									}
+									BackendHttpClient.clearCookies()
 									AuthTokenStore.clear(context)
 									session = null
 								}
