@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../features/auth'
+import { logout } from '../../features/auth/core/api/logout'
 
 const navLinkBase =
   'inline-flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors ' +
@@ -23,7 +24,13 @@ export default function AppLayout() {
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    setMobileMenuOpen(false)
+    try {
+      await logout()
+    } catch {
+      // ignore network/logout failures; still clear local access token
+    }
     clearAccessToken()
     navigate('/')
   }
