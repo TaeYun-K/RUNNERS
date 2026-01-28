@@ -1,9 +1,9 @@
-import { apiFetch } from '../../shared/api/apiFetch'
+import { apiFetch } from '../../../shared/api/apiFetch'
 import type {
   CommunityPostBoardType,
   CommunityPostCursorListResponse,
   CommunityPostDetail,
-} from './types'
+} from '../types'
 
 export async function fetchCommunityPosts(params: {
   boardType?: CommunityPostBoardType | null

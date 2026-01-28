@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Eye, Heart, MessageCircle } from 'lucide-react'
 import { COMMUNITY_BOARD_LABEL } from '../constants'
 import type { CommunityPostSummary } from '../types'
@@ -7,7 +8,10 @@ export function CommunityPostCard(props: { post: CommunityPostSummary }) {
   const { post } = props
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-border bg-background transition hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5">
+    <Link
+      to={`/community/${post.postId}`}
+      className="group block overflow-hidden rounded-2xl border border-border bg-background transition hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5"
+    >
       <div className="grid gap-4 p-5 sm:grid-cols-[1fr_140px] sm:items-start">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -81,7 +85,6 @@ export function CommunityPostCard(props: { post: CommunityPostSummary }) {
           </div>
         ) : null}
       </div>
-    </article>
+    </Link>
   )
 }
-
