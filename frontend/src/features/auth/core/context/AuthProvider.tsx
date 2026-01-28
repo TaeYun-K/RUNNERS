@@ -1,30 +1,12 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   clearAccessToken,
   getAccessToken,
   setAccessToken,
-} from '../../shared/auth/token'
-
-type AuthContextValue = {
-  accessToken: string | null
-  setAccessToken: (token: string) => void
-  clearAccessToken: () => void
-  bootstrapping: boolean
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
-
-async function tryRefresh() {
-  const res = await fetch('/api/auth/refresh', {
-    method: 'POST',
-    credentials: 'include',
-  })
-  if (!res.ok) return null
-  const json = (await res.json()) as { accessToken?: string }
-  return json.accessToken ?? null
-}
+} from '../../../../shared/auth/token'
+import { refreshAccessToken } from '../api/refreshAccessToken'
+import { AuthContext, type AuthContextValue } from './AuthContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessTokenState, setAccessTokenState] = useState<string | null>(() =>
@@ -37,7 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ;(async () => {
       try {
         if (getAccessToken()) return
-        const refreshed = await tryRefresh()
+        const refreshed = await refreshAccessToken()
         if (!refreshed) return
         setAccessToken(refreshed)
         if (!cancelled) setAccessTokenState(refreshed)
@@ -54,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       accessToken: accessTokenState,
       bootstrapping,
-      setAccessToken: (token) => {
+      setAccessToken: (token: string) => {
         setAccessToken(token)
         setAccessTokenState(token)
       },
@@ -67,11 +49,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('AuthProvider is missing')
-  return ctx
 }
 
