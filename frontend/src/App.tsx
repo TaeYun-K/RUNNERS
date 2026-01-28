@@ -1,12 +1,12 @@
 import { HashRouter, Route, Routes } from 'react-router-dom'
-import AppLayout from './layout/AppLayout'
-import { CommunityPage } from './pages/Community/CommunityPage'
-import { DashboardPage } from './pages/MyPage/DashboardPage'
-import { LoginPage } from './pages/Login/LoginPage'
-import MainPage from './pages/Home/MainPage'
-import { NotFoundPage } from './pages/NotFoundPage'
-import { ProfilePage } from './pages/MyPage/ProfilePage'
-import { RequireAuth } from './utils/auth/RequireAuth'
+import AppLayout from './app/Layout/AppLayout'
+import { CommunityPage } from './app/Community/CommunityPage'
+import { DashboardPage } from './app/MyPage/DashboardPage'
+import { LoginPage } from './app/Auth/LoginPage'
+import MainPage from './app/Home/MainPage'
+import { NotFoundPage } from './app/Error/NotFoundPage'
+import { ProfilePage } from './app/MyPage/ProfilePage'
+import { RequireAuth } from './features/auth'
 
 function App() {
   return (

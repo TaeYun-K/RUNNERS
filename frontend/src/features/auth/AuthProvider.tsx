@@ -1,7 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { clearAccessToken, getAccessToken, setAccessToken } from './token'
+import {
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+} from '../../shared/auth/token'
 
 type AuthContextValue = {
   accessToken: string | null
@@ -70,3 +74,4 @@ export function useAuth() {
   if (!ctx) throw new Error('AuthProvider is missing')
   return ctx
 }
+

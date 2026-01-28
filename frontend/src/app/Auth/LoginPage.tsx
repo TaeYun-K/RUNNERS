@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../utils/auth/AuthProvider'
-import { apiFetch } from '../../utils/api/apiFetch'
+import { useAuth } from '../../features/auth'
+import { apiFetch } from '../../shared/api/apiFetch'
 
 type DevTokenResponse = {
   accessToken: string

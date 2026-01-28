@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiFetch } from '../../utils/api/apiFetch'
+import { apiFetch } from '../../shared/api/apiFetch'
 
 export function DashboardPage() {
   const [me, setMe] = useState<unknown>(null)

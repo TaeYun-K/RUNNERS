@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { useAuth } from '../utils/auth/AuthProvider'
+import { useAuth } from '../../features/auth'
 
 const navLinkBase =
   'inline-flex items-center h-9 px-3 rounded-full text-sm font-semibold transition'
@@ -23,21 +23,21 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-50 h-16 px-5 flex items-center gap-4
-                         bg-gradient-to-r from-blue-600 to-blue-900 shadow-lg">
+      <header
+        className="sticky top-0 z-50 h-16 px-5 flex items-center gap-4
+                         bg-gradient-to-r from-blue-600 to-blue-900 shadow-lg"
+      >
         <div
           className="flex items-center cursor-pointer select-none"
           onClick={() => navigate('/')}
         >
-          <img
-            src="/logo.svg"
-            alt="RUNNERS Logo"
-            className="h-9 w-auto drop-shadow"
-          />
+          <img src="/logo.svg" alt="RUNNERS Logo" className="h-9 w-auto drop-shadow" />
         </div>
 
-        <nav className="flex items-center gap-1 p-1 rounded-full
-                        bg-white/10 border border-white/15 backdrop-blur">
+        <nav
+          className="flex items-center gap-1 p-1 rounded-full
+                        bg-white/10 border border-white/15 backdrop-blur"
+        >
           <NavLink to="/" end className={navLinkClass}>
             홈
           </NavLink>
@@ -84,3 +84,4 @@ export default function AppLayout() {
     </div>
   )
 }
+
