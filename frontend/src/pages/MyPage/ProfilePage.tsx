@@ -3,17 +3,29 @@ import { useMyProfile } from '../../features/MyPage/hooks/useMyProfile'
 import { useTransientMessage } from '../../features/MyPage/hooks/useTransientMessage'
 import {
   AlertCircle,
+  Camera,
   CheckCircle2,
+  Loader2,
   Mail,
   MapPin,
   Pencil,
   RotateCcw,
   Save,
   Shield,
+  Trash2,
 } from 'lucide-react'
 
 export function ProfilePage() {
-  const { profile, loading, saving, error, updateProfile } = useMyProfile()
+  const {
+    profile,
+    loading,
+    saving,
+    uploadingImage,
+    error,
+    updateProfile,
+    uploadProfileImage,
+    removeProfileImage,
+  } = useMyProfile()
   const { message: successMessage, show: showSuccess, clear: clearSuccess } =
     useTransientMessage(3000)
   
@@ -23,6 +35,7 @@ export function ProfilePage() {
   
   const nicknameRef = useRef<HTMLInputElement | null>(null)
   const introRef = useRef<HTMLTextAreaElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const initials = (() => {
     const base = (profile?.nickname || profile?.name || '').trim()
@@ -58,6 +71,69 @@ export function ProfilePage() {
                     {initials}
                   </div>
                 )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    clearSuccess()
+                    const file = e.target.files?.[0]
+                    e.target.value = ''
+                    if (!file) return
+                    try {
+                      await uploadProfileImage(file)
+                      showSuccess('프로필 사진이 변경되었습니다.')
+                    } catch {
+                      return
+                    }
+                  }}
+                />
+
+                <div className="pointer-events-none absolute inset-0 rounded-3xl bg-black/0 transition-colors group-hover:bg-black/10" />
+
+                <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading || uploadingImage}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-border bg-background/90 px-3 text-xs font-semibold text-foreground shadow-sm backdrop-blur transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        업로드
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="h-4 w-4" />
+                        사진
+                      </>
+                    )}
+                  </button>
+
+                  {profile?.picture ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        clearSuccess()
+                        try {
+                          await removeProfileImage()
+                          showSuccess('프로필 사진이 삭제되었습니다.')
+                        } catch {
+                          return
+                        }
+                      }}
+                      disabled={loading || uploadingImage}
+                      className="inline-flex h-9 items-center justify-center rounded-xl border border-border bg-background/90 px-3 text-xs font-semibold text-foreground shadow-sm backdrop-blur transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-label="프로필 사진 삭제"
+                      title="프로필 사진 삭제"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <div className="mb-2 space-y-1">
                 <h2 className="text-2xl font-bold tracking-tight text-foreground">

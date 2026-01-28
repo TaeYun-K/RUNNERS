@@ -13,3 +13,9 @@ export type UpdateMyProfileRequest = {
   nickname?: string | null
   intro?: string | null
 }
+
+export type UploadableImageMime =
+  | 'image/jpeg'
+  | 'image/png'
+  | 'image/webp'
+  | 'image/gif'
