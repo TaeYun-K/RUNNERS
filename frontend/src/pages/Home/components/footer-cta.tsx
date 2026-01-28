@@ -9,7 +9,7 @@ interface FooterCTAProps {
 
 export function FooterCTA({ isLoggedIn }: FooterCTAProps) {
   const PLAY_STORE_URL =
-    "https://play.google.com/store/apps/details?id=YOUR_APP_PACKAGE";
+    "https://play.google.com/store/apps/details?id=com.runners.app";
 
   return (
     <footer className="relative overflow-hidden bg-card">
