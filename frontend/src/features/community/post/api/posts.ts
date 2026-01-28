@@ -1,4 +1,4 @@
-import { apiFetch } from '../../../shared/api/apiFetch'
+import { apiFetch } from '../../../../shared/api/apiFetch'
 import type {
   CommunityPostBoardType,
   CommunityPostCursorListResponse,
@@ -23,3 +23,4 @@ export async function fetchCommunityPostDetail(postId: number) {
   const res = await apiFetch(`/api/community/posts/${postId}`)
   return (await res.json()) as CommunityPostDetail
 }
+

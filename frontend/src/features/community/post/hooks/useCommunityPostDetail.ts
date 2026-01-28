@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchCommunityPostDetail } from '../api/api'
+import { fetchCommunityPostDetail } from '../api/posts'
 import type { CommunityPostDetail } from '../types'
 
 export function useCommunityPostDetail(postId: number | null) {

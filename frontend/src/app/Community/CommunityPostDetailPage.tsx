@@ -1,15 +1,18 @@
-import { useMemo } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Eye, Heart, MessageCircle, RefreshCw } from 'lucide-react'
-import {
-  COMMUNITY_BOARD_LABEL,
-  formatRelativeTime,
-  useCommunityPostDetail,
-} from '../../features/community'
+import { useAuth } from '../../features/auth'
+import { useCommunityComments } from '../../features/community/comment'
+import { CommunityCommentItem } from '../../features/community/comment/components/CommunityCommentItem'
+import { COMMUNITY_BOARD_LABEL, useCommunityPostDetail } from '../../features/community/post'
+import { formatRelativeTime } from '../../features/community/shared'
 import { NotFoundPage } from '../Error/NotFoundPage'
 
 export function CommunityPostDetailPage() {
   const params = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { accessToken } = useAuth()
   const postId = useMemo(() => {
     const raw = params.postId ?? ''
     const parsed = Number.parseInt(raw, 10)
@@ -17,8 +20,44 @@ export function CommunityPostDetailPage() {
   }, [params.postId])
 
   const { post, error, loading, refresh } = useCommunityPostDetail(postId)
+  const {
+    comments,
+    error: commentsError,
+    loading: commentsLoading,
+    loadingMore: commentsLoadingMore,
+    hasMore: commentsHasMore,
+    loadMore: loadMoreComments,
+    creating,
+    create: createComment,
+  } = useCommunityComments({ postId, size: 20 })
+
+  const [draft, setDraft] = useState('')
+  const [replyTo, setReplyTo] = useState<number | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   if (postId == null) return <NotFoundPage />
+
+  const handleSubmit = async () => {
+    if (!accessToken) {
+      navigate('/login', {
+        replace: false,
+        state: { from: `${location.pathname}${location.search}${location.hash}` },
+      })
+      return
+    }
+    const content = draft.trim()
+    if (!content) return
+
+    setSubmitError(null)
+    try {
+      await createComment({ content, parentId: replyTo })
+      setDraft('')
+      setReplyTo(null)
+      void refresh()
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : String(e))
+    }
+  }
 
   return (
     <section className="mx-auto max-w-5xl rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -153,7 +192,129 @@ export function CommunityPostDetailPage() {
           </div>
         </article>
       ) : null}
+
+      <section className="mt-8">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-foreground">
+              댓글 {post ? post.commentCount : ''}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              `GET /api/community/posts/{'{postId}'}/comments` / `POST .../comments`
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-border bg-background p-4">
+          {replyTo ? (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm text-foreground">
+              <span>답글 작성 중 (parentId: {replyTo})</span>
+              <button
+                type="button"
+                className="text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+                onClick={() => setReplyTo(null)}
+              >
+                취소
+              </button>
+            </div>
+          ) : null}
+
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={accessToken ? '댓글을 입력하세요…' : '로그인 후 댓글을 작성할 수 있어요.'}
+            disabled={!accessToken || creating}
+            className="min-h-24 w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-blue-500/40 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+          />
+
+          {submitError ? (
+            <div className="mt-3 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {submitError}
+            </div>
+          ) : null}
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {draft.length.toLocaleString()} / 16000
+            </p>
+            <div className="flex items-center gap-2">
+              {!accessToken ? (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="h-9 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                >
+                  로그인하고 작성
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={creating || draft.trim().length === 0}
+                  className="h-9 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {creating ? '등록 중…' : '댓글 등록'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {commentsError ? (
+          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {commentsError}
+          </div>
+        ) : null}
+
+        {commentsLoading ? (
+          <div className="mt-4 grid gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={`comment-skeleton-${i}`}
+                className="grid gap-3 rounded-xl border border-border bg-background p-4"
+              >
+                <div className="h-4 w-24 animate-pulse rounded bg-secondary" />
+                <div className="h-4 w-full animate-pulse rounded bg-secondary" />
+                <div className="h-4 w-3/4 animate-pulse rounded bg-secondary" />
+              </div>
+            ))}
+          </div>
+        ) : comments.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-border bg-background px-6 py-10 text-center">
+            <p className="text-sm font-semibold text-foreground">
+              아직 댓글이 없어요
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              첫 댓글을 남겨보세요.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-3">
+            {comments.map((c) => (
+              <CommunityCommentItem
+                key={c.commentId}
+                comment={c}
+                onReply={(id) => setReplyTo(id)}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={() => void loadMoreComments()}
+            disabled={!commentsHasMore || commentsLoading || commentsLoadingMore}
+            className="h-11 rounded-xl border border-border bg-background px-6 text-sm font-semibold text-foreground transition hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {commentsLoadingMore
+              ? '불러오는 중…'
+              : commentsHasMore
+                ? '댓글 더 보기'
+                : '마지막입니다'}
+          </button>
+        </div>
+      </section>
     </section>
   )
 }
-

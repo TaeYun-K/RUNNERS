@@ -4,9 +4,9 @@ import {
   COMMUNITY_BOARD_LABEL,
   type CommunityPostBoardType,
   useCommunityPosts,
-} from '../../features/community'
-import { CommunityPostCard } from '../../features/community/components/CommunityPostCard'
-import { CommunityPostSkeletonList } from '../../features/community/components/CommunityPostSkeletonList'
+} from '../../features/community/post'
+import { CommunityPostCard } from '../../features/community/post/components/CommunityPostCard'
+import { CommunityPostSkeletonList } from '../../features/community/post/components/CommunityPostSkeletonList'
 
 export function CommunityPage() {
   const [boardType, setBoardType] = useState<CommunityPostBoardType | 'ALL'>(

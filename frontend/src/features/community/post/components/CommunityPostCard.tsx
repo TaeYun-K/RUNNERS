@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Eye, Heart, MessageCircle } from 'lucide-react'
 import { COMMUNITY_BOARD_LABEL } from '../constants'
 import type { CommunityPostSummary } from '../types'
-import { formatRelativeTime } from '../utils'
+import { formatRelativeTime } from '../../shared/formatRelativeTime'
 
 export function CommunityPostCard(props: { post: CommunityPostSummary }) {
   const { post } = props
@@ -88,3 +88,4 @@ export function CommunityPostCard(props: { post: CommunityPostSummary }) {
     </Link>
   )
 }
+

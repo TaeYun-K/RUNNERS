@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchCommunityPosts } from '../api/api'
+import { fetchCommunityPosts } from '../api/posts'
 import type { CommunityPostBoardType, CommunityPostSummary } from '../types'
 
 export function useCommunityPosts(params: {
