@@ -50,7 +50,7 @@ function PhoneMockup({
 
 export function HeroSection({ isLoggedIn }: HeroSectionProps) {
   const PLAY_STORE_URL =
-    "https://github.com/TaeYun-K/RUNNERS_release/releases/tag/v1.0.1";
+    "https://play.google.com/store/apps/details?id=com.runners.app";
 
   // --- Carousel state (3-up mockups: prev/current/next) ---
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -199,7 +199,8 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
                 className="group inline-flex w-full items-center justify-center gap-3 rounded-full bg-blue-600 px-8 py-4 text-base font-bold text-white transition-all hover:scale-[1.02] hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 sm:w-auto"
               >
                 <Play className="h-5 w-5 fill-current" />
-                Google Play에서 다운로드 (출시 준비 중)
+                Google Play에서 다운로드 <br></br>
+                (출시 준비 중)
               </a>
 
               <Link
