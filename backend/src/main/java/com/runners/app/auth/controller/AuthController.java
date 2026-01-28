@@ -10,6 +10,7 @@ import com.runners.app.auth.service.JwtService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,5 +56,23 @@ public class AuthController {
             throw AuthDomainException.refreshTokenMissing();
         }
         return authService.refreshAccessToken(refreshToken);
+    }
+
+    @Operation(summary = "로그아웃", description = "Refresh Token을 무효화하고 쿠키를 제거합니다.")
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(
+            @CookieValue(name = RefreshTokenCookie.COOKIE_NAME, required = false) String refreshToken,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        if (request.getContentLengthLong() > 0) {
+            throw AuthDomainException.requestBodyNotAllowed();
+        }
+        authService.logout(refreshToken);
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
+                RefreshTokenCookie.clear(request).toString()
+        );
     }
 }

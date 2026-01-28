@@ -165,4 +165,22 @@ public class AuthService {
         String accessToken = jwtService.createAccessToken(user);
         return new TokenRefreshResponse(accessToken);
     }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) return;
+
+        try {
+            Claims claims = jwtService.parseAndValidate(refreshToken);
+            String type = claims.get("type", String.class);
+            if (!"refresh".equals(type)) return;
+
+            Long userId = Long.parseLong(claims.getSubject());
+            refreshTokenService.findTokenByUserId(userId)
+                    .filter(stored -> stored.equals(refreshToken))
+                    .ifPresent(ignored -> refreshTokenService.deleteByUserId(userId));
+        } catch (Exception ignored) {
+            // best-effort logout (always clear cookie on the caller)
+        }
+    }
 }
