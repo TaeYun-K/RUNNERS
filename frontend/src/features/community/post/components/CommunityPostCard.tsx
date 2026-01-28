@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Eye, Heart, MessageCircle } from 'lucide-react'
 import { COMMUNITY_BOARD_LABEL } from '../constants'
 import type { CommunityPostSummary } from '../types'
