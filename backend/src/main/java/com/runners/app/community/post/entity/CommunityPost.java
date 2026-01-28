@@ -81,14 +81,14 @@ public class CommunityPost {
         updatedAt = now;
     }
 
-    @PreUpdate
-    void preUpdate() {
+    public void touchUpdatedAt() {
         updatedAt = LocalDateTime.now();
     }
 
     public void updateContent(String title, String content) {
         this.title = title;
         this.content = content;
+        touchUpdatedAt();
     }
 
     public CommunityPostBoardType getBoardType() {
@@ -98,11 +98,13 @@ public class CommunityPost {
     public void changeBoardType(CommunityPostBoardType boardType) {
         if (boardType == null) return;
         this.boardType = boardType;
+        touchUpdatedAt();
     }
 
     public void markDeleted() {
         status = CommunityContentStatus.DELETED;
         deletedAt = LocalDateTime.now();
+        touchUpdatedAt();
     }
 
     public void increaseViewCount() {
