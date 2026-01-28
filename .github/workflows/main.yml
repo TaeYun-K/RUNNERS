@@ -94,6 +94,8 @@ jobs:
         with:
           context: ./frontend
           push: true
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           tags: |
             ghcr.io/taeyun-k/runners/frontend:latest
             ghcr.io/taeyun-k/runners/frontend:${{ github.sha }}
