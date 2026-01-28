@@ -3,6 +3,8 @@ import type {
   CommunityPostBoardType,
   CommunityPostCursorListResponse,
   CommunityPostDetail,
+  CommunityPostMutationResponse,
+  CreateCommunityPostRequest,
 } from '../types'
 
 export async function fetchCommunityPosts(params: {
@@ -24,3 +26,13 @@ export async function fetchCommunityPostDetail(postId: number) {
   return (await res.json()) as CommunityPostDetail
 }
 
+export async function createCommunityPost(params: {
+  body: CreateCommunityPostRequest
+}) {
+  const res = await apiFetch('/api/community/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params.body),
+  })
+  return (await res.json()) as CommunityPostMutationResponse
+}

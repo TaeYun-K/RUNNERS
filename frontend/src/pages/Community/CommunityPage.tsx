@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
   COMMUNITY_BOARD_LABEL,
   type CommunityPostBoardType,
@@ -31,6 +32,13 @@ export function CommunityPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/community/write"
+            className="inline-flex h-9 items-center justify-center rounded-full bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+          >
+            글쓰기
+          </Link>
+
           {(['ALL', 'FREE', 'QNA', 'INFO'] as const).map((t) => (
             <button
               key={t}

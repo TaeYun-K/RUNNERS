@@ -1,5 +1,12 @@
 export type CommunityPostBoardType = 'FREE' | 'QNA' | 'INFO'
 
+export type CreateCommunityPostRequest = {
+  title: string
+  content: string
+  imageKeys?: string[] | null
+  boardType: CommunityPostBoardType
+}
+
 export type CommunityPostSummary = {
   postId: number
   authorId: number
@@ -39,3 +46,17 @@ export type CommunityPostDetail = {
   updatedAt: string
 }
 
+export type CommunityPostMutationResponse = {
+  postId: number
+  authorId: number
+  authorName: string
+  authorPicture: string | null
+  boardType: CommunityPostBoardType
+  title: string
+  content: string
+  viewCount: number
+  recommendCount: number
+  commentCount: number
+  createdAt: string
+  imageUrls: string[]
+}

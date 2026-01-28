@@ -3,6 +3,7 @@ import AppLayout from '../app/Layout/AppLayout'
 import { LoginPage } from '../pages/Auth/LoginPage'
 import { CommunityPage } from '../pages/Community/CommunityPage'
 import { CommunityPostDetailPage } from '../pages/Community/CommunityPostDetailPage'
+import { CommunityPostWritePage } from '../pages/Community/CommunityPostWritePage'
 import MainPage from '../pages/Home/MainPage'
 import { NotFoundPage } from '../pages/Error/NotFoundPage'
 import { DashboardPage } from '../pages/MyPage/DashboardPage'
@@ -16,6 +17,14 @@ export default function AppRouter() {
       <Route path="/" element={<AppLayout />}>
         <Route index element={<MainPage />} />
         <Route path="community" element={<CommunityPage />} />
+        <Route
+          path="community/write"
+          element={
+            <RequireAuth>
+              <CommunityPostWritePage />
+            </RequireAuth>
+          }
+        />
         <Route path="community/:postId" element={<CommunityPostDetailPage />} />
         <Route
           path="dashboard"
@@ -38,4 +47,3 @@ export default function AppRouter() {
     </Routes>
   )
 }
-
