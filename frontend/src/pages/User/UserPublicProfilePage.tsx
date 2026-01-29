@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, RefreshCw, Route, Timer, TrendingUp, User } from 'lucide-react'
 import { useUserPublicProfile } from '../../features/MyPage/hooks/useUserPublicProfile'
@@ -29,8 +29,20 @@ export function UserPublicProfilePage() {
   }, [params.userId])
 
   const { profile, error, loading, refresh, derived } = useUserPublicProfile(userId)
+  const [isProfileImageOpen, setIsProfileImageOpen] = useState(false)
 
   if (userId == null) return <NotFoundPage />
+
+  useEffect(() => {
+    if (!isProfileImageOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsProfileImageOpen(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isProfileImageOpen])
 
   const initials = (() => {
     const base = (profile?.displayName ?? '').trim()
@@ -39,6 +51,28 @@ export function UserPublicProfilePage() {
 
   return (
     <section className="mx-auto max-w-5xl rounded-2xl border border-border bg-card p-6 shadow-sm">
+      {isProfileImageOpen && profile?.picture ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="프로필 이미지 크게 보기"
+          onClick={() => setIsProfileImageOpen(false)}
+        >
+          <div
+            className="max-h-[85vh] max-w-[92vw] overflow-hidden rounded-2xl bg-background shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={profile.picture}
+              alt="프로필"
+              className="block max-h-[85vh] max-w-[92vw] object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link
@@ -77,12 +111,19 @@ export function UserPublicProfilePage() {
           <div className="p-5">
             <div className="-mt-12 flex items-end gap-4">
               {profile?.picture ? (
-                <img
-                  src={profile.picture}
-                  alt="프로필"
-                  className="h-24 w-24 rounded-2xl border-4 border-card object-cover shadow-md"
-                  referrerPolicy="no-referrer"
-                />
+                <button
+                  type="button"
+                  onClick={() => setIsProfileImageOpen(true)}
+                  className="rounded-2xl"
+                  aria-label="프로필 이미지 크게 보기"
+                >
+                  <img
+                    src={profile.picture}
+                    alt="프로필"
+                    className="h-24 w-24 rounded-2xl border-4 border-card object-cover shadow-md transition hover:opacity-90"
+                    referrerPolicy="no-referrer"
+                  />
+                </button>
               ) : (
                 <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-card bg-secondary text-xl font-bold text-muted-foreground shadow-md">
                   {initials}
@@ -215,4 +256,3 @@ export function UserPublicProfilePage() {
     </section>
   )
 }
-

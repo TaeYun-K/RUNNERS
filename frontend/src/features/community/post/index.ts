@@ -21,5 +21,6 @@ export type {
   CreateCommunityPostRequest,
 } from './types'
 export { useCommunityPostDetail } from './hooks/useCommunityPostDetail'
+export { useCommunityPostRecommend } from './hooks/useCommunityPostRecommend'
 export { useCommunityPosts } from './hooks/useCommunityPosts'
 export { useCreateCommunityPost } from './hooks/useCreateCommunityPost'

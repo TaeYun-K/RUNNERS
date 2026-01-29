@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Eye, Heart, MessageCircle, RefreshCw } from 'lucide-react'
 import { useAuth } from '../../features/auth'
@@ -6,11 +6,8 @@ import { useCommunityComments } from '../../features/community/comment'
 import { CommunityCommentItem } from '../../features/community/comment/components/CommunityCommentItem'
 import {
   COMMUNITY_BOARD_LABEL,
-  fetchCommunityPostRecommendStatus,
-  recommendCommunityPost,
-  type CommunityPostRecommendResponse,
-  unrecommendCommunityPost,
   useCommunityPostDetail,
+  useCommunityPostRecommend,
 } from '../../features/community/post'
 import { formatRelativeTime } from '../../features/community/shared'
 import { NotFoundPage } from '../Error/NotFoundPage'
@@ -41,43 +38,36 @@ export function CommunityPostDetailPage() {
   const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<number | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [recommend, setRecommend] = useState<CommunityPostRecommendResponse | null>(
-    null,
-  )
-  const [recommendLoading, setRecommendLoading] = useState(false)
-  const [recommendError, setRecommendError] = useState<string | null>(null)
+  const [isImageOpen, setIsImageOpen] = useState(false)
+  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null)
 
-  const refreshRecommend = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!accessToken || postId == null) {
-        setRecommend(null)
-        setRecommendError(null)
-        setRecommendLoading(false)
-        return
-      }
-
-      setRecommendError(null)
-      setRecommendLoading(true)
-      try {
-        const json = await fetchCommunityPostRecommendStatus(postId, { signal })
-        if (signal?.aborted) return
-        setRecommend(json)
-      } catch (e) {
-        if (!signal?.aborted) {
-          setRecommendError(e instanceof Error ? e.message : String(e))
-        }
-      } finally {
-        if (!signal?.aborted) setRecommendLoading(false)
-      }
-    },
-    [accessToken, postId],
-  )
+  const {
+    recommend,
+    isRecommended,
+    loading: recommendLoading,
+    error: recommendError,
+    refresh: refreshRecommend,
+    toggle: toggleRecommend,
+  } = useCommunityPostRecommend(postId, Boolean(accessToken))
 
   useEffect(() => {
-    const controller = new AbortController()
-    void refreshRecommend(controller.signal)
-    return () => controller.abort()
-  }, [refreshRecommend])
+    if (!isImageOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsImageOpen(false)
+        setActiveImageUrl(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isImageOpen])
+
+  useEffect(() => {
+    setIsImageOpen(false)
+    setActiveImageUrl(null)
+  }, [postId])
 
   if (postId == null) return <NotFoundPage />
 
@@ -90,19 +80,7 @@ export function CommunityPostDetailPage() {
       return
     }
 
-    setRecommendError(null)
-    setRecommendLoading(true)
-    try {
-      const isRecommended = recommend?.recommended ?? false
-      const json = isRecommended
-        ? await unrecommendCommunityPost(postId)
-        : await recommendCommunityPost(postId)
-      setRecommend(json)
-    } catch (e) {
-      setRecommendError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setRecommendLoading(false)
-    }
+    await toggleRecommend()
   }
 
   const handleSubmit = async () => {
@@ -128,10 +106,34 @@ export function CommunityPostDetailPage() {
   }
 
   const recommendCount = recommend?.recommendCount ?? post?.recommendCount ?? 0
-  const isRecommended = recommend?.recommended ?? false
 
   return (
     <section className="mx-auto max-w-5xl rounded-2xl border border-border bg-card p-6 shadow-sm">
+      {isImageOpen && activeImageUrl ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="게시글 이미지 크게 보기"
+          onClick={() => {
+            setIsImageOpen(false)
+            setActiveImageUrl(null)
+          }}
+        >
+          <div
+            className="max-h-[85vh] max-w-[92vw] overflow-hidden rounded-2xl bg-background shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={activeImageUrl}
+              alt="게시글 이미지"
+              className="block max-h-[85vh] max-w-[92vw] object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link
@@ -266,11 +268,14 @@ export function CommunityPostDetailPage() {
           {post.imageUrls?.length ? (
             <div className="grid grid-cols-2 gap-3 border-b border-border p-5 sm:grid-cols-3">
               {post.imageUrls.map((url) => (
-                <a
+                <button
+                  type="button"
                   key={url}
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
+                  onClick={() => {
+                    setActiveImageUrl(url)
+                    setIsImageOpen(true)
+                  }}
+                  aria-label="이미지 크게 보기"
                   className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-secondary"
                 >
                   <img
@@ -280,7 +285,7 @@ export function CommunityPostDetailPage() {
                     loading="lazy"
                     referrerPolicy="no-referrer"
                   />
-                </a>
+                </button>
               ))}
             </div>
           ) : null}
