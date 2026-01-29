@@ -50,6 +50,10 @@ export async function updateCommunityPost(params: {
   return (await res.json()) as CommunityPostMutationResponse
 }
 
+export async function deleteCommunityPost(postId: number) {
+  await apiFetch(`/api/community/posts/${postId}`, { method: 'DELETE' })
+}
+
 export async function fetchCommunityPostRecommendStatus(
   postId: number,
   params?: { signal?: AbortSignal },

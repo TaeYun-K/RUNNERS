@@ -1,11 +1,20 @@
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Eye, Heart, MessageCircle, Pencil, RefreshCw } from 'lucide-react'
+import {
+  ArrowLeft,
+  Eye,
+  Heart,
+  MessageCircle,
+  Pencil,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react'
 import { useAuth } from '../../features/auth'
 import { useCommunityComments } from '../../features/community/comment'
 import { CommunityCommentItem } from '../../features/community/comment/components/CommunityCommentItem'
 import {
   COMMUNITY_BOARD_LABEL,
+  useDeleteCommunityPost,
   useCommunityPostDetail,
   useCommunityPostRecommend,
 } from '../../features/community/post'
@@ -49,6 +58,8 @@ export function CommunityPostDetailPage() {
     refresh: refreshRecommend,
     toggle: toggleRecommend,
   } = useCommunityPostRecommend(postId, Boolean(accessToken))
+  const { deleting, error: deleteError, remove: deletePost } =
+    useDeleteCommunityPost()
 
   if (postId == null) return <NotFoundPage />
 
@@ -83,6 +94,27 @@ export function CommunityPostDetailPage() {
       void refresh()
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  const handleDeletePost = async () => {
+    if (!accessToken) {
+      navigate('/login', {
+        replace: false,
+        state: { from: `${location.pathname}${location.search}${location.hash}` },
+      })
+      return
+    }
+    if (postId == null) return
+
+    const ok = window.confirm('정말로 이 게시글을 삭제할까요?')
+    if (!ok) return
+
+    try {
+      await deletePost(postId)
+      navigate('/community', { replace: true })
+    } catch {
+      // error is shown via deleteError
     }
   }
 
@@ -128,13 +160,24 @@ export function CommunityPostDetailPage() {
 
         <div className="flex items-center gap-2">
           {accessToken ? (
-            <Link
-              to={`/community/${postId}/edit`}
-              className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition hover:bg-secondary/60"
-            >
-              <Pencil className="h-4 w-4" />
-              수정
-            </Link>
+            <>
+              <Link
+                to={`/community/${postId}/edit`}
+                className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition hover:bg-secondary/60"
+              >
+                <Pencil className="h-4 w-4" />
+                수정
+              </Link>
+              <button
+                type="button"
+                onClick={handleDeletePost}
+                disabled={deleting}
+                className="inline-flex h-9 items-center gap-2 rounded-full border border-destructive/20 bg-background px-4 text-sm font-medium text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+                삭제
+              </button>
+            </>
           ) : null}
 
           <button
@@ -162,6 +205,12 @@ export function CommunityPostDetailPage() {
       {recommendError ? (
         <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {recommendError}
+        </div>
+      ) : null}
+
+      {deleteError ? (
+        <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {deleteError}
         </div>
       ) : null}
 
