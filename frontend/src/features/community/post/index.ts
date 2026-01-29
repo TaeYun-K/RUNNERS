@@ -4,6 +4,7 @@ export {
   fetchCommunityPostDetail,
   fetchCommunityPosts,
   fetchCommunityPostRecommendStatus,
+  updateCommunityPost,
   recommendCommunityPost,
   unrecommendCommunityPost,
 } from './api/posts'
@@ -24,3 +25,4 @@ export { useCommunityPostDetail } from './hooks/useCommunityPostDetail'
 export { useCommunityPostRecommend } from './hooks/useCommunityPostRecommend'
 export { useCommunityPosts } from './hooks/useCommunityPosts'
 export { useCreateCommunityPost } from './hooks/useCreateCommunityPost'
+export { useUpdateCommunityPost } from './hooks/useUpdateCommunityPost'

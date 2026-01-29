@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Eye, Heart, MessageCircle, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Eye, Heart, MessageCircle, Pencil, RefreshCw } from 'lucide-react'
 import { useAuth } from '../../features/auth'
 import { useCommunityComments } from '../../features/community/comment'
 import { CommunityCommentItem } from '../../features/community/comment/components/CommunityCommentItem'
@@ -10,6 +10,7 @@ import {
   useCommunityPostRecommend,
 } from '../../features/community/post'
 import { formatRelativeTime } from '../../features/community/shared'
+import { useLightbox } from '../../shared/hooks/useLightbox'
 import { NotFoundPage } from '../Error/NotFoundPage'
 
 export function CommunityPostDetailPage() {
@@ -38,8 +39,7 @@ export function CommunityPostDetailPage() {
   const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<number | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [isImageOpen, setIsImageOpen] = useState(false)
-  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null)
+  const imageLightbox = useLightbox({ resetDeps: [postId] })
 
   const {
     recommend,
@@ -49,25 +49,6 @@ export function CommunityPostDetailPage() {
     refresh: refreshRecommend,
     toggle: toggleRecommend,
   } = useCommunityPostRecommend(postId, Boolean(accessToken))
-
-  useEffect(() => {
-    if (!isImageOpen) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsImageOpen(false)
-        setActiveImageUrl(null)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isImageOpen])
-
-  useEffect(() => {
-    setIsImageOpen(false)
-    setActiveImageUrl(null)
-  }, [postId])
 
   if (postId == null) return <NotFoundPage />
 
@@ -109,23 +90,20 @@ export function CommunityPostDetailPage() {
 
   return (
     <section className="mx-auto max-w-5xl rounded-2xl border border-border bg-card p-6 shadow-sm">
-      {isImageOpen && activeImageUrl ? (
+      {imageLightbox.isOpen && imageLightbox.url ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="게시글 이미지 크게 보기"
-          onClick={() => {
-            setIsImageOpen(false)
-            setActiveImageUrl(null)
-          }}
+          onClick={imageLightbox.close}
         >
           <div
             className="max-h-[85vh] max-w-[92vw] overflow-hidden rounded-2xl bg-background shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={activeImageUrl}
+              src={imageLightbox.url}
               alt="게시글 이미지"
               className="block max-h-[85vh] max-w-[92vw] object-contain"
               referrerPolicy="no-referrer"
@@ -148,19 +126,31 @@ export function CommunityPostDetailPage() {
           </h2>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            void refresh()
-            void refreshRecommend()
-          }}
-          className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition hover:bg-secondary/60 disabled:opacity-60"
-          disabled={loading}
-          aria-label="새로고침"
-        >
-          <RefreshCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-          새로고침
-        </button>
+        <div className="flex items-center gap-2">
+          {accessToken ? (
+            <Link
+              to={`/community/${postId}/edit`}
+              className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition hover:bg-secondary/60"
+            >
+              <Pencil className="h-4 w-4" />
+              수정
+            </Link>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => {
+              void refresh()
+              void refreshRecommend()
+            }}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition hover:bg-secondary/60 disabled:opacity-60"
+            disabled={loading}
+            aria-label="새로고침"
+          >
+            <RefreshCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+            새로고침
+          </button>
+        </div>
       </div>
 
       {error ? (
@@ -272,8 +262,7 @@ export function CommunityPostDetailPage() {
                   type="button"
                   key={url}
                   onClick={() => {
-                    setActiveImageUrl(url)
-                    setIsImageOpen(true)
+                    imageLightbox.open(url)
                   }}
                   aria-label="이미지 크게 보기"
                   className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-secondary"

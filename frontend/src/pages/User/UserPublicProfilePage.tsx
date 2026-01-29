@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, RefreshCw, Route, Timer, TrendingUp, User } from 'lucide-react'
 import { useUserPublicProfile } from '../../features/MyPage/hooks/useUserPublicProfile'
+import { useLightbox } from '../../shared/hooks/useLightbox'
 import { NotFoundPage } from '../Error/NotFoundPage'
 
 function formatMinutes(totalMinutes: number) {
@@ -29,20 +30,9 @@ export function UserPublicProfilePage() {
   }, [params.userId])
 
   const { profile, error, loading, refresh, derived } = useUserPublicProfile(userId)
-  const [isProfileImageOpen, setIsProfileImageOpen] = useState(false)
+  const profileImageLightbox = useLightbox()
 
   if (userId == null) return <NotFoundPage />
-
-  useEffect(() => {
-    if (!isProfileImageOpen) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsProfileImageOpen(false)
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isProfileImageOpen])
 
   const initials = (() => {
     const base = (profile?.displayName ?? '').trim()
@@ -51,20 +41,20 @@ export function UserPublicProfilePage() {
 
   return (
     <section className="mx-auto max-w-5xl rounded-2xl border border-border bg-card p-6 shadow-sm">
-      {isProfileImageOpen && profile?.picture ? (
+      {profileImageLightbox.isOpen && profileImageLightbox.url ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="프로필 이미지 크게 보기"
-          onClick={() => setIsProfileImageOpen(false)}
+          onClick={profileImageLightbox.close}
         >
           <div
             className="max-h-[85vh] max-w-[92vw] overflow-hidden rounded-2xl bg-background shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={profile.picture}
+              src={profileImageLightbox.url}
               alt="프로필"
               className="block max-h-[85vh] max-w-[92vw] object-contain"
               referrerPolicy="no-referrer"
@@ -113,7 +103,9 @@ export function UserPublicProfilePage() {
               {profile?.picture ? (
                 <button
                   type="button"
-                  onClick={() => setIsProfileImageOpen(true)}
+                  onClick={() => {
+                    if (profile?.picture) profileImageLightbox.open(profile.picture)
+                  }}
                   className="rounded-2xl"
                   aria-label="프로필 이미지 크게 보기"
                 >
