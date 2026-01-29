@@ -20,6 +20,7 @@ import {
 } from '../../features/community/post'
 import { formatRelativeTime } from '../../features/community/shared'
 import { useLightbox } from '../../shared/hooks/useLightbox'
+import { useMyUserId } from '../../shared/hooks/useMyUserId'
 import { NotFoundPage } from '../Error/NotFoundPage'
 
 export function CommunityPostDetailPage() {
@@ -60,6 +61,7 @@ export function CommunityPostDetailPage() {
   } = useCommunityPostRecommend(postId, Boolean(accessToken))
   const { deleting, error: deleteError, remove: deletePost } =
     useDeleteCommunityPost()
+  const { userId: myUserId } = useMyUserId(Boolean(accessToken))
 
   if (postId == null) return <NotFoundPage />
 
@@ -106,6 +108,7 @@ export function CommunityPostDetailPage() {
       return
     }
     if (postId == null) return
+    if (post?.authorId !== myUserId) return
 
     const ok = window.confirm('정말로 이 게시글을 삭제할까요?')
     if (!ok) return
@@ -119,6 +122,7 @@ export function CommunityPostDetailPage() {
   }
 
   const recommendCount = recommend?.recommendCount ?? post?.recommendCount ?? 0
+  const canManagePost = Boolean(accessToken) && post?.authorId === myUserId
 
   return (
     <section className="mx-auto max-w-5xl rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -159,7 +163,7 @@ export function CommunityPostDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {accessToken ? (
+          {canManagePost ? (
             <>
               <Link
                 to={`/community/${postId}/edit`}
