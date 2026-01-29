@@ -34,3 +34,9 @@ export type CreateCommunityCommentRequest = {
   parentId?: number | null
 }
 
+export type CommunityCommentRecommendResponse = {
+  postId: number
+  commentId: number
+  recommended: boolean
+  recommendCount: number
+}

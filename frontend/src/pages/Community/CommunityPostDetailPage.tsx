@@ -1,18 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Eye, Heart, MessageCircle, RefreshCw } from 'lucide-react'
+import {
+  ArrowLeft,
+  Eye,
+  Heart,
+  MessageCircle,
+  Pencil,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react'
 import { useAuth } from '../../features/auth'
 import { useCommunityComments } from '../../features/community/comment'
 import { CommunityCommentItem } from '../../features/community/comment/components/CommunityCommentItem'
 import {
   COMMUNITY_BOARD_LABEL,
-  fetchCommunityPostRecommendStatus,
-  recommendCommunityPost,
-  type CommunityPostRecommendResponse,
-  unrecommendCommunityPost,
+  useDeleteCommunityPost,
   useCommunityPostDetail,
+  useCommunityPostRecommend,
 } from '../../features/community/post'
 import { formatRelativeTime } from '../../features/community/shared'
+import { useLightbox } from '../../shared/hooks/useLightbox'
+import { useMyUserId } from '../../shared/hooks/useMyUserId'
 import { NotFoundPage } from '../Error/NotFoundPage'
 
 export function CommunityPostDetailPage() {
@@ -41,43 +49,19 @@ export function CommunityPostDetailPage() {
   const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<number | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [recommend, setRecommend] = useState<CommunityPostRecommendResponse | null>(
-    null,
-  )
-  const [recommendLoading, setRecommendLoading] = useState(false)
-  const [recommendError, setRecommendError] = useState<string | null>(null)
+  const imageLightbox = useLightbox({ resetDeps: [postId] })
 
-  const refreshRecommend = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!accessToken || postId == null) {
-        setRecommend(null)
-        setRecommendError(null)
-        setRecommendLoading(false)
-        return
-      }
-
-      setRecommendError(null)
-      setRecommendLoading(true)
-      try {
-        const json = await fetchCommunityPostRecommendStatus(postId, { signal })
-        if (signal?.aborted) return
-        setRecommend(json)
-      } catch (e) {
-        if (!signal?.aborted) {
-          setRecommendError(e instanceof Error ? e.message : String(e))
-        }
-      } finally {
-        if (!signal?.aborted) setRecommendLoading(false)
-      }
-    },
-    [accessToken, postId],
-  )
-
-  useEffect(() => {
-    const controller = new AbortController()
-    void refreshRecommend(controller.signal)
-    return () => controller.abort()
-  }, [refreshRecommend])
+  const {
+    recommend,
+    isRecommended,
+    loading: recommendLoading,
+    error: recommendError,
+    refresh: refreshRecommend,
+    toggle: toggleRecommend,
+  } = useCommunityPostRecommend(postId, Boolean(accessToken))
+  const { deleting, error: deleteError, remove: deletePost } =
+    useDeleteCommunityPost()
+  const { userId: myUserId } = useMyUserId(Boolean(accessToken))
 
   if (postId == null) return <NotFoundPage />
 
@@ -90,19 +74,7 @@ export function CommunityPostDetailPage() {
       return
     }
 
-    setRecommendError(null)
-    setRecommendLoading(true)
-    try {
-      const isRecommended = recommend?.recommended ?? false
-      const json = isRecommended
-        ? await unrecommendCommunityPost(postId)
-        : await recommendCommunityPost(postId)
-      setRecommend(json)
-    } catch (e) {
-      setRecommendError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setRecommendLoading(false)
-    }
+    await toggleRecommend()
   }
 
   const handleSubmit = async () => {
@@ -127,11 +99,55 @@ export function CommunityPostDetailPage() {
     }
   }
 
+  const handleDeletePost = async () => {
+    if (!accessToken) {
+      navigate('/login', {
+        replace: false,
+        state: { from: `${location.pathname}${location.search}${location.hash}` },
+      })
+      return
+    }
+    if (postId == null) return
+    if (post?.authorId !== myUserId) return
+
+    const ok = window.confirm('정말로 이 게시글을 삭제할까요?')
+    if (!ok) return
+
+    try {
+      await deletePost(postId)
+      navigate('/community', { replace: true })
+    } catch {
+      // error is shown via deleteError
+    }
+  }
+
   const recommendCount = recommend?.recommendCount ?? post?.recommendCount ?? 0
-  const isRecommended = recommend?.recommended ?? false
+  const canManagePost = Boolean(accessToken) && post?.authorId === myUserId
 
   return (
     <section className="mx-auto max-w-5xl rounded-2xl border border-border bg-card p-6 shadow-sm">
+      {imageLightbox.isOpen && imageLightbox.url ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="게시글 이미지 크게 보기"
+          onClick={imageLightbox.close}
+        >
+          <div
+            className="max-h-[85vh] max-w-[92vw] overflow-hidden rounded-2xl bg-background shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={imageLightbox.url}
+              alt="게시글 이미지"
+              className="block max-h-[85vh] max-w-[92vw] object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link
@@ -146,19 +162,42 @@ export function CommunityPostDetailPage() {
           </h2>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            void refresh()
-            void refreshRecommend()
-          }}
-          className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition hover:bg-secondary/60 disabled:opacity-60"
-          disabled={loading}
-          aria-label="새로고침"
-        >
-          <RefreshCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-          새로고침
-        </button>
+        <div className="flex items-center gap-2">
+          {canManagePost ? (
+            <>
+              <Link
+                to={`/community/${postId}/edit`}
+                className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition hover:bg-secondary/60"
+              >
+                <Pencil className="h-4 w-4" />
+                수정
+              </Link>
+              <button
+                type="button"
+                onClick={handleDeletePost}
+                disabled={deleting}
+                className="inline-flex h-9 items-center gap-2 rounded-full border border-destructive/20 bg-background px-4 text-sm font-medium text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+                삭제
+              </button>
+            </>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => {
+              void refresh()
+              void refreshRecommend()
+            }}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition hover:bg-secondary/60 disabled:opacity-60"
+            disabled={loading}
+            aria-label="새로고침"
+          >
+            <RefreshCw className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+            새로고침
+          </button>
+        </div>
       </div>
 
       {error ? (
@@ -170,6 +209,12 @@ export function CommunityPostDetailPage() {
       {recommendError ? (
         <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {recommendError}
+        </div>
+      ) : null}
+
+      {deleteError ? (
+        <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {deleteError}
         </div>
       ) : null}
 
@@ -266,11 +311,13 @@ export function CommunityPostDetailPage() {
           {post.imageUrls?.length ? (
             <div className="grid grid-cols-2 gap-3 border-b border-border p-5 sm:grid-cols-3">
               {post.imageUrls.map((url) => (
-                <a
+                <button
+                  type="button"
                   key={url}
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
+                  onClick={() => {
+                    imageLightbox.open(url)
+                  }}
+                  aria-label="이미지 크게 보기"
                   className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-secondary"
                 >
                   <img
@@ -280,7 +327,7 @@ export function CommunityPostDetailPage() {
                     loading="lazy"
                     referrerPolicy="no-referrer"
                   />
-                </a>
+                </button>
               ))}
             </div>
           ) : null}

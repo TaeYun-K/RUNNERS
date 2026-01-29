@@ -26,6 +26,14 @@ export default function AppRouter() {
             </RequireAuth>
           }
         />
+        <Route
+          path="community/:postId/edit"
+          element={
+            <RequireAuth>
+              <CommunityPostWritePage />
+            </RequireAuth>
+          }
+        />
         <Route path="community/:postId" element={<CommunityPostDetailPage />} />
         <Route path="users/:userId" element={<UserPublicProfilePage />} />
         <Route

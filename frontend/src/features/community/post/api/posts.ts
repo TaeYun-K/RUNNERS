@@ -38,6 +38,22 @@ export async function createCommunityPost(params: {
   return (await res.json()) as CommunityPostMutationResponse
 }
 
+export async function updateCommunityPost(params: {
+  postId: number
+  body: CreateCommunityPostRequest
+}) {
+  const res = await apiFetch(`/api/community/posts/${params.postId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params.body),
+  })
+  return (await res.json()) as CommunityPostMutationResponse
+}
+
+export async function deleteCommunityPost(postId: number) {
+  await apiFetch(`/api/community/posts/${postId}`, { method: 'DELETE' })
+}
+
 export async function fetchCommunityPostRecommendStatus(
   postId: number,
   params?: { signal?: AbortSignal },
