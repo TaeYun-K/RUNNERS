@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { useMyProfile } from '../../features/MyPage/hooks/useMyProfile'
 import { useTransientMessage } from '../../features/MyPage/hooks/useTransientMessage'
+import { useLightbox } from '../../shared/hooks/useLightbox'
 import {
   AlertCircle,
   Camera,
@@ -28,6 +29,7 @@ export function ProfilePage() {
   } = useMyProfile()
   const { message: successMessage, show: showSuccess, clear: clearSuccess } =
     useTransientMessage(3000)
+  const profileImageLightbox = useLightbox({ resetDeps: [profile?.picture] })
 
   const [isEditing, setIsEditing] = useState(false)
   const [dirty, setDirty] = useState(false)
@@ -50,6 +52,28 @@ export function ProfilePage() {
   return (
     <section className="mx-auto max-w-2xl">
       <div className="rounded-2xl border border-border bg-card">
+        {profileImageLightbox.isOpen && profileImageLightbox.url ? (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="프로필 이미지 크게 보기"
+            onClick={profileImageLightbox.close}
+          >
+            <div
+              className="max-h-[85vh] max-w-[92vw] overflow-hidden rounded-2xl bg-background shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={profileImageLightbox.url}
+                alt="프로필"
+                className="block max-h-[85vh] max-w-[92vw] object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </div>
+        ) : null}
+
         {/* Header */}
         <div className="border-b border-border px-6 py-5">
           <h1 className="text-xl font-bold tracking-tight text-foreground">프로필</h1>
@@ -85,12 +109,21 @@ export function ProfilePage() {
               <div className="flex items-start gap-5">
                 <div className="relative">
                   {profile?.picture ? (
-                    <img
-                      src={profile.picture || "/placeholder.svg"}
-                      alt="프로필"
-                      className="h-20 w-20 rounded-xl object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (profile?.picture) profileImageLightbox.open(profile.picture)
+                      }}
+                      className="rounded-xl"
+                      aria-label="프로필 이미지 크게 보기"
+                    >
+                      <img
+                        src={profile.picture}
+                        alt="프로필"
+                        className="h-20 w-20 rounded-xl object-cover transition hover:opacity-90"
+                        referrerPolicy="no-referrer"
+                      />
+                    </button>
                   ) : (
                     <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-secondary text-xl font-bold text-muted-foreground">
                       {initials}
