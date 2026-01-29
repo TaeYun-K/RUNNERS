@@ -1,4 +1,5 @@
 import { getAccessToken, setAccessToken } from '../auth/token'
+import { logout } from '../auth/logout'
 
 type ApiFetchOptions = Omit<RequestInit, 'headers'> & {
   headers?: Record<string, string>
@@ -24,9 +25,18 @@ async function refreshAccessToken() {
     credentials: 'include',
   })
 
-  if (!res.ok) return null
+  if (!res.ok) {
+    const message = await parseErrorMessage(res)
+    if (res.status === 401 || res.status === 403) {
+      logout('session_expired')
+    }
+    throw new Error(message)
+  }
   const json = (await res.json()) as { accessToken?: string }
-  if (!json.accessToken) return null
+  if (!json.accessToken) {
+    logout('session_expired')
+    throw new Error('Missing access token')
+  }
   setAccessToken(json.accessToken)
   return json.accessToken
 }
@@ -48,7 +58,6 @@ export async function apiFetch(input: string, init: ApiFetchOptions = {}) {
   }
 
   const newToken = await refreshAccessToken()
-  if (!newToken) throw new Error(await parseErrorMessage(res))
 
   const retryHeaders: Record<string, string> = { ...(init.headers ?? {}) }
   retryHeaders.Authorization = `Bearer ${newToken}`
@@ -59,7 +68,11 @@ export async function apiFetch(input: string, init: ApiFetchOptions = {}) {
     credentials: 'include',
   })
 
-  if (!retry.ok) throw new Error(await parseErrorMessage(retry))
+  if (!retry.ok) {
+    if (retry.status === 401 || retry.status === 403) {
+      logout('session_expired')
+    }
+    throw new Error(await parseErrorMessage(retry))
+  }
   return retry
 }
-

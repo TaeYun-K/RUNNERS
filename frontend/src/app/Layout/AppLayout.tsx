@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../features/auth'
+import { logout } from '../../shared/auth/logout'
 
 const navLinkBase =
   'inline-flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors ' +
@@ -19,14 +20,12 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   ].join(' ')
 
 export default function AppLayout() {
-  const { accessToken, clearAccessToken } = useAuth()
+  const { accessToken } = useAuth()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
-    clearAccessToken()
-    alert('로그아웃되었습니다.')
-    navigate('/')
+    logout('user_logout')
   }
 
   const navItems = [
