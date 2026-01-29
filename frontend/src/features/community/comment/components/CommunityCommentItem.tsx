@@ -1,7 +1,15 @@
-import { Link } from 'react-router-dom'
-import { MessageCircle } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Heart, MessageCircle } from 'lucide-react'
+import { useAuth } from '../../../auth'
 import type { CommunityComment } from '../types'
 import { formatRelativeTime } from '../../shared/formatRelativeTime'
+import {
+  fetchCommunityCommentRecommendStatus,
+  recommendCommunityComment,
+  unrecommendCommunityComment,
+} from '../api/comments'
+import type { CommunityCommentRecommendResponse } from '../types'
 
 export function CommunityCommentItem(props: {
   comment: CommunityComment
@@ -9,6 +17,77 @@ export function CommunityCommentItem(props: {
 }) {
   const { comment, onReply } = props
   const isReply = comment.parentId != null
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { accessToken } = useAuth()
+
+  const [recommend, setRecommend] =
+    useState<CommunityCommentRecommendResponse | null>(null)
+  const [recommendLoading, setRecommendLoading] = useState(false)
+  const [recommendError, setRecommendError] = useState<string | null>(null)
+
+  const refreshRecommend = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!accessToken) {
+        setRecommend(null)
+        setRecommendError(null)
+        setRecommendLoading(false)
+        return
+      }
+
+      setRecommendError(null)
+      setRecommendLoading(true)
+      try {
+        const json = await fetchCommunityCommentRecommendStatus(
+          comment.postId,
+          comment.commentId,
+          { signal },
+        )
+        if (signal?.aborted) return
+        setRecommend(json)
+      } catch (e) {
+        if (!signal?.aborted) {
+          setRecommendError(e instanceof Error ? e.message : String(e))
+        }
+      } finally {
+        if (!signal?.aborted) setRecommendLoading(false)
+      }
+    },
+    [accessToken, comment.commentId, comment.postId],
+  )
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void refreshRecommend(controller.signal)
+    return () => controller.abort()
+  }, [refreshRecommend])
+
+  const recommendCount =
+    recommend?.recommendCount ?? (comment.recommendCount ?? 0)
+  const isRecommended = recommend?.recommended ?? false
+
+  const handleToggleRecommend = async () => {
+    if (!accessToken) {
+      navigate('/login', {
+        replace: false,
+        state: { from: `${location.pathname}${location.search}${location.hash}` },
+      })
+      return
+    }
+
+    setRecommendError(null)
+    setRecommendLoading(true)
+    try {
+      const json = isRecommended
+        ? await unrecommendCommunityComment(comment.postId, comment.commentId)
+        : await recommendCommunityComment(comment.postId, comment.commentId)
+      setRecommend(json)
+    } catch (e) {
+      setRecommendError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setRecommendLoading(false)
+    }
+  }
 
   return (
     <div
@@ -42,21 +121,51 @@ export function CommunityCommentItem(props: {
           </div>
         </Link>
 
-        {onReply ? (
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => onReply(comment.commentId)}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-3 text-xs font-semibold text-foreground transition hover:bg-secondary/60"
+            onClick={handleToggleRecommend}
+            disabled={recommendLoading}
+            aria-pressed={isRecommended}
+            aria-label={isRecommended ? '댓글 추천 취소' : '댓글 추천'}
+            className={
+              isRecommended
+                ? 'inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary/40 px-3 text-xs font-semibold text-rose-600 transition hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-60'
+                : 'inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-3 text-xs font-semibold text-foreground transition hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-60'
+            }
           >
-            <MessageCircle className="h-3.5 w-3.5" />
-            답글
+            <Heart
+              className={
+                isRecommended
+                  ? 'h-3.5 w-3.5 fill-rose-600 text-rose-600'
+                  : 'h-3.5 w-3.5'
+              }
+            />
+            {recommendCount}
           </button>
-        ) : null}
+
+          {onReply ? (
+            <button
+              type="button"
+              onClick={() => onReply(comment.commentId)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-3 text-xs font-semibold text-foreground transition hover:bg-secondary/60"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              답글
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
         {comment.content}
       </p>
+
+      {recommendError ? (
+        <div className="mt-3 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {recommendError}
+        </div>
+      ) : null}
     </div>
   )
 }

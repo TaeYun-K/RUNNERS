@@ -2,6 +2,7 @@ import { apiFetch } from '../../../../shared/api/apiFetch'
 import type {
   CommunityCommentCursorListResponse,
   CommunityCommentMutationResponse,
+  CommunityCommentRecommendResponse,
   CreateCommunityCommentRequest,
 } from '../types'
 
@@ -32,3 +33,38 @@ export async function createCommunityComment(params: {
   return (await res.json()) as CommunityCommentMutationResponse
 }
 
+export async function fetchCommunityCommentRecommendStatus(
+  postId: number,
+  commentId: number,
+  params?: { signal?: AbortSignal },
+) {
+  const res = await apiFetch(
+    `/api/community/posts/${postId}/comments/${commentId}/recommend`,
+    { signal: params?.signal },
+  )
+  return (await res.json()) as CommunityCommentRecommendResponse
+}
+
+export async function recommendCommunityComment(
+  postId: number,
+  commentId: number,
+  params?: { signal?: AbortSignal },
+) {
+  const res = await apiFetch(
+    `/api/community/posts/${postId}/comments/${commentId}/recommend`,
+    { method: 'PUT', signal: params?.signal },
+  )
+  return (await res.json()) as CommunityCommentRecommendResponse
+}
+
+export async function unrecommendCommunityComment(
+  postId: number,
+  commentId: number,
+  params?: { signal?: AbortSignal },
+) {
+  const res = await apiFetch(
+    `/api/community/posts/${postId}/comments/${commentId}/recommend`,
+    { method: 'DELETE', signal: params?.signal },
+  )
+  return (await res.json()) as CommunityCommentRecommendResponse
+}
