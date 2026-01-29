@@ -60,3 +60,9 @@ export type CommunityPostMutationResponse = {
   createdAt: string
   imageUrls: string[]
 }
+
+export type CommunityPostRecommendResponse = {
+  postId: number
+  recommended: boolean
+  recommendCount: number
+}

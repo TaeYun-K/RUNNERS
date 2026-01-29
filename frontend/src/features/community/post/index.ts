@@ -3,6 +3,9 @@ export {
   createCommunityPost,
   fetchCommunityPostDetail,
   fetchCommunityPosts,
+  fetchCommunityPostRecommendStatus,
+  recommendCommunityPost,
+  unrecommendCommunityPost,
 } from './api/posts'
 export {
   presignCommunityPostImageUploads,
@@ -13,6 +16,7 @@ export type {
   CommunityPostCursorListResponse,
   CommunityPostDetail,
   CommunityPostMutationResponse,
+  CommunityPostRecommendResponse,
   CommunityPostSummary,
   CreateCommunityPostRequest,
 } from './types'

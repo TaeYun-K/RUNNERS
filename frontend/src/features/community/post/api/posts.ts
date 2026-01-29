@@ -4,6 +4,7 @@ import type {
   CommunityPostCursorListResponse,
   CommunityPostDetail,
   CommunityPostMutationResponse,
+  CommunityPostRecommendResponse,
   CreateCommunityPostRequest,
 } from '../types'
 
@@ -35,4 +36,36 @@ export async function createCommunityPost(params: {
     body: JSON.stringify(params.body),
   })
   return (await res.json()) as CommunityPostMutationResponse
+}
+
+export async function fetchCommunityPostRecommendStatus(
+  postId: number,
+  params?: { signal?: AbortSignal },
+) {
+  const res = await apiFetch(`/api/community/posts/${postId}/recommend`, {
+    signal: params?.signal,
+  })
+  return (await res.json()) as CommunityPostRecommendResponse
+}
+
+export async function recommendCommunityPost(
+  postId: number,
+  params?: { signal?: AbortSignal },
+) {
+  const res = await apiFetch(`/api/community/posts/${postId}/recommend`, {
+    method: 'PUT',
+    signal: params?.signal,
+  })
+  return (await res.json()) as CommunityPostRecommendResponse
+}
+
+export async function unrecommendCommunityPost(
+  postId: number,
+  params?: { signal?: AbortSignal },
+) {
+  const res = await apiFetch(`/api/community/posts/${postId}/recommend`, {
+    method: 'DELETE',
+    signal: params?.signal,
+  })
+  return (await res.json()) as CommunityPostRecommendResponse
 }

@@ -1,10 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Eye, Heart, MessageCircle, RefreshCw } from 'lucide-react'
 import { useAuth } from '../../features/auth'
 import { useCommunityComments } from '../../features/community/comment'
 import { CommunityCommentItem } from '../../features/community/comment/components/CommunityCommentItem'
-import { COMMUNITY_BOARD_LABEL, useCommunityPostDetail } from '../../features/community/post'
+import {
+  COMMUNITY_BOARD_LABEL,
+  fetchCommunityPostRecommendStatus,
+  recommendCommunityPost,
+  type CommunityPostRecommendResponse,
+  unrecommendCommunityPost,
+  useCommunityPostDetail,
+} from '../../features/community/post'
 import { formatRelativeTime } from '../../features/community/shared'
 import { NotFoundPage } from '../Error/NotFoundPage'
 
@@ -34,8 +41,69 @@ export function CommunityPostDetailPage() {
   const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<number | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [recommend, setRecommend] = useState<CommunityPostRecommendResponse | null>(
+    null,
+  )
+  const [recommendLoading, setRecommendLoading] = useState(false)
+  const [recommendError, setRecommendError] = useState<string | null>(null)
+
+  const refreshRecommend = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!accessToken || postId == null) {
+        setRecommend(null)
+        setRecommendError(null)
+        setRecommendLoading(false)
+        return
+      }
+
+      setRecommendError(null)
+      setRecommendLoading(true)
+      try {
+        const json = await fetchCommunityPostRecommendStatus(postId, { signal })
+        if (signal?.aborted) return
+        setRecommend(json)
+      } catch (e) {
+        if (!signal?.aborted) {
+          setRecommendError(e instanceof Error ? e.message : String(e))
+        }
+      } finally {
+        if (!signal?.aborted) setRecommendLoading(false)
+      }
+    },
+    [accessToken, postId],
+  )
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void refreshRecommend(controller.signal)
+    return () => controller.abort()
+  }, [refreshRecommend])
 
   if (postId == null) return <NotFoundPage />
+
+  const handleToggleRecommend = async () => {
+    if (!accessToken) {
+      navigate('/login', {
+        replace: false,
+        state: { from: `${location.pathname}${location.search}${location.hash}` },
+      })
+      return
+    }
+
+    setRecommendError(null)
+    setRecommendLoading(true)
+    try {
+      const isRecommended = recommend?.recommended ?? false
+      const json = isRecommended
+        ? await unrecommendCommunityPost(postId)
+        : await recommendCommunityPost(postId)
+      setRecommend(json)
+    } catch (e) {
+      setRecommendError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setRecommendLoading(false)
+    }
+  }
 
   const handleSubmit = async () => {
     if (!accessToken) {
@@ -59,6 +127,9 @@ export function CommunityPostDetailPage() {
     }
   }
 
+  const recommendCount = recommend?.recommendCount ?? post?.recommendCount ?? 0
+  const isRecommended = recommend?.recommended ?? false
+
   return (
     <section className="mx-auto max-w-5xl rounded-2xl border border-border bg-card p-6 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -77,7 +148,10 @@ export function CommunityPostDetailPage() {
 
         <button
           type="button"
-          onClick={() => void refresh()}
+          onClick={() => {
+            void refresh()
+            void refreshRecommend()
+          }}
           className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition hover:bg-secondary/60 disabled:opacity-60"
           disabled={loading}
           aria-label="새로고침"
@@ -90,6 +164,12 @@ export function CommunityPostDetailPage() {
       {error ? (
         <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
+        </div>
+      ) : null}
+
+      {recommendError ? (
+        <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {recommendError}
         </div>
       ) : null}
 
@@ -150,10 +230,27 @@ export function CommunityPostDetailPage() {
               </Link>
 
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <Heart className="h-4 w-4" />
-                  {post.recommendCount}
-                </span>
+                <button
+                  type="button"
+                  onClick={handleToggleRecommend}
+                  disabled={recommendLoading}
+                  aria-pressed={isRecommended}
+                  aria-label={isRecommended ? '추천 취소' : '추천'}
+                  className={
+                    isRecommended
+                      ? 'inline-flex items-center gap-1.5 rounded-full bg-secondary/40 px-2 py-1 text-rose-600 transition hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-60'
+                      : 'inline-flex items-center gap-1.5 rounded-full bg-secondary/20 px-2 py-1 transition hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-60'
+                  }
+                >
+                  <Heart
+                    className={
+                      isRecommended
+                        ? 'h-4 w-4 fill-rose-600 text-rose-600'
+                        : 'h-4 w-4'
+                    }
+                  />
+                  {recommendCount}
+                </button>
                 <span className="inline-flex items-center gap-1.5">
                   <MessageCircle className="h-4 w-4" />
                   {post.commentCount}
