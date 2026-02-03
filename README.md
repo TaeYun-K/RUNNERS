@@ -2,7 +2,7 @@
 
 ## ![alt text](<image (4).png>)
 
-RUNNERS – 누적 km로 성장하는 러닝 커뮤니티
+RUNNERS – 누적 km로 성장하는 러닝 커뮤니티 <br>
 소개 사이트 : https://runners.io.kr/
 
 ## 서비스 개요 (MVP)
