@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -292,6 +293,7 @@ fun RunnersNavHost(
 
     val communityPostStatsUpdateKey = "community:post:statsUpdate"
     val communityPostDeletedKey = "community:post:deleted"
+    val communityPostEditedKey = "community:post:edited"
 
     NavHost(
         navController = navController,
@@ -373,26 +375,16 @@ fun RunnersNavHost(
             )
         }
         composable(AppRoute.Community.route) { entry ->
-            val statsUpdate =
-                entry.savedStateHandle
-                    .getStateFlow<CommunityPostStatsUpdate?>(communityPostStatsUpdateKey, null)
-                    .collectAsStateWithLifecycle()
-                    .value
-            val deletedPostId =
-                entry.savedStateHandle
-                    .getStateFlow<Long?>(communityPostDeletedKey, null)
-                    .collectAsStateWithLifecycle()
-                    .value
-
-            LaunchedEffect(statsUpdate) {
-                val update = statsUpdate ?: return@LaunchedEffect
+            ConsumeSavedStateHandleEvent(entry = entry, key = communityPostStatsUpdateKey) { update: CommunityPostStatsUpdate ->
                 communityViewModel.applyPostStatsUpdate(update)
-                entry.savedStateHandle[communityPostStatsUpdateKey] = null
             }
-            LaunchedEffect(deletedPostId) {
-                val deleted = deletedPostId ?: return@LaunchedEffect
+            ConsumeSavedStateHandleEvent(entry = entry, key = communityPostDeletedKey) { deleted: Long ->
                 communityViewModel.deletePost(deleted)
-                entry.savedStateHandle[communityPostDeletedKey] = null
+            }
+            ConsumeSavedStateHandleEvent(entry = entry, key = communityPostEditedKey) { edited: Long ->
+                if (edited > 0L) {
+                    communityViewModel.refresh()
+                }
             }
 
             CommunityScreen(
@@ -418,6 +410,12 @@ fun RunnersNavHost(
                 } else {
                     runCatching { CommunityPostBoardType.valueOf(raw) }.getOrNull()
                 }
+
+            ConsumeSavedStateHandleEvent(entry = entry, key = communityPostEditedKey) { edited: Long ->
+                if (edited > 0L) {
+                    communityViewModel.refresh()
+                }
+            }
 
             CommunityBoardScreen(
                 boardType = boardType,
@@ -473,6 +471,13 @@ fun RunnersNavHost(
                                 ),
                             )
                     }
+                    val edited = entry.savedStateHandle.get<Long?>(communityPostEditedKey)
+                    if (edited != null && edited > 0L) {
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set(communityPostEditedKey, edited)
+                        entry.savedStateHandle[communityPostEditedKey] = null
+                    }
                     navController.popBackStack()
                 },
                 onEdit = { navController.navigate(AppRoute.CommunityPostEdit.createRoute(postId)) },
@@ -502,6 +507,10 @@ fun RunnersNavHost(
             CommunityPostEditScreen(
                 postId = postId,
                 onBack = { navController.popBackStack() },
+                onEdited = {
+                    val current = detailEntry.savedStateHandle.get<Long?>(communityPostEditedKey) ?: 0L
+                    detailEntry.savedStateHandle[communityPostEditedKey] = current + 1L
+                },
                 currentUserId = session.userId,
                 viewModel = viewModel,
             )
@@ -513,5 +522,24 @@ fun RunnersNavHost(
                 onHealthConnectUpdated = { homeRefreshNonce += 1 },
             )
         }
+    }
+}
+
+@Composable
+private inline fun <reified T> ConsumeSavedStateHandleEvent(
+    entry: NavBackStackEntry,
+    key: String,
+    crossinline onEvent: (T) -> Unit,
+) {
+    val event =
+        entry.savedStateHandle
+            .getStateFlow<T?>(key, null)
+            .collectAsStateWithLifecycle()
+            .value
+
+    LaunchedEffect(event) {
+        val value = event ?: return@LaunchedEffect
+        onEvent(value)
+        entry.savedStateHandle[key] = null
     }
 }

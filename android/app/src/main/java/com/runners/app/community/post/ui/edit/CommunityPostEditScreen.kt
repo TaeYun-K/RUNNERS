@@ -68,6 +68,7 @@ import com.runners.app.network.CommunityPostBoardType
 fun CommunityPostEditScreen(
     postId: Long,
     onBack: () -> Unit,
+    onEdited: () -> Unit,
     currentUserId: Long,
     modifier: Modifier = Modifier,
     viewModel: CommunityPostDetailViewModel,
@@ -81,6 +82,7 @@ fun CommunityPostEditScreen(
     var boardTypeRaw by rememberSaveable(postId) { mutableStateOf(CommunityPostBoardType.FREE.name) }
     var initializedFromPost by rememberSaveable(postId) { mutableStateOf(false) }
     var submitRequested by remember { mutableStateOf(false) }
+    var submitHandled by rememberSaveable(postId) { mutableStateOf(false) }
     var existingImageKeys by rememberSaveable(postId) { mutableStateOf(emptyList<String>()) }
     var existingImageUrls by rememberSaveable(postId) { mutableStateOf(emptyList<String>()) }
     var newImageUris by rememberSaveable(postId) { mutableStateOf(emptyList<String>()) }
@@ -116,9 +118,11 @@ fun CommunityPostEditScreen(
     }
 
     LaunchedEffect(uiState.isUpdatingPost, uiState.updatePostErrorMessage) {
-        if (!submitRequested) return@LaunchedEffect
+        if (!submitRequested || submitHandled) return@LaunchedEffect
         if (uiState.isUpdatingPost) return@LaunchedEffect
         if (uiState.updatePostErrorMessage != null) return@LaunchedEffect
+        submitHandled = true
+        onEdited()
         onBack()
     }
 
