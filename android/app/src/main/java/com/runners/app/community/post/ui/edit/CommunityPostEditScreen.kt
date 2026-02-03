@@ -27,6 +27,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +61,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel
 import androidx.compose.foundation.shape.CircleShape
+import com.runners.app.network.CommunityPostBoardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,11 +78,14 @@ fun CommunityPostEditScreen(
 
     var title by rememberSaveable(postId) { mutableStateOf("") }
     var content by rememberSaveable(postId) { mutableStateOf("") }
+    var boardTypeRaw by rememberSaveable(postId) { mutableStateOf(CommunityPostBoardType.FREE.name) }
     var initializedFromPost by rememberSaveable(postId) { mutableStateOf(false) }
     var submitRequested by remember { mutableStateOf(false) }
     var existingImageKeys by rememberSaveable(postId) { mutableStateOf(emptyList<String>()) }
     var existingImageUrls by rememberSaveable(postId) { mutableStateOf(emptyList<String>()) }
     var newImageUris by rememberSaveable(postId) { mutableStateOf(emptyList<String>()) }
+
+    val selectedBoardType = remember(boardTypeRaw) { CommunityPostBoardType.from(boardTypeRaw) }
 
     val pickImagesLauncher =
         rememberLauncherForActivityResult(
@@ -92,10 +98,11 @@ fun CommunityPostEditScreen(
             newImageUris = merged.take(max.coerceAtLeast(0)).map { it.toString() }
         }
 
-    LaunchedEffect(post?.postId, post?.title, post?.content) {
+    LaunchedEffect(post?.postId, post?.title, post?.content, post?.boardType) {
         if (!initializedFromPost && post != null) {
             title = post.title
             content = post.content
+            boardTypeRaw = post.boardType.name
             existingImageKeys = post.imageKeys
             existingImageUrls = post.imageUrls
             initializedFromPost = true
@@ -162,6 +169,7 @@ fun CommunityPostEditScreen(
                             context = context,
                             title = title,
                             content = content,
+                            boardType = selectedBoardType,
                             existingImageKeys = existingImageKeys,
                             newImageUris = newImageUris.mapNotNull { runCatching { Uri.parse(it) }.getOrNull() },
                         )
@@ -234,6 +242,45 @@ fun CommunityPostEditScreen(
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "게시판",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Medium,
+                            )
+
+                            listOf(
+                                CommunityPostBoardType.FREE,
+                                CommunityPostBoardType.QNA,
+                                CommunityPostBoardType.INFO,
+                            ).forEach { type ->
+                                FilterChip(
+                                    selected = selectedBoardType == type,
+                                    onClick = { boardTypeRaw = type.name },
+                                    enabled = !uiState.isUpdatingPost,
+                                    label = { Text(type.labelKo) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        labelColor = MaterialTheme.colorScheme.onSurface,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it.take(200) },

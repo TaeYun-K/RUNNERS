@@ -46,12 +46,19 @@ class CommunityPostRepository {
             BackendCommunityApi.createPost(title = title, content = content, boardType = boardType, imageKeys = imageKeys)
         }
 
-    suspend fun updatePost(postId: Long, title: String, content: String, imageKeys: List<String>? = null): CreateCommunityPostResult =
+    suspend fun updatePost(
+        postId: Long,
+        title: String,
+        content: String,
+        boardType: CommunityPostBoardType? = null,
+        imageKeys: List<String>? = null,
+    ): CreateCommunityPostResult =
         withContext(Dispatchers.IO) {
             BackendCommunityApi.updatePost(
                 postId = postId,
                 title = title,
                 content = content,
+                boardType = boardType,
                 imageKeys = imageKeys,
             )
         }

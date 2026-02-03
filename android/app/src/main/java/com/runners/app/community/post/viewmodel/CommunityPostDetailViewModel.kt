@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.runners.app.community.comment.data.CommunityCommentRepository
 import com.runners.app.community.post.data.CommunityPostRepository
 import com.runners.app.community.post.state.CommunityPostDetailUiState
+import com.runners.app.network.CommunityPostBoardType
 import com.runners.app.network.PresignCommunityImageUploadFileRequest
 import com.runners.app.network.PresignedUploadClient
 import kotlinx.coroutines.Dispatchers
@@ -559,7 +560,14 @@ class CommunityPostDetailViewModel(
         }
     }
 
-    fun updatePost(context: Context, title: String, content: String, existingImageKeys: List<String>, newImageUris: List<Uri>) {
+    fun updatePost(
+        context: Context,
+        title: String,
+        content: String,
+        boardType: CommunityPostBoardType? = null,
+        existingImageKeys: List<String>,
+        newImageUris: List<Uri>,
+    ) {
         viewModelScope.launch {
             val state = _uiState.value
             if (state.isUpdatingPost) return@launch
@@ -584,6 +592,7 @@ class CommunityPostDetailViewModel(
                     postId = postId,
                     title = newTitle,
                     content = newContent,
+                    boardType = boardType,
                     imageKeys = mergedKeys,
                 )
             }.onSuccess { updated ->
@@ -592,6 +601,7 @@ class CommunityPostDetailViewModel(
                     it.copy(
                         postState = it.postState.copy(
                             post = it.postState.post?.copy(
+                                boardType = updated.boardType,
                                 title = updated.title,
                                 content = updated.content,
                                 updatedAt = updated.updatedAt ?: it.postState.post?.updatedAt,

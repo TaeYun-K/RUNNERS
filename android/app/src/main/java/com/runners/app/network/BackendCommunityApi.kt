@@ -437,7 +437,13 @@ object BackendCommunityApi {
         }
     }
 
-    fun updatePost(postId: Long, title: String, content: String, imageKeys: List<String>? = null): CreateCommunityPostResult {
+    fun updatePost(
+        postId: Long,
+        title: String,
+        content: String,
+        boardType: CommunityPostBoardType? = null,
+        imageKeys: List<String>? = null,
+    ): CreateCommunityPostResult {
         require(postId > 0) { "postId must be positive" }
 
         val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/$postId"
@@ -445,6 +451,11 @@ object BackendCommunityApi {
         val bodyJson = JSONObject()
             .put("title", title)
             .put("content", content)
+            .apply {
+                if (boardType != null) {
+                    put("boardType", boardType.name)
+                }
+            }
             .apply {
                 if (imageKeys != null) {
                     put("imageKeys", JSONArray(imageKeys))
@@ -469,6 +480,7 @@ object BackendCommunityApi {
             return CreateCommunityPostResult(
                 postId = json.getLong("postId"),
                 authorId = json.getLong("authorId"),
+                boardType = CommunityPostBoardType.from(json.optString("boardType")),
                 title = json.getString("title"),
                 content = json.getString("content"),
                 viewCount = json.optInt("viewCount", 0),
