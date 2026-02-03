@@ -90,6 +90,7 @@ dependencies {
     implementation("net.engawapg.lib:zoomable:1.6.2")
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.compose.ui.text)
+    implementation(libs.androidx.compose.ui)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
