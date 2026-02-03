@@ -1,6 +1,7 @@
 package com.runners.app.community.post.ui.create
 
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -8,12 +9,23 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,7 +71,7 @@ import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.network.CommunityPostBoardType
 import com.runners.app.settings.AppSettingsStore
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CommunityCreatePostScreen(
     authorNickname: String,
@@ -108,6 +120,12 @@ fun CommunityCreatePostScreen(
                 uiState.createContent.trim().isNotBlank() &&
                 !uiState.isCreating
 
+    val isSamsung = remember { Build.MANUFACTURER.equals("samsung", ignoreCase = true) }
+    val imeInsets =
+        if (isSamsung) WindowInsets.ime.exclude(WindowInsets.navigationBars) else WindowInsets.ime
+
+    val isKeyboardVisible = WindowInsets.isImeVisible
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -141,33 +159,38 @@ fun CommunityCreatePostScreen(
             )
         },
         bottomBar = {
-            Column(Modifier.fillMaxWidth()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Button(
-                    onClick = { viewModel.submitCreatePost(context) },
-                    enabled = canSubmit,
-                    modifier = Modifier
+            if (!isKeyboardVisible) {
+                Column(
+                    Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
-                        .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
                 ) {
-                    Text(
-                        text = if (uiState.isCreating) "작성 중..." else "게시글 등록",
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Button(
+                        onClick = { viewModel.submitCreatePost(context) },
+                        enabled = canSubmit,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    ) {
+                        Text(
+                            text = if (uiState.isCreating) "작성 중..." else "게시글 등록",
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
-        },
+        }
     ) { padding ->
         Column(
             modifier = Modifier
-                .padding(padding)
                 .fillMaxSize()
+                .windowInsetsPadding(imeInsets.only(WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
