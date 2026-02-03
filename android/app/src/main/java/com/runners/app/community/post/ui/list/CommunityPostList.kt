@@ -373,13 +373,6 @@ fun LatestPostsSection(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                text = "최신 글",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 posts.forEach { post ->
                     Row(
@@ -427,9 +420,10 @@ private fun postTitleAnnotated(
 
 private fun boardTypeColor(type: CommunityPostBoardType, colorScheme: ColorScheme): Color =
     when (type) {
-        CommunityPostBoardType.FREE -> colorScheme.primary
-        CommunityPostBoardType.QNA -> colorScheme.tertiary
-        CommunityPostBoardType.INFO -> colorScheme.secondary
+        CommunityPostBoardType.FREE -> Color(0xFF4A90E2)
+        CommunityPostBoardType.QNA -> Color(0xFFF5A623)
+        CommunityPostBoardType.INFO -> Color(0xFF27AE60)
+        null -> colorScheme.outline
     }
 
 @Composable
