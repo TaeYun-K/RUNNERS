@@ -67,6 +67,15 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
             Pageable pageable
     );
 
+    @Query("""
+            select count(p) from CommunityPost p
+            where p.author.id = :authorId and p.status = :status
+            """)
+    long countByAuthorIdAndStatus(
+            @Param("authorId") Long authorId,
+            @Param("status") CommunityContentStatus status
+    );
+
     @Query(
             value = """
             select p.id

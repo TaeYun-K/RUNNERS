@@ -62,4 +62,13 @@ public interface CommunityCommentRepository extends JpaRepository<CommunityComme
             @Param("cursorId") Long cursorId,
             Pageable pageable
     );
+
+    @Query("""
+            select count(distinct c.post.id) from CommunityComment c
+            where c.author.id = :authorId and c.status = :status
+            """)
+    long countDistinctPostIdsByAuthorIdAndStatus(
+            @Param("authorId") Long authorId,
+            @Param("status") CommunityContentStatus status
+    );
 }

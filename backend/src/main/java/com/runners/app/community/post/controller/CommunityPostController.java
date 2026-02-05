@@ -3,6 +3,7 @@ package com.runners.app.community.post.controller;
 import com.runners.app.community.post.dto.request.CreateCommunityPostRequest;
 import com.runners.app.community.post.dto.response.CommunityPostResponse;
 import com.runners.app.community.post.dto.response.CommunityPostDetailResponse;
+import com.runners.app.community.post.dto.response.CommunityPostCountResponse;
 import com.runners.app.community.post.dto.response.CommunityPostCursorListResponse;
 import com.runners.app.community.post.entity.CommunityPostBoardType;
 import com.runners.app.community.post.service.CommunityPostService;
@@ -69,6 +70,13 @@ public class CommunityPostController {
         communityPostService.deletePost(userId, postId);
     }
 
+    @Operation(summary = "내가 쓴 글 개수 조회", description = "JWT 인증 필수. 전체 개수 반환")
+    @GetMapping("/me/count")
+    public CommunityPostCountResponse countMyPosts(Authentication authentication) {
+        Long userId = SecurityUtils.extractUserId(authentication);
+        return communityPostService.countPostsByAuthor(userId);
+    }
+
     @Operation(summary = "내가 쓴 글 목록 조회", description = "JWT 인증 필수. 최신순 커서 기반(nextCursor를 다음 요청의 cursor로 전달)")
     @GetMapping("/me")
     public CommunityPostCursorListResponse listMyPosts(
@@ -78,6 +86,13 @@ public class CommunityPostController {
     ) {
         Long userId = SecurityUtils.extractUserId(authentication);
         return communityPostService.listPostsByAuthor(userId, cursor, size);
+    }
+
+    @Operation(summary = "내가 댓글 쓴 글 개수 조회", description = "JWT 인증 필수. 전체 개수 반환")
+    @GetMapping("/commented/count")
+    public CommunityPostCountResponse countPostsICommented(Authentication authentication) {
+        Long userId = SecurityUtils.extractUserId(authentication);
+        return communityPostService.countPostsCommentedByUser(userId);
     }
 
     @Operation(summary = "내가 댓글 쓴 글 목록 조회", description = "JWT 인증 필수. 댓글 단 시점 기준 최신순 커서 기반(nextCursor를 다음 요청의 cursor로 전달)")
