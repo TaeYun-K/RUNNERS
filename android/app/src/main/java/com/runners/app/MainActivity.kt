@@ -1,10 +1,14 @@
 package com.runners.app
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -18,7 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.PermissionController
 import com.runners.app.auth.LoginScreen
+import com.runners.app.healthconnect.HealthConnectRepository
 import com.runners.app.notification.NotificationConstants
 import com.runners.app.notification.NotificationTokenManager
 import com.runners.app.navigation.RunnersBottomBar
@@ -38,6 +45,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.runners.app.navigation.shouldShowBottomBar
 
 class MainActivity : ComponentActivity() {
+
+    private val requestNotificationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ -> }
+
+    private val requestHealthConnectPermission = registerForActivityResult(
+        PermissionController.createRequestPermissionResultContract()
+    ) { _ -> }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -59,6 +74,26 @@ class MainActivity : ComponentActivity() {
 				val navController = rememberNavController()
 				val navBackStackEntry by navController.currentBackStackEntryAsState()
 				val currentRoute = navBackStackEntry?.destination?.route
+
+				LaunchedEffect(Unit) {
+					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+						if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+							requestNotificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+						}
+					}
+					if (HealthConnectRepository.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE) {
+						val client = HealthConnectRepository.getClient(context)
+						val hasAll = withContext(Dispatchers.IO) {
+							HealthConnectRepository.hasAllPermissions(
+								client,
+								HealthConnectRepository.requestedPermissions,
+							)
+						}
+						if (!hasAll) {
+							requestHealthConnectPermission.launch(HealthConnectRepository.requestedPermissions)
+						}
+					}
+				}
 
 				LaunchedEffect(Unit) {
 					AuthTokenStore.load(context)
