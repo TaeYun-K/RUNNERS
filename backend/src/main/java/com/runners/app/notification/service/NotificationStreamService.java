@@ -88,7 +88,7 @@ public class NotificationStreamService {
      * Outbox에 저장 (별도 트랜잭션)
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    private void saveToOutbox(CommentCreatedEvent event) {
+    public void saveToOutbox(CommentCreatedEvent event) {
         try {
             String payload = objectMapper.writeValueAsString(event);
 
