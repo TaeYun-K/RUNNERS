@@ -6,6 +6,7 @@ import com.runners.app.community.post.entity.CommunityPostBoardType;
 import com.runners.app.community.post.entity.CommunityPostImage;
 import com.runners.app.community.post.entity.CommunityPostImageStatus;
 import com.runners.app.community.post.dto.request.CreateCommunityPostRequest;
+import com.runners.app.community.post.dto.response.CommunityPostCountResponse;
 import com.runners.app.community.post.dto.response.CommunityPostCursorListResponse;
 import com.runners.app.community.post.dto.response.CommunityPostResponse;
 import com.runners.app.community.post.dto.response.CommunityPostDetailResponse;
@@ -353,6 +354,18 @@ public class CommunityPostService {
                 .collect(Collectors.toList());
 
         return new CommunityPostCursorListResponse(posts, nextCursor);
+    }
+
+    @Transactional(readOnly = true)
+    public CommunityPostCountResponse countPostsByAuthor(Long userId) {
+        long count = communityPostRepository.countByAuthorIdAndStatus(userId, CommunityContentStatus.ACTIVE);
+        return new CommunityPostCountResponse(count);
+    }
+
+    @Transactional(readOnly = true)
+    public CommunityPostCountResponse countPostsCommentedByUser(Long userId) {
+        long count = communityCommentRepository.countDistinctPostIdsByAuthorIdAndStatus(userId, CommunityContentStatus.ACTIVE);
+        return new CommunityPostCountResponse(count);
     }
 
     @Transactional(readOnly = true)
