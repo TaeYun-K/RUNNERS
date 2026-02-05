@@ -71,4 +71,16 @@ public interface CommunityCommentRepository extends JpaRepository<CommunityComme
             @Param("authorId") Long authorId,
             @Param("status") CommunityContentStatus status
     );
+
+    @Query("""
+            select distinct c.author.id from CommunityComment c
+            where c.post.id = :postId
+              and c.status = :status
+              and (:excludeAuthorId is null or c.author.id != :excludeAuthorId)
+            """)
+    List<Long> findDistinctAuthorIdsByPostId(
+            @Param("postId") Long postId,
+            @Param("excludeAuthorId") Long excludeAuthorId,
+            @Param("status") CommunityContentStatus status
+    );
 }
