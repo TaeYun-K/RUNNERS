@@ -1,9 +1,13 @@
 package com.runners.app.community.comment.event;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * 댓글 생성 이벤트
  * 불변 객체로 필요한 ID 값만 포함하여 LAZY 로딩 문제를 방지합니다.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record CommentCreatedEvent(
         Long commentId,
         Long postId,
@@ -16,6 +20,7 @@ public record CommentCreatedEvent(
      * 대댓글 여부 확인
      * @return 부모 댓글이 있으면 true, 없으면 false
      */
+    @JsonIgnore
     public boolean isReply() {
         return parentCommentId != null;
     }
