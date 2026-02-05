@@ -12,11 +12,10 @@ import com.runners.app.community.comment.repository.CommunityCommentRepository;
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.community.post.repository.CommunityPostRepository;
 import com.runners.app.community.exception.CommunityDomainException;
+import com.runners.app.global.util.CursorUtils;
 import com.runners.app.user.repository.UserRepository;
 import com.runners.app.user.service.UserProfileImageResolver;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.context.ApplicationEventPublisher;
@@ -169,7 +168,7 @@ public class CommunityCommentService {
         findActivePostOrThrow(postId);
 
         int safeSize = Math.min(50, Math.max(1, size));
-        Cursor decodedCursor = decodeCursor(cursor);
+        CursorUtils.Cursor decodedCursor = CursorUtils.decodeCursor(cursor);
         int fetchSize = safeSize + 1;
 
         List<CommunityComment> fetched = communityCommentRepository.findForCursor(
@@ -205,7 +204,7 @@ public class CommunityCommentService {
         String nextCursor = null;
         if (hasNext && !pageItems.isEmpty()) {
             CommunityComment last = pageItems.get(pageItems.size() - 1);
-            nextCursor = encodeCursor(last.getCreatedAt(), last.getId());
+            nextCursor = CursorUtils.encodeCursor(last.getCreatedAt(), last.getId());
         }
 
         return new CommunityCommentCursorListResponse(comments, nextCursor);
@@ -279,26 +278,4 @@ public class CommunityCommentService {
         }
     }
 
-    private record Cursor(LocalDateTime createdAt, long id) {}
-
-    private Cursor decodeCursor(String cursor) {
-        if (cursor == null || cursor.isBlank() || "null".equalsIgnoreCase(cursor)) return null;
-
-        try {
-            String decoded = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8);
-            String[] parts = decoded.split("\\|", 2);
-            if (parts.length != 2) throw new IllegalArgumentException("Invalid cursor");
-            LocalDateTime createdAt = LocalDateTime.parse(parts[0]);
-            long id = Long.parseLong(parts[1]);
-            if (id <= 0) throw new IllegalArgumentException("Invalid cursor");
-            return new Cursor(createdAt, id);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid cursor");
-        }
-    }
-
-    private String encodeCursor(LocalDateTime createdAt, Long id) {
-        String raw = createdAt.toString() + "|" + id;
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
-    }
 }

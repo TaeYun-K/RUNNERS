@@ -1,24 +1,33 @@
 package com.runners.app.notification.service;
 
 import com.runners.app.community.comment.entity.CommunityComment;
+import com.runners.app.community.comment.event.CommentCreatedEvent;
 import com.runners.app.community.comment.repository.CommunityCommentRepository;
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.community.post.repository.CommunityPostRepository;
 import com.runners.app.global.status.CommunityContentStatus;
+import com.runners.app.global.util.CursorUtils;
+import com.runners.app.notification.dto.response.NotificationCursorListResponse;
+import com.runners.app.notification.dto.response.NotificationResponse;
+import com.runners.app.notification.dto.response.UnreadNotificationCountResponse;
 import com.runners.app.notification.entity.DeviceToken;
 import com.runners.app.notification.entity.Notification;
 import com.runners.app.notification.entity.NotificationType;
+import com.runners.app.notification.exception.NotificationDomainException;
 import com.runners.app.notification.repository.DeviceTokenRepository;
 import com.runners.app.notification.repository.NotificationRepository;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
+import com.runners.app.user.service.UserProfileImageResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +44,23 @@ public class NotificationService {
     private final CommunityPostRepository communityPostRepository;
     private final UserRepository userRepository;
     private final FcmService fcmService;
+    private final UserProfileImageResolver userProfileImageResolver;
+
+    /**
+     * Redis Stream에서 받은 이벤트 처리
+     * CommentCreatedEvent를 받아서 알림 발송
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void processEvent(CommentCreatedEvent event) {
+        sendCommentNotifications(
+                event.commentId(),
+                event.postId(),
+                event.postAuthorId(),
+                event.commentAuthorId(),
+                event.parentCommentId(),
+                event.parentCommentAuthorId()
+        );
+    }
 
     /**
      * 댓글 생성 시 알림 발송
@@ -262,7 +288,12 @@ public class NotificationService {
     public void markAsRead(Long userId, Long notificationId) {
         Notification notification = notificationRepository
                 .findByRecipientIdAndId(userId, notificationId)
-                .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
+                .orElseThrow(NotificationDomainException::notificationNotFound);
+
+        // 권한 확인: 자신의 알림만 읽을 수 있음
+        if (!notification.getRecipient().getId().equals(userId)) {
+            throw NotificationDomainException.noPermission();
+        }
 
         notification.markAsRead();
     }
@@ -272,15 +303,74 @@ public class NotificationService {
      */
     @Transactional
     public void markAllAsRead(Long userId) {
-        // 구현 필요: 사용자의 모든 안읽음 알림을 읽음 처리
-        // 일단 기본 구조만 제공
+        List<Notification> unreadNotifications = notificationRepository.findByRecipientIdForCursor(
+                userId, null, null, PageRequest.of(0, Integer.MAX_VALUE)
+        );
+        unreadNotifications.stream()
+                .filter(n -> !n.isRead())
+                .forEach(Notification::markAsRead);
+    }
+
+    /**
+     * 알림 목록 조회 (커서 기반 페이지네이션)
+     */
+    @Transactional(readOnly = true)
+    public NotificationCursorListResponse listNotifications(Long userId, String cursor, int size) {
+        CursorUtils.Cursor decodedCursor;
+        try {
+            decodedCursor = CursorUtils.decodeCursor(cursor);
+        } catch (IllegalArgumentException e) {
+            throw NotificationDomainException.notificationNotFound();
+        }
+
+        List<Notification> notifications = notificationRepository.findByRecipientIdForCursor(
+                userId,
+                decodedCursor != null ? decodedCursor.createdAt() : null,
+                decodedCursor != null ? decodedCursor.id() : null,
+                PageRequest.of(0, size + 1)  // hasNext 확인을 위해 +1
+        );
+
+        boolean hasNext = notifications.size() > size;
+        List<Notification> pageItems = hasNext 
+                ? notifications.subList(0, size) 
+                : notifications;
+
+        List<NotificationResponse> responses = pageItems.stream()
+                .map(this::toNotificationResponse)
+                .collect(Collectors.toList());
+
+        String nextCursor = null;
+        if (hasNext && !pageItems.isEmpty()) {
+            Notification last = pageItems.get(pageItems.size() - 1);
+            nextCursor = CursorUtils.encodeCursor(last.getCreatedAt(), last.getId());
+        }
+
+        return new NotificationCursorListResponse(responses, hasNext, nextCursor);
     }
 
     /**
      * 안읽음 알림 개수 조회
      */
     @Transactional(readOnly = true)
-    public long getUnreadCount(Long userId) {
-        return notificationRepository.countUnreadByRecipientId(userId);
+    public UnreadNotificationCountResponse getUnreadCount(Long userId) {
+        long count = notificationRepository.countUnreadByRecipientId(userId);
+        return new UnreadNotificationCountResponse(count);
     }
+
+    private NotificationResponse toNotificationResponse(Notification notification) {
+        User actor = notification.getActor();
+        return new NotificationResponse(
+                notification.getId(),
+                notification.getType(),
+                notification.getRelatedPost() != null ? notification.getRelatedPost().getId() : null,
+                notification.getRelatedComment() != null ? notification.getRelatedComment().getId() : null,
+                actor != null ? actor.getId() : null,
+                actor != null ? actor.getDisplayName() : null,
+                actor != null ? userProfileImageResolver.resolve(actor) : null,
+                notification.isRead(),
+                notification.getCreatedAt(),
+                notification.getReadAt()
+        );
+    }
+
 }

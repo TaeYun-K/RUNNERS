@@ -18,11 +18,10 @@ import com.runners.app.community.post.repository.CommunityPostRepository;
 import com.runners.app.community.upload.service.CommunityUploadService;
 import com.runners.app.community.view.CommunityPostViewTracker;
 import com.runners.app.community.exception.CommunityDomainException;
+import com.runners.app.global.util.CursorUtils;
 import com.runners.app.user.repository.UserRepository;
 import com.runners.app.user.service.UserProfileImageResolver;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ArrayList;
@@ -194,7 +193,7 @@ public class CommunityPostService {
     public CommunityPostCursorListResponse listPosts(CommunityPostBoardType boardType, String cursor, int size) {
         int safeSize = Math.min(50, Math.max(1, size));
 
-        Cursor decodedCursor = decodeCursor(cursor);
+        CursorUtils.Cursor decodedCursor = CursorUtils.decodeCursor(cursor);
         int fetchSize = safeSize + 1;
 
         List<CommunityPost> fetched = communityPostRepository.findForCursor(
@@ -231,7 +230,7 @@ public class CommunityPostService {
         String nextCursor = null;
         if (hasNext && !pageItems.isEmpty()) {
             CommunityPost last = pageItems.get(pageItems.size() - 1);
-            nextCursor = encodeCursor(last.getCreatedAt(), last.getId());
+            nextCursor = CursorUtils.encodeCursor(last.getCreatedAt(), last.getId());
         }
 
         return new CommunityPostCursorListResponse(posts, nextCursor);
@@ -241,7 +240,7 @@ public class CommunityPostService {
     public CommunityPostCursorListResponse listPostsByAuthor(Long userId, String cursor, int size) {
         int safeSize = Math.min(50, Math.max(1, size));
 
-        Cursor decodedCursor = decodeCursor(cursor);
+        CursorUtils.Cursor decodedCursor = CursorUtils.decodeCursor(cursor);
         int fetchSize = safeSize + 1;
 
         List<CommunityPost> fetched = communityPostRepository.findForCursorByAuthorId(
@@ -278,7 +277,7 @@ public class CommunityPostService {
         String nextCursor = null;
         if (hasNext && !pageItems.isEmpty()) {
             CommunityPost last = pageItems.get(pageItems.size() - 1);
-            nextCursor = encodeCursor(last.getCreatedAt(), last.getId());
+            nextCursor = CursorUtils.encodeCursor(last.getCreatedAt(), last.getId());
         }
 
         return new CommunityPostCursorListResponse(posts, nextCursor);
@@ -289,7 +288,7 @@ public class CommunityPostService {
         int safeSize = Math.min(50, Math.max(1, size));
         int fetchCommentsSize = Math.min(150, safeSize * 3) + 1;
 
-        Cursor decodedCursor = decodeCursor(cursor);
+        CursorUtils.Cursor decodedCursor = CursorUtils.decodeCursor(cursor);
         List<CommunityComment> fetched = communityCommentRepository.findByAuthorIdForCursor(
                 userId,
                 CommunityContentStatus.ACTIVE,
@@ -319,7 +318,7 @@ public class CommunityPostService {
         boolean hasNext = orderedPostIds.size() >= safeSize || fetched.size() >= fetchCommentsSize;
         String nextCursor = null;
         if (hasNext && cursorCommentForNext != null) {
-            nextCursor = encodeCursor(cursorCommentForNext.getCreatedAt(), cursorCommentForNext.getId());
+            nextCursor = CursorUtils.encodeCursor(cursorCommentForNext.getCreatedAt(), cursorCommentForNext.getId());
         }
 
         List<CommunityPost> postsById = communityPostRepository.findAllByIdInWithAuthor(
@@ -378,7 +377,7 @@ public class CommunityPostService {
         String trimmedQuery = query.trim();
         String booleanQuery = toBooleanModePrefixQuery(trimmedQuery);
 
-        Cursor decodedCursor = decodeCursor(cursor);
+        CursorUtils.Cursor decodedCursor = CursorUtils.decodeCursor(cursor);
         int fetchSize = safeSize + 1;
 
         List<Long> fetchedIds = communityPostRepository.searchPostIdsForCursor(
@@ -436,7 +435,7 @@ public class CommunityPostService {
         String nextCursor = null;
         if (hasNext && !orderedPosts.isEmpty()) {
             CommunityPost last = orderedPosts.get(orderedPosts.size() - 1);
-            nextCursor = encodeCursor(last.getCreatedAt(), last.getId());
+            nextCursor = CursorUtils.encodeCursor(last.getCreatedAt(), last.getId());
         }
 
         return new CommunityPostCursorListResponse(posts, nextCursor);
@@ -468,29 +467,6 @@ public class CommunityPostService {
         }
 
         return sb.toString();
-    }
-
-    private record Cursor(LocalDateTime createdAt, long id) {}
-
-    private Cursor decodeCursor(String cursor) {
-        if (cursor == null || cursor.isBlank() || "null".equalsIgnoreCase(cursor)) return null;
-
-        try {
-            String decoded = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8);
-            String[] parts = decoded.split("\\|", 2);
-            if (parts.length != 2) throw new IllegalArgumentException("Invalid cursor");
-            LocalDateTime createdAt = LocalDateTime.parse(parts[0]);
-            long id = Long.parseLong(parts[1]);
-            if (id <= 0) throw new IllegalArgumentException("Invalid cursor");
-            return new Cursor(createdAt, id);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid cursor");
-        }
-    }
-
-    private String encodeCursor(LocalDateTime createdAt, Long id) {
-        String raw = createdAt.toString() + "|" + id;
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
     }
 
     private String toContentPreview(String content) {
