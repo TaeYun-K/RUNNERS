@@ -124,7 +124,14 @@ jobs:
             set -e
             cd ~/app
 
-            # EC2가 private package pull 가능하도록 로그인
+            # 1) firebase service account json 파일 생성 (권한 600)
+            mkdir -p ~/app/config
+            cat > ~/app/config/firebase-service-account.json << 'EOF'
+            ${{ secrets.FIREBASE_SERVICE_JSON }}
+            EOF
+            chmod 600 ~/app/config/firebase-service-account.json
+
+            # 2) EC2가 private package pull 가능하도록 로그인
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
 
             docker compose -f docker-compose.prod.yml pull

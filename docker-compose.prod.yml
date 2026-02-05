@@ -52,6 +52,12 @@ services:
 
       # Swagger 테스트용 (기본 false): APP_DEV_AUTH_ENABLED=true 로 켜기
       APP_DEV_AUTH_ENABLED: ${APP_DEV_AUTH_ENABLED:-false}
+
+      # Firebase 설정
+      FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-/app/config/firebase-service-account.json}
+      FIREBASE_ENABLED: ${FIREBASE_ENABLED:-true}
+    volumes:
+      - ./config/firebase-service-account.json:/app/config/firebase-service-account.json:ro
     expose:
       - "8080"
     restart: unless-stopped

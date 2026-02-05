@@ -38,4 +38,5 @@ out/
 
 
 application.properties
-.json
+*.json
+firebase-service-account.json
