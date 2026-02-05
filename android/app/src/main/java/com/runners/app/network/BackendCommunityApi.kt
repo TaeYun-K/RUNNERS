@@ -190,6 +190,78 @@ object BackendCommunityApi {
         }
     }
 
+    fun getMyPostsCount(): Long {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/me/count"
+        val request = Request.Builder().url(url).get().build()
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Fetch my posts count failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+            val json = JSONObject(responseBody)
+            return json.getLong("count")
+        }
+    }
+
+    fun getPostsCommentedCount(): Long {
+        val url = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/commented/count"
+        val request = Request.Builder().url(url).get().build()
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Fetch posts commented count failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+            val json = JSONObject(responseBody)
+            return json.getLong("count")
+        }
+    }
+
+    fun listMyPosts(cursor: String?, size: Int = 20): CommunityPostCursorListResult {
+        val baseUrl = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/me"
+        val httpUrlBuilder = baseUrl.toHttpUrl().newBuilder()
+            .addQueryParameter("size", size.coerceIn(1, 50).toString())
+        if (!cursor.isNullOrBlank()) {
+            httpUrlBuilder.addQueryParameter("cursor", cursor)
+        }
+        val request = Request.Builder()
+            .url(httpUrlBuilder.build())
+            .get()
+            .build()
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Fetch my posts failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+            val json = JSONObject(responseBody)
+            val posts = parsePosts(json.optJSONArray("posts") ?: JSONArray())
+            val nextCursor = json.optString("nextCursor").takeIf { it.isNotBlank() && it != "null" }
+            return CommunityPostCursorListResult(posts = posts, nextCursor = nextCursor)
+        }
+    }
+
+    fun listPostsCommented(cursor: String?, size: Int = 20): CommunityPostCursorListResult {
+        val baseUrl = "${BuildConfig.BACKEND_BASE_URL.trimEnd('/')}/api/community/posts/commented"
+        val httpUrlBuilder = baseUrl.toHttpUrl().newBuilder()
+            .addQueryParameter("size", size.coerceIn(1, 50).toString())
+        if (!cursor.isNullOrBlank()) {
+            httpUrlBuilder.addQueryParameter("cursor", cursor)
+        }
+        val request = Request.Builder()
+            .url(httpUrlBuilder.build())
+            .get()
+            .build()
+        BackendHttpClient.client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Fetch posts I commented failed: HTTP ${response.code} ${responseBody.take(300)}")
+            }
+            val json = JSONObject(responseBody)
+            val posts = parsePosts(json.optJSONArray("posts") ?: JSONArray())
+            val nextCursor = json.optString("nextCursor").takeIf { it.isNotBlank() && it != "null" }
+            return CommunityPostCursorListResult(posts = posts, nextCursor = nextCursor)
+        }
+    }
+
     fun searchPosts(
         query: String,
         boardType: CommunityPostBoardType? = null,

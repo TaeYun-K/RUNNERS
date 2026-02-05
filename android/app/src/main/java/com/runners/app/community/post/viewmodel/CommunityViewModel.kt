@@ -5,9 +5,11 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.runners.app.community.post.data.CommunityPostRepository
+import com.runners.app.community.post.state.CommunityListMode
 import com.runners.app.community.post.state.CommunityPostStatsUpdate
 import com.runners.app.community.post.state.CommunityUiState
 import com.runners.app.network.CommunityPostBoardType
+import com.runners.app.network.CommunityPostCursorListResult
 import com.runners.app.network.PresignCommunityImageUploadFileRequest
 import com.runners.app.network.PresignedUploadClient
 import kotlinx.coroutines.Dispatchers
@@ -30,10 +32,11 @@ class CommunityViewModel(
 
     fun selectBoardType(boardType: CommunityPostBoardType?) {
         _uiState.update { state ->
-            if (state.selectedBoardType == boardType) {
+            if (state.selectedBoardType == boardType && state.listMode == CommunityListMode.BOARD) {
                 state
             } else {
                 state.copy(
+                    listMode = CommunityListMode.BOARD,
                     selectedBoardType = boardType,
                     nextCursor = null,
                     posts = emptyList(),
@@ -41,6 +44,34 @@ class CommunityViewModel(
                     scrollToTopSignal = state.scrollToTopSignal + 1L,
                 )
             }
+        }
+        refresh()
+    }
+
+    fun selectMyPosts() {
+        _uiState.update { state ->
+            state.copy(
+                listMode = CommunityListMode.MY_POSTS,
+                selectedBoardType = null,
+                nextCursor = null,
+                posts = emptyList(),
+                listErrorMessage = null,
+                scrollToTopSignal = state.scrollToTopSignal + 1L,
+            )
+        }
+        refresh()
+    }
+
+    fun selectMyCommented() {
+        _uiState.update { state ->
+            state.copy(
+                listMode = CommunityListMode.MY_COMMENTED,
+                selectedBoardType = null,
+                nextCursor = null,
+                posts = emptyList(),
+                listErrorMessage = null,
+                scrollToTopSignal = state.scrollToTopSignal + 1L,
+            )
         }
         refresh()
     }
@@ -59,19 +90,32 @@ class CommunityViewModel(
             runCatching {
                 val searchQuery = _uiState.value.searchQuery
                 val selectedBoardType = _uiState.value.selectedBoardType
+                val listMode = _uiState.value.listMode
 
-                val latest = repository.listPosts(boardType = null, cursor = null, size = 10)
-                if (searchQuery.isBlank()) {
-                    val list = repository.listPosts(boardType = selectedBoardType, cursor = null, size = 20)
-                    latest to list
+                val latest = if (listMode == CommunityListMode.BOARD) {
+                    repository.listPosts(boardType = null, cursor = null, size = 10)
                 } else {
-                    val list = repository.searchPosts(query = searchQuery, boardType = selectedBoardType, cursor = null, size = 20)
-                    latest to list
+                    CommunityPostCursorListResult(emptyList(), null)
                 }
+                val list = when (listMode) {
+                    CommunityListMode.MY_POSTS -> repository.listMyPosts(cursor = null, size = 20)
+                    CommunityListMode.MY_COMMENTED -> repository.listPostsCommented(cursor = null, size = 20)
+                    CommunityListMode.BOARD -> if (searchQuery.isBlank()) {
+                        repository.listPosts(boardType = selectedBoardType, cursor = null, size = 20)
+                    } else {
+                        repository.searchPosts(query = searchQuery, boardType = selectedBoardType, cursor = null, size = 20)
+                    }
+                }
+                latest to list
             }.onSuccess { result ->
                 _uiState.update {
+                    val latestPosts = if (it.listMode == CommunityListMode.BOARD) {
+                        result.first.posts
+                    } else {
+                        it.latestPosts
+                    }
                     it.copy(
-                        latestPosts = result.first.posts,
+                        latestPosts = latestPosts,
                         posts = result.second.posts,
                         nextCursor = result.second.nextCursor,
                         isInitialLoading = false,
@@ -83,6 +127,28 @@ class CommunityViewModel(
                         isInitialLoading = false,
                         listErrorMessage = error.message ?: "게시글을 불러오지 못했어요",
                     )
+                }
+            }
+            if (_uiState.value.listMode == CommunityListMode.BOARD) {
+                loadMyActivityCounts()
+            }
+        }
+    }
+
+    private fun loadMyActivityCounts() {
+        viewModelScope.launch {
+            runCatching {
+                val myPostsCount = repository.getMyPostsCount()
+                val myCommentedCount = repository.getPostsCommentedCount()
+                _uiState.update {
+                    it.copy(
+                        myPostsCountText = myPostsCount.toString(),
+                        myCommentedCountText = myCommentedCount.toString(),
+                    )
+                }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(myPostsCountText = "-", myCommentedCountText = "-")
                 }
             }
         }
@@ -151,10 +217,15 @@ class CommunityViewModel(
             runCatching {
                 val searchQuery = state.searchQuery
                 val selectedBoardType = state.selectedBoardType
-                if (searchQuery.isBlank()) {
-                    repository.listPosts(boardType = selectedBoardType, cursor = cursor, size = 20)
-                } else {
-                    repository.searchPosts(query = searchQuery, boardType = selectedBoardType, cursor = cursor, size = 20)
+                val listMode = state.listMode
+                when (listMode) {
+                    CommunityListMode.MY_POSTS -> repository.listMyPosts(cursor = cursor, size = 20)
+                    CommunityListMode.MY_COMMENTED -> repository.listPostsCommented(cursor = cursor, size = 20)
+                    CommunityListMode.BOARD -> if (searchQuery.isBlank()) {
+                        repository.listPosts(boardType = selectedBoardType, cursor = cursor, size = 20)
+                    } else {
+                        repository.searchPosts(query = searchQuery, boardType = selectedBoardType, cursor = cursor, size = 20)
+                    }
                 }
             }.onSuccess { result ->
                 _uiState.update {

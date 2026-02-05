@@ -396,6 +396,8 @@ fun RunnersNavHost(
                     val arg = type?.name ?: "ALL"
                     navController.navigate(AppRoute.CommunityBoard.createRoute(arg))
                 },
+                onMyPostsClick = { navController.navigate(AppRoute.CommunityBoard.createRoute("MY_POSTS")) },
+                onMyCommentsClick = { navController.navigate(AppRoute.CommunityBoard.createRoute("MY_COMMENTED")) },
                 viewModel = communityViewModel,
             )
         }
@@ -403,12 +405,12 @@ fun RunnersNavHost(
             route = AppRoute.CommunityBoard.route,
             arguments = listOf(navArgument("boardType") { type = NavType.StringType }),
         ) { entry ->
-            val raw = entry.arguments?.getString("boardType") ?: "ALL"
+            val boardTypeRaw = entry.arguments?.getString("boardType") ?: "ALL"
             val boardType =
-                if (raw.equals("ALL", ignoreCase = true)) {
-                    null
-                } else {
-                    runCatching { CommunityPostBoardType.valueOf(raw) }.getOrNull()
+                when {
+                    boardTypeRaw.equals("ALL", ignoreCase = true) -> null
+                    boardTypeRaw == "MY_POSTS" || boardTypeRaw == "MY_COMMENTED" -> null
+                    else -> runCatching { CommunityPostBoardType.valueOf(boardTypeRaw) }.getOrNull()
                 }
 
             ConsumeSavedStateHandleEvent(entry = entry, key = communityPostEditedKey) { edited: Long ->
@@ -419,6 +421,7 @@ fun RunnersNavHost(
 
             CommunityBoardScreen(
                 boardType = boardType,
+                boardTypeRaw = boardTypeRaw,
                 onBack = { navController.popBackStack() },
                 onCreateClick = { navController.navigate(AppRoute.CommunityCreate.route) },
                 onPostClick = { postId -> navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) },

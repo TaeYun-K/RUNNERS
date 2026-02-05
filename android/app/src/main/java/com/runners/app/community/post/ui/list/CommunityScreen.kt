@@ -2,6 +2,7 @@ package com.runners.app.community.post.ui.list
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,6 +66,8 @@ fun CommunityScreen(
         ) {
             // 2. 내 활동 섹션 (내가 쓴 글/댓글)
             MyActivitySection(
+                myPostsCount = uiState.myPostsCountText,
+                myCommentedCount = uiState.myCommentedCountText,
                 onMyPostsClick = onMyPostsClick,
                 onMyCommentsClick = onMyCommentsClick
             )
@@ -90,8 +93,10 @@ fun CommunityScreen(
                         onPostClick = onPostClick,
                     )
                 } else if (uiState.listErrorMessage != null) {
-                    // 에러 메시지 UI 개선
-                    Box(Modifier.fillMaxWidth().padding(vertical = 20.dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+                    ) {
                         Text(
                             text = uiState.listErrorMessage ?: "최신 글을 불러오지 못했어요",
                             color = MaterialTheme.colorScheme.error,
@@ -102,11 +107,6 @@ fun CommunityScreen(
             }
         }
     }
-}
-
-@Composable
-fun Box(x0: Modifier, contentAlignment: Alignment, content: @Composable () -> Unit) {
-    TODO("Not yet implemented")
 }
 
 @Composable
@@ -242,6 +242,8 @@ private fun ActivitySmallCard(
 
 @Composable
 private fun MyActivitySection(
+    myPostsCount: String?,
+    myCommentedCount: String?,
     onMyPostsClick: () -> Unit,
     onMyCommentsClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -252,17 +254,17 @@ private fun MyActivitySection(
     ) {
         ActivitySmallCard(
             title = "내가 쓴 글",
-            count = "12",
+            count = myPostsCount ?: "-",
             icon = androidx.compose.material.icons.Icons.Default.EditNote,
-            pointColor = MaterialTheme.colorScheme.primary, // 파란색 계열 포인트
+            pointColor = MaterialTheme.colorScheme.primary,
             onClick = onMyPostsClick,
             modifier = Modifier.weight(1f)
         )
         ActivitySmallCard(
             title = "댓글 단 글",
-            count = "5",
+            count = myCommentedCount ?: "-",
             icon = androidx.compose.material.icons.Icons.Default.ModeComment,
-            pointColor = MaterialTheme.colorScheme.tertiary, // 녹색/보라색 계열 포인트로 차별화
+            pointColor = MaterialTheme.colorScheme.tertiary,
             onClick = onMyCommentsClick,
             modifier = Modifier.weight(1f)
         )

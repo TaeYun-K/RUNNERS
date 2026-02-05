@@ -21,6 +21,26 @@ class CommunityPostRepository {
             BackendCommunityApi.listPosts(boardType = boardType, cursor = cursor, size = size)
         }
 
+    suspend fun getMyPostsCount(): Long =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.getMyPostsCount()
+        }
+
+    suspend fun getPostsCommentedCount(): Long =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.getPostsCommentedCount()
+        }
+
+    suspend fun listMyPosts(cursor: String?, size: Int = 20): CommunityPostCursorListResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.listMyPosts(cursor = cursor, size = size)
+        }
+
+    suspend fun listPostsCommented(cursor: String?, size: Int = 20): CommunityPostCursorListResult =
+        withContext(Dispatchers.IO) {
+            BackendCommunityApi.listPostsCommented(cursor = cursor, size = size)
+        }
+
     suspend fun searchPosts(
         query: String,
         boardType: CommunityPostBoardType? = null,

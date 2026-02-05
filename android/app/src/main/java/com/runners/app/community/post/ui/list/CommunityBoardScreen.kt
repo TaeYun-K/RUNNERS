@@ -50,6 +50,7 @@ import com.runners.app.settings.AppSettingsStore
 @Composable
 fun CommunityBoardScreen(
     boardType: CommunityPostBoardType?,
+    boardTypeRaw: String = "ALL",
     onBack: () -> Unit,
     onCreateClick: () -> Unit,
     onPostClick: (Long) -> Unit,
@@ -65,8 +66,12 @@ fun CommunityBoardScreen(
             .collectAsStateWithLifecycle(initialValue = true)
             .value
 
-    LaunchedEffect(boardType) {
-        viewModel.selectBoardType(boardType)
+    LaunchedEffect(boardTypeRaw) {
+        when (boardTypeRaw) {
+            "MY_POSTS" -> viewModel.selectMyPosts()
+            "MY_COMMENTED" -> viewModel.selectMyCommented()
+            else -> viewModel.selectBoardType(boardType)
+        }
     }
 
     var exiting by remember { mutableStateOf(false) }
@@ -103,15 +108,21 @@ fun CommunityBoardScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        val isMyActivityBoard = boardTypeRaw == "MY_POSTS" || boardTypeRaw == "MY_COMMENTED"
         CommunityBoardHeader(
-            title = boardType?.let { "${it.labelKo} 게시판" } ?: "전체 게시판",
+            title = when (boardTypeRaw) {
+                "MY_POSTS" -> "내가 쓴 글"
+                "MY_COMMENTED" -> "댓글 단 글"
+                else -> boardType?.let { "${it.labelKo} 게시판" } ?: "전체 게시판"
+            },
+            showSearch = !isMyActivityBoard,
             onBack = ::requestExit,
             onCreateClick = onCreateClick,
             onSearchClick = viewModel::toggleSearchOpen,
             enabled = !exiting,
         )
 
-        if (uiState.isSearchOpen) {
+        if (uiState.isSearchOpen && !isMyActivityBoard) {
             OutlinedTextField(
                 value = uiState.searchInput,
                 onValueChange = viewModel::onSearchInputChange,
@@ -178,6 +189,7 @@ fun CommunityBoardScreen(
 @Composable
 private fun CommunityBoardHeader(
     title: String,
+    showSearch: Boolean = true,
     onBack: () -> Unit,
     onCreateClick: () -> Unit,
     onSearchClick: () -> Unit,
@@ -204,8 +216,10 @@ private fun CommunityBoardHeader(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onSearchClick, enabled = enabled) {
-                Icon(imageVector = Icons.Default.Search, contentDescription = "검색")
+            if (showSearch) {
+                IconButton(onClick = onSearchClick, enabled = enabled) {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "검색")
+                }
             }
 
             IconButton(onClick = { isMenuExpanded.value = true }, enabled = enabled) {
