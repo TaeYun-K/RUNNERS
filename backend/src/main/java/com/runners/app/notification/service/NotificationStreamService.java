@@ -5,7 +5,6 @@ import com.runners.app.community.comment.event.CommentCreatedEvent;
 import com.runners.app.notification.entity.NotificationOutbox;
 import com.runners.app.notification.entity.OutboxStatus;
 import com.runners.app.notification.repository.NotificationOutboxRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -24,7 +23,6 @@ import java.util.Map;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class NotificationStreamService {
 
     private static final String STREAM_KEY = "notification:events:comment-created";
@@ -33,6 +31,16 @@ public class NotificationStreamService {
     private final StringRedisTemplate notificationRedisTemplate;  // DB 2번 사용
     private final NotificationOutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
+
+    public NotificationStreamService(
+            @Qualifier("notificationStringRedisTemplate") StringRedisTemplate notificationRedisTemplate,
+            NotificationOutboxRepository outboxRepository,
+            ObjectMapper objectMapper
+    ) {
+        this.notificationRedisTemplate = notificationRedisTemplate;
+        this.outboxRepository = outboxRepository;
+        this.objectMapper = objectMapper;
+    }
 
     /**
      * Consumer Group 초기화 (백엔드 애플리케이션 시작 시)

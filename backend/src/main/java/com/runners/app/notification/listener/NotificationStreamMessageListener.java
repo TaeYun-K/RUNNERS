@@ -3,7 +3,6 @@ package com.runners.app.notification.listener;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.runners.app.community.comment.event.CommentCreatedEvent;
 import com.runners.app.notification.service.NotificationService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class NotificationStreamMessageListener
         implements StreamListener<String, MapRecord<String, String, String>> {
 
@@ -27,6 +25,16 @@ public class NotificationStreamMessageListener
     private final StringRedisTemplate notificationRedisTemplate;  // DB 2번 사용
     private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
+
+    public NotificationStreamMessageListener(
+            @Qualifier("notificationStringRedisTemplate") StringRedisTemplate notificationRedisTemplate,
+            NotificationService notificationService,
+            ObjectMapper objectMapper
+    ) {
+        this.notificationRedisTemplate = notificationRedisTemplate;
+        this.notificationService = notificationService;
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void onMessage(MapRecord<String, String, String> record) {
