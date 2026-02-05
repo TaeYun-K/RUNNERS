@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { deleteCommunityPost } from '../api/posts'
+import { deleteCommunityPost } from '../../api/posts'
 
 export function useDeleteCommunityPost() {
   const [deleting, setDeleting] = useState(false)

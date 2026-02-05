@@ -1,34 +1,27 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchMyPosts, fetchPostsCommented } from '../api/posts'
-import type { CommunityPostSummary } from '../types'
+import { fetchCommunityPosts } from '../../api/posts'
+import type { CommunityPostBoardType, CommunityPostSummary } from '../../types'
 
-export type MyActivityMode = 'me' | 'commented'
-
-function fetchByMode(
-  mode: MyActivityMode,
-  params: { cursor: string | null; size: number },
-) {
-  if (mode === 'me') return fetchMyPosts(params)
-  return fetchPostsCommented(params)
-}
-
-export function useMyActivityPosts(
-  mode: MyActivityMode,
-  params: { size?: number } = {},
-) {
+export function useCommunityPosts(params: {
+  boardType?: CommunityPostBoardType | null
+  size?: number
+}) {
   const [posts, setPosts] = useState<CommunityPostSummary[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
-  const size = params.size ?? 20
 
   const loadInitial = useCallback(
     async (signal?: AbortSignal) => {
       setError(null)
       setLoading(true)
       try {
-        const json = await fetchByMode(mode, { cursor: null, size })
+        const json = await fetchCommunityPosts({
+          boardType: params.boardType ?? null,
+          cursor: null,
+          size: params.size ?? 20,
+        })
         if (signal?.aborted) return
         setPosts(json.posts ?? [])
         setNextCursor(json.nextCursor ?? null)
@@ -39,7 +32,7 @@ export function useMyActivityPosts(
         if (!signal?.aborted) setLoading(false)
       }
     },
-    [mode, size],
+    [params.boardType, params.size],
   )
 
   const loadMore = useCallback(async () => {
@@ -47,7 +40,11 @@ export function useMyActivityPosts(
     setError(null)
     setLoadingMore(true)
     try {
-      const json = await fetchByMode(mode, { cursor: nextCursor, size })
+      const json = await fetchCommunityPosts({
+        boardType: params.boardType ?? null,
+        cursor: nextCursor,
+        size: params.size ?? 20,
+      })
       setPosts((prev) => [...prev, ...(json.posts ?? [])])
       setNextCursor(json.nextCursor ?? null)
     } catch (e) {
@@ -55,7 +52,7 @@ export function useMyActivityPosts(
     } finally {
       setLoadingMore(false)
     }
-  }, [loading, loadingMore, mode, nextCursor, size])
+  }, [loading, loadingMore, nextCursor, params.boardType, params.size])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -73,3 +70,4 @@ export function useMyActivityPosts(
     loadMore,
   }
 }
+

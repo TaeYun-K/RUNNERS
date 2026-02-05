@@ -3,8 +3,8 @@ import {
   fetchCommunityPostRecommendStatus,
   recommendCommunityPost,
   unrecommendCommunityPost,
-} from '../api/posts'
-import type { CommunityPostRecommendResponse } from '../types'
+} from '../../api/posts'
+import type { CommunityPostRecommendResponse } from '../../types'
 
 export function useCommunityPostRecommend(postId: number | null, enabled: boolean) {
   const [recommend, setRecommend] = useState<CommunityPostRecommendResponse | null>(

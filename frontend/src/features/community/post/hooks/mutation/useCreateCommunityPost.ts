@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
-import { createCommunityPost } from '../api/posts'
-import type { CreateCommunityPostRequest } from '../types'
+import { createCommunityPost } from '../../api/posts'
+import type { CreateCommunityPostRequest } from '../../types'
 
 export function useCreateCommunityPost() {
   const [creating, setCreating] = useState(false)

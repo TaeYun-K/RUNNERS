@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchCommunityPostDetail } from '../api/posts'
-import type { CommunityPostDetail } from '../types'
+import { fetchCommunityPostDetail } from '../../api/posts'
+import type { CommunityPostDetail } from '../../types'
 
 export function useCommunityPostDetail(postId: number | null) {
   const [post, setPost] = useState<CommunityPostDetail | null>(null)

@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchPostsCommented } from '../api/posts'
-import type { CommunityPostSummary } from '../types'
+import { fetchMyPosts } from '../../api/posts'
+import type { CommunityPostSummary } from '../../types'
 
-export function usePostsCommented(params: { size?: number } = {}) {
+/**
+ * 내 활동 중 \"내가 쓴 글\"만 별도로 조회하고 싶을 때 사용하는 훅.
+ * 내부적으로는 fetchMyPosts만 사용하며, UI에서 별도 모드 구분이 필요할 때 쓴다.
+ */
+export function useMyPosts(params: { size?: number } = {}) {
   const [posts, setPosts] = useState<CommunityPostSummary[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -14,7 +18,7 @@ export function usePostsCommented(params: { size?: number } = {}) {
       setError(null)
       setLoading(true)
       try {
-        const json = await fetchPostsCommented({
+        const json = await fetchMyPosts({
           cursor: null,
           size: params.size ?? 20,
         })
@@ -36,7 +40,7 @@ export function usePostsCommented(params: { size?: number } = {}) {
     setError(null)
     setLoadingMore(true)
     try {
-      const json = await fetchPostsCommented({
+      const json = await fetchMyPosts({
         cursor: nextCursor,
         size: params.size ?? 20,
       })
@@ -65,3 +69,4 @@ export function usePostsCommented(params: { size?: number } = {}) {
     loadMore,
   }
 }
+

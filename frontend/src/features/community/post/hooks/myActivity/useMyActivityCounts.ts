@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   fetchMyPostsCount,
   fetchPostsCommentedCount,
-} from '../api/posts'
+} from '../../api/posts'
 
 export function useMyActivityCounts(params?: { enabled?: boolean }) {
   const enabled = params?.enabled ?? true
@@ -45,3 +45,4 @@ export function useMyActivityCounts(params?: { enabled?: boolean }) {
     refresh: load,
   }
 }
+

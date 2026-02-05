@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchCommunityPosts } from '../api/posts'
-import type { CommunityPostBoardType, CommunityPostSummary } from '../types'
+import { fetchPostsCommented } from '../../api/posts'
+import type { CommunityPostSummary } from '../../types'
 
-export function useCommunityPosts(params: {
-  boardType?: CommunityPostBoardType | null
-  size?: number
-}) {
+/**
+ * 내 활동 중 \"댓글 단 글\"만 별도로 조회하고 싶을 때 사용하는 훅.
+ * 내부적으로는 fetchPostsCommented만 사용하며, UI에서 별도 모드 구분이 필요할 때 쓴다.
+ */
+export function usePostsCommented(params: { size?: number } = {}) {
   const [posts, setPosts] = useState<CommunityPostSummary[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -17,8 +18,7 @@ export function useCommunityPosts(params: {
       setError(null)
       setLoading(true)
       try {
-        const json = await fetchCommunityPosts({
-          boardType: params.boardType ?? null,
+        const json = await fetchPostsCommented({
           cursor: null,
           size: params.size ?? 20,
         })
@@ -32,7 +32,7 @@ export function useCommunityPosts(params: {
         if (!signal?.aborted) setLoading(false)
       }
     },
-    [params.boardType, params.size],
+    [params.size],
   )
 
   const loadMore = useCallback(async () => {
@@ -40,8 +40,7 @@ export function useCommunityPosts(params: {
     setError(null)
     setLoadingMore(true)
     try {
-      const json = await fetchCommunityPosts({
-        boardType: params.boardType ?? null,
+      const json = await fetchPostsCommented({
         cursor: nextCursor,
         size: params.size ?? 20,
       })
@@ -52,7 +51,7 @@ export function useCommunityPosts(params: {
     } finally {
       setLoadingMore(false)
     }
-  }, [loading, loadingMore, nextCursor, params.boardType, params.size])
+  }, [loading, loadingMore, nextCursor, params.size])
 
   useEffect(() => {
     const controller = new AbortController()
