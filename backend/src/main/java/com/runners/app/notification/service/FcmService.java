@@ -82,7 +82,7 @@ public class FcmService {
                 .collect(Collectors.toList());
 
         try {
-            BatchResponse response = FirebaseMessaging.getInstance().sendAll(messages);
+            BatchResponse response = FirebaseMessaging.getInstance().sendEach(messages);
             log.info("Sent {} messages, {} successful, {} failed", 
                     messages.size(), response.getSuccessCount(), response.getFailureCount());
 
@@ -153,7 +153,7 @@ public class FcmService {
         }
 
         try {
-            BatchResponse response = FirebaseMessaging.getInstance().sendAll(messages);
+            BatchResponse response = FirebaseMessaging.getInstance().sendEach(messages);
             log.info("Sent {} multicast messages, {} successful, {} failed", 
                     messages.size(), response.getSuccessCount(), response.getFailureCount());
 
