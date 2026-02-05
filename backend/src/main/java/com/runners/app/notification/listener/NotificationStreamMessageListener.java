@@ -45,12 +45,22 @@ public class NotificationStreamMessageListener
             String payload = record.getValue().get("payload");
             CommentCreatedEvent event = objectMapper.readValue(payload, CommentCreatedEvent.class);
 
+            log.info(
+                    "Received notification event from stream: recordId={}, commentId={}, postId={}, postAuthorId={}, commentAuthorId={}, parentCommentId={}",
+                    recordId,
+                    event.commentId(),
+                    event.postId(),
+                    event.postAuthorId(),
+                    event.commentAuthorId(),
+                    event.parentCommentId()
+            );
+
             // 알림 처리
             notificationService.processEvent(event);
 
             // 처리 완료 확인 (ACK, DB 2번 사용)
             notificationRedisTemplate.opsForStream().acknowledge(STREAM_KEY, CONSUMER_GROUP, recordId);
-            log.debug("Processed and acknowledged stream record: {}", recordId);
+            log.info("Processed and acknowledged stream record: {}", recordId);
 
         } catch (Exception e) {
             log.error("Failed to process stream record: {}", recordId, e);
