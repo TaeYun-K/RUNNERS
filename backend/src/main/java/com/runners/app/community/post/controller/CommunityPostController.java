@@ -69,6 +69,28 @@ public class CommunityPostController {
         communityPostService.deletePost(userId, postId);
     }
 
+    @Operation(summary = "내가 쓴 글 목록 조회", description = "JWT 인증 필수. 최신순 커서 기반(nextCursor를 다음 요청의 cursor로 전달)")
+    @GetMapping("/me")
+    public CommunityPostCursorListResponse listMyPosts(
+            Authentication authentication,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        Long userId = SecurityUtils.extractUserId(authentication);
+        return communityPostService.listPostsByAuthor(userId, cursor, size);
+    }
+
+    @Operation(summary = "내가 댓글 쓴 글 목록 조회", description = "JWT 인증 필수. 댓글 단 시점 기준 최신순 커서 기반(nextCursor를 다음 요청의 cursor로 전달)")
+    @GetMapping("/commented")
+    public CommunityPostCursorListResponse listPostsICommented(
+            Authentication authentication,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        Long userId = SecurityUtils.extractUserId(authentication);
+        return communityPostService.listPostsCommentedByUser(userId, cursor, size);
+    }
+
     @Operation(summary = "게시글 조회", description = "JWT로 인증된 사용자가 게시글을 조회(유저-일 단위로 조회수 1회 증가)")
     @GetMapping("/{postId}")
     public CommunityPostDetailResponse getPost(

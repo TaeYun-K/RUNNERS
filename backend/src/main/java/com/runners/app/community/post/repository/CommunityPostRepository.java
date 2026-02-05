@@ -47,6 +47,26 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
             Pageable pageable
     );
 
+    @EntityGraph(attributePaths = "author")
+    @Query("""
+            select p from CommunityPost p
+            where p.status = :status
+              and p.author.id = :authorId
+              and (
+                :cursorCreatedAt is null
+                or p.createdAt < :cursorCreatedAt
+                or (p.createdAt = :cursorCreatedAt and p.id < :cursorId)
+              )
+            order by p.createdAt desc, p.id desc
+            """)
+    List<CommunityPost> findForCursorByAuthorId(
+            @Param("status") CommunityContentStatus status,
+            @Param("authorId") Long authorId,
+            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+            @Param("cursorId") Long cursorId,
+            Pageable pageable
+    );
+
     @Query(
             value = """
             select p.id

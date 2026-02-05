@@ -14,7 +14,8 @@ import java.time.LocalDateTime;
         indexes = {
                 @Index(name = "idx_community_comments_post_id_created_at", columnList = "post_id,created_at"),
                 @Index(name = "idx_community_comments_parent_id_created_at", columnList = "parent_id,created_at"),
-                @Index(name = "idx_community_comments_recommend_count_created_at", columnList = "recommend_count,created_at")
+                @Index(name = "idx_community_comments_recommend_count_created_at", columnList = "recommend_count,created_at"),
+                @Index(name = "idx_community_comments_author_id_created_at", columnList = "author_id,created_at")
         }
 )
 @Getter

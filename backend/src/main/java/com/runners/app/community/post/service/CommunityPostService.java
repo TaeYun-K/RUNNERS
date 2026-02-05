@@ -10,6 +10,8 @@ import com.runners.app.community.post.dto.response.CommunityPostCursorListRespon
 import com.runners.app.community.post.dto.response.CommunityPostResponse;
 import com.runners.app.community.post.dto.response.CommunityPostDetailResponse;
 import com.runners.app.community.post.dto.response.CommunityPostSummaryResponse;
+import com.runners.app.community.comment.entity.CommunityComment;
+import com.runners.app.community.comment.repository.CommunityCommentRepository;
 import com.runners.app.community.post.repository.CommunityPostImageRepository;
 import com.runners.app.community.post.repository.CommunityPostRepository;
 import com.runners.app.community.upload.service.CommunityUploadService;
@@ -20,6 +22,7 @@ import com.runners.app.user.service.UserProfileImageResolver;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommunityPostService {
 
     private final CommunityPostRepository communityPostRepository;
+    private final CommunityCommentRepository communityCommentRepository;
     private final CommunityPostViewTracker communityPostViewTracker;
     private final UserRepository userRepository;
     private final CommunityUploadService communityUploadService;
@@ -43,6 +47,7 @@ public class CommunityPostService {
 
     public CommunityPostService(
             CommunityPostRepository communityPostRepository,
+            CommunityCommentRepository communityCommentRepository,
             CommunityPostViewTracker communityPostViewTracker,
             UserRepository userRepository,
             CommunityUploadService communityUploadService,
@@ -50,6 +55,7 @@ public class CommunityPostService {
             UserProfileImageResolver userProfileImageResolver
     ) {
         this.communityPostRepository = communityPostRepository;
+        this.communityCommentRepository = communityCommentRepository;
         this.communityPostViewTracker = communityPostViewTracker;
         this.userRepository = userRepository;
         this.communityUploadService = communityUploadService;
@@ -226,6 +232,125 @@ public class CommunityPostService {
             CommunityPost last = pageItems.get(pageItems.size() - 1);
             nextCursor = encodeCursor(last.getCreatedAt(), last.getId());
         }
+
+        return new CommunityPostCursorListResponse(posts, nextCursor);
+    }
+
+    @Transactional(readOnly = true)
+    public CommunityPostCursorListResponse listPostsByAuthor(Long userId, String cursor, int size) {
+        int safeSize = Math.min(50, Math.max(1, size));
+
+        Cursor decodedCursor = decodeCursor(cursor);
+        int fetchSize = safeSize + 1;
+
+        List<CommunityPost> fetched = communityPostRepository.findForCursorByAuthorId(
+                CommunityContentStatus.ACTIVE,
+                userId,
+                decodedCursor == null ? null : decodedCursor.createdAt(),
+                decodedCursor == null ? Long.MAX_VALUE : decodedCursor.id(),
+                PageRequest.of(0, fetchSize)
+        );
+
+        boolean hasNext = fetched.size() > safeSize;
+        List<CommunityPost> pageItems = hasNext ? fetched.subList(0, safeSize) : fetched;
+
+        Map<Long, String> thumbnailUrlByPostId = buildThumbnailUrlByPostId(pageItems);
+
+        var posts = pageItems.stream()
+                .map(post -> new CommunityPostSummaryResponse(
+                        post.getId(),
+                        post.getAuthor().getId(),
+                        post.getAuthor().getDisplayName(),
+                        userProfileImageResolver.resolve(post.getAuthor()),
+                        post.getAuthor().getTotalDistanceKm(),
+                        post.getBoardType(),
+                        post.getTitle(),
+                        toContentPreview(post.getContent()),
+                        thumbnailUrlByPostId.get(post.getId()),
+                        post.getViewCount(),
+                        post.getRecommendCount(),
+                        post.getCommentCount(),
+                        post.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
+
+        String nextCursor = null;
+        if (hasNext && !pageItems.isEmpty()) {
+            CommunityPost last = pageItems.get(pageItems.size() - 1);
+            nextCursor = encodeCursor(last.getCreatedAt(), last.getId());
+        }
+
+        return new CommunityPostCursorListResponse(posts, nextCursor);
+    }
+
+    @Transactional(readOnly = true)
+    public CommunityPostCursorListResponse listPostsCommentedByUser(Long userId, String cursor, int size) {
+        int safeSize = Math.min(50, Math.max(1, size));
+        int fetchCommentsSize = Math.min(150, safeSize * 3) + 1;
+
+        Cursor decodedCursor = decodeCursor(cursor);
+        List<CommunityComment> fetched = communityCommentRepository.findByAuthorIdForCursor(
+                userId,
+                CommunityContentStatus.ACTIVE,
+                decodedCursor == null ? null : decodedCursor.createdAt(),
+                decodedCursor == null ? Long.MAX_VALUE : decodedCursor.id(),
+                PageRequest.of(0, fetchCommentsSize)
+        );
+
+        List<Long> orderedPostIds = new ArrayList<>(safeSize);
+        Set<Long> seenPostIds = new HashSet<>();
+        CommunityComment cursorCommentForNext = null;
+        for (CommunityComment comment : fetched) {
+            Long postId = comment.getPost().getId();
+            if (seenPostIds.add(postId)) {
+                orderedPostIds.add(postId);
+                cursorCommentForNext = comment;
+                if (orderedPostIds.size() >= safeSize) {
+                    break;
+                }
+            }
+        }
+
+        if (orderedPostIds.isEmpty()) {
+            return new CommunityPostCursorListResponse(List.of(), null);
+        }
+
+        boolean hasNext = orderedPostIds.size() >= safeSize || fetched.size() >= fetchCommentsSize;
+        String nextCursor = null;
+        if (hasNext && cursorCommentForNext != null) {
+            nextCursor = encodeCursor(cursorCommentForNext.getCreatedAt(), cursorCommentForNext.getId());
+        }
+
+        List<CommunityPost> postsById = communityPostRepository.findAllByIdInWithAuthor(
+                CommunityContentStatus.ACTIVE,
+                null,
+                orderedPostIds
+        );
+        Map<Long, Integer> orderByIndex = new HashMap<>(orderedPostIds.size());
+        for (int i = 0; i < orderedPostIds.size(); i++) {
+            orderByIndex.put(orderedPostIds.get(i), i);
+        }
+        List<CommunityPost> orderedPosts = new ArrayList<>(postsById);
+        orderedPosts.sort(Comparator.comparingInt(p -> orderByIndex.getOrDefault(p.getId(), Integer.MAX_VALUE)));
+
+        Map<Long, String> thumbnailUrlByPostId = buildThumbnailUrlByPostId(orderedPosts);
+        var posts = orderedPosts.stream()
+                .map(post -> new CommunityPostSummaryResponse(
+                        post.getId(),
+                        post.getAuthor().getId(),
+                        post.getAuthor().getDisplayName(),
+                        userProfileImageResolver.resolve(post.getAuthor()),
+                        post.getAuthor().getTotalDistanceKm(),
+                        post.getBoardType(),
+                        post.getTitle(),
+                        toContentPreview(post.getContent()),
+                        thumbnailUrlByPostId.get(post.getId()),
+                        post.getViewCount(),
+                        post.getRecommendCount(),
+                        post.getCommentCount(),
+                        post.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
 
         return new CommunityPostCursorListResponse(posts, nextCursor);
     }
