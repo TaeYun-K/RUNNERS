@@ -68,6 +68,23 @@ public class NotificationStreamService {
     }
 
     /**
+     * Consumer Group이 없으면 생성 (publishEvent 후 호출하여 첫 메시지 시에도 그룹 보장)
+     */
+    private void ensureConsumerGroupExists() {
+        try {
+            notificationRedisTemplate.opsForStream().createGroup(
+                    STREAM_KEY,
+                    ReadOffset.from("0"),
+                    CONSUMER_GROUP
+            );
+            log.info("Notification consumer group created: {}", CONSUMER_GROUP);
+        } catch (Exception e) {
+            // 이미 존재하면 무시
+            log.trace("Consumer group already exists: {}", e.getMessage());
+        }
+    }
+
+    /**
      * Redis Stream에 이벤트 발행 시도
      * 실패 시 DB Outbox에 저장하여 유실 방지
      */
@@ -83,6 +100,9 @@ public class NotificationStreamService {
             // Redis Stream에 이벤트 발행 시도 (DB 2번 사용)
             notificationRedisTemplate.opsForStream().add(STREAM_KEY, fields);
             log.debug("Published event to Redis Stream: commentId={}", event.commentId());
+
+            // 스트림이 방금 생성됐을 수 있음 → Consumer Group이 없으면 생성 (리스너가 메시지 수신 가능하도록)
+            ensureConsumerGroupExists();
 
         } catch (Exception e) {
             // Redis Stream 발행 실패 시 DB Outbox에 저장
