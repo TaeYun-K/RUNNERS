@@ -28,6 +28,10 @@ export type CommunityPostCursorListResponse = {
   nextCursor: string | null
 }
 
+export type CommunityPostCountResponse = {
+  count: number
+}
+
 export type CommunityPostDetail = {
   postId: number
   authorId: number

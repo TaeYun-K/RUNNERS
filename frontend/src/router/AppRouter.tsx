@@ -17,7 +17,23 @@ export default function AppRouter() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<AppLayout />}>
         <Route index element={<MainPage />} />
-        <Route path="community" element={<CommunityPage />} />
+        <Route path="community" element={<CommunityPage mode="all" />} />
+        <Route
+          path="community/me"
+          element={
+            <RequireAuth>
+              <CommunityPage mode="me" />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="community/commented"
+          element={
+            <RequireAuth>
+              <CommunityPage mode="commented" />
+            </RequireAuth>
+          }
+        />
         <Route
           path="community/write"
           element={
