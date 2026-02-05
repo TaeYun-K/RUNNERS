@@ -7,6 +7,7 @@ import com.runners.app.community.comment.dto.request.CreateCommunityCommentReque
 import com.runners.app.community.comment.dto.response.CommunityCommentResponse;
 import com.runners.app.community.comment.dto.response.CommunityCommentCursorListResponse;
 import com.runners.app.community.comment.dto.response.DeleteCommunityCommentResponse;
+import com.runners.app.community.comment.event.CommentCreatedEvent;
 import com.runners.app.community.comment.repository.CommunityCommentRepository;
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.community.post.repository.CommunityPostRepository;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,17 +30,20 @@ public class CommunityCommentService {
     private final CommunityPostRepository communityPostRepository;
     private final UserRepository userRepository;
     private final UserProfileImageResolver userProfileImageResolver;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CommunityCommentService(
             CommunityCommentRepository communityCommentRepository,
             CommunityPostRepository communityPostRepository,
             UserRepository userRepository,
-            UserProfileImageResolver userProfileImageResolver
+            UserProfileImageResolver userProfileImageResolver,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.communityCommentRepository = communityCommentRepository;
         this.communityPostRepository = communityPostRepository;
         this.userRepository = userRepository;
         this.userProfileImageResolver = userProfileImageResolver;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -50,6 +55,11 @@ public class CommunityCommentService {
 
         CommunityComment parent = findActiveParentCommentForPostOrThrow(request.parentId(), post);
 
+        // 필요한 ID 값들을 미리 추출 (LAZY 로딩 문제 방지)
+        Long postAuthorId = post.getAuthor().getId();
+        Long parentCommentId = parent == null ? null : parent.getId();
+        Long parentCommentAuthorId = parent == null ? null : parent.getAuthor().getId();
+
         CommunityComment saved = communityCommentRepository.save(
                 CommunityComment.builder()
                         .post(post)
@@ -60,6 +70,17 @@ public class CommunityCommentService {
         );
 
         post.increaseCommentCount();
+
+        // 트랜잭션 커밋 후 Outbox 적재를 위한 이벤트 발행
+        // 트랜잭션이 성공적으로 커밋된 후에만 이벤트 리스너가 실행됨
+        eventPublisher.publishEvent(new CommentCreatedEvent(
+                saved.getId(),
+                post.getId(),
+                postAuthorId,
+                author.getId(),
+                parentCommentId,
+                parentCommentAuthorId
+        ));
 
         var comment = new CommunityCommentResponse(
             saved.getId(),
