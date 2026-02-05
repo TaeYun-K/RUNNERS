@@ -34,6 +34,7 @@ import com.runners.app.home.PopularPostUiModel
 import com.runners.app.home.RecentRunUiModel
 import com.runners.app.mypage.MyPageScreen
 import com.runners.app.network.CommunityPostBoardType
+import com.runners.app.RunnersApplication
 import com.runners.app.network.GoogleLoginResult
 import com.runners.app.network.BackendUserApi
 import com.runners.app.records.RecordsDashboardScreen
@@ -85,6 +86,23 @@ fun RunnersNavHost(
         allRuns = emptyList()
         isHomeRefreshing = false
         lastSyncedRunningStats = null
+    }
+
+    LaunchedEffect(session) {
+        RunnersApplication.takePendingNotificationPostId()?.let { postId ->
+            navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+        RunnersApplication.pendingNotificationPostIdFlow.collect { postId ->
+            navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
     }
 
     LaunchedEffect(providerPackage, homeRefreshNonce) {

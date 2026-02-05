@@ -1,5 +1,6 @@
 package com.runners.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.runners.app.auth.LoginScreen
+import com.runners.app.notification.NotificationConstants
+import com.runners.app.notification.NotificationTokenManager
 import com.runners.app.navigation.RunnersBottomBar
 import com.runners.app.navigation.RunnersNavHost
 import com.runners.app.network.BackendAuthApi
@@ -35,9 +38,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.runners.app.navigation.shouldShowBottomBar
 
 class MainActivity : ComponentActivity() {
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        extractAndStoreNotificationPostId(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        extractAndStoreNotificationPostId(intent)
         setContent {
             RUNNERSTheme {
 				var session by remember { mutableStateOf<GoogleLoginResult?>(null) }
@@ -54,7 +65,7 @@ class MainActivity : ComponentActivity() {
 
 					if (session != null) return@LaunchedEffect
 
-                    isLoading = true
+					isLoading = true
                     errorMessage = null
                     try {
                         val cachedAccessToken = AuthTokenStore.peekAccessToken()
@@ -81,9 +92,15 @@ class MainActivity : ComponentActivity() {
                         BackendHttpClient.clearCookies()
                         AuthTokenStore.clear(context)
                         session = null
-                    } finally {
+					} finally {
                         isLoading = false
                     }
+				}
+
+				LaunchedEffect(session) {
+					if (session != null) {
+						NotificationTokenManager.registerTokenIfNeeded(context, scope)
+					}
 				}
 
 				Scaffold(
@@ -125,6 +142,7 @@ class MainActivity : ComponentActivity() {
 								scope.launch {
 									withContext(Dispatchers.IO) {
 										runCatching { BackendAuthApi.logout() }
+										NotificationTokenManager.removeTokenOnLogout(context)
 									}
 									BackendHttpClient.clearCookies()
 									AuthTokenStore.clear(context)
@@ -136,6 +154,13 @@ class MainActivity : ComponentActivity() {
 					}
 				}
             }
+        }
+    }
+
+    private fun extractAndStoreNotificationPostId(intent: Intent?) {
+        val postId = intent?.getLongExtra(NotificationConstants.EXTRA_POST_ID, -1L)?.takeIf { it > 0 }
+        if (postId != null) {
+            RunnersApplication.setPendingNotificationPostId(postId)
         }
     }
 }

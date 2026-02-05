@@ -3,6 +3,8 @@ package com.runners.app
 import android.app.Application
 import android.content.Context
 import com.google.android.gms.ads.MobileAds
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 
 class RunnersApplication : Application() {
     override fun onCreate() {
@@ -15,5 +17,26 @@ class RunnersApplication : Application() {
         @Volatile
         lateinit var appContext: Context
             private set
+
+        /** 알림 클릭 시 이동할 게시글 ID (cold start 시 사용) */
+        @Volatile
+        var pendingNotificationPostId: Long? = null
+            private set
+
+        /** 알림 클릭 시 게시글 ID 전달 (앱 실행 중일 때 RunnersNavHost에서 수집) */
+        private val _pendingNotificationPostIdFlow = MutableSharedFlow<Long>(replay = 0)
+        val pendingNotificationPostIdFlow: SharedFlow<Long> = _pendingNotificationPostIdFlow
+
+        fun setPendingNotificationPostId(postId: Long) {
+            pendingNotificationPostId = postId
+            _pendingNotificationPostIdFlow.tryEmit(postId)
+        }
+
+        /** 저장된 pending postId를 반환하고 초기화. cold start 후 네비게이션에 사용. */
+        fun takePendingNotificationPostId(): Long? {
+            val value = pendingNotificationPostId
+            pendingNotificationPostId = null
+            return value
+        }
     }
 }
