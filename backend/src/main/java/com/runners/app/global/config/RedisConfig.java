@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 public class RedisConfig {
 
     public static final int REFRESH_TOKEN_DATABASE = 1;
+    public static final int NOTIFICATION_DATABASE = 2;  // 알림용 DB 2번
 
     @Value("${spring.data.redis.host:localhost}")
     private String host;
@@ -48,6 +49,20 @@ public class RedisConfig {
     @Bean(name = "refreshStringRedisTemplate")
     public StringRedisTemplate refreshStringRedisTemplate(
             @Qualifier("refreshRedisConnectionFactory") RedisConnectionFactory connectionFactory
+    ) {
+        return new StringRedisTemplate(connectionFactory);
+    }
+
+    @Bean(name = "notificationRedisConnectionFactory")
+    public RedisConnectionFactory notificationRedisConnectionFactory() {
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(host, port);
+        config.setDatabase(NOTIFICATION_DATABASE);
+        return new LettuceConnectionFactory(config);
+    }
+
+    @Bean(name = "notificationStringRedisTemplate")
+    public StringRedisTemplate notificationStringRedisTemplate(
+            @Qualifier("notificationRedisConnectionFactory") RedisConnectionFactory connectionFactory
     ) {
         return new StringRedisTemplate(connectionFactory);
     }
