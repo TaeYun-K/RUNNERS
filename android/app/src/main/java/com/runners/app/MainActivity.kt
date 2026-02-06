@@ -193,7 +193,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun extractAndStoreNotificationPostId(intent: Intent?) {
-        val postId = intent?.getLongExtra(NotificationConstants.EXTRA_POST_ID, -1L)?.takeIf { it > 0 }
+        val postIdFromAppNotification = intent
+            ?.getLongExtra(NotificationConstants.EXTRA_POST_ID, -1L)
+            ?.takeIf { it > 0 }
+
+        val extras = intent?.extras
+        val postIdFromFcmData = when {
+            extras == null -> null
+            extras.containsKey(NotificationConstants.DATA_KEY_POST_ID) -> {
+                (extras.getString(NotificationConstants.DATA_KEY_POST_ID)
+                    ?: extras.getLong(NotificationConstants.DATA_KEY_POST_ID, -1L).takeIf { it > 0 }?.toString()
+                    )?.toLongOrNull()
+            }
+            else -> null
+        }?.takeIf { it > 0 }
+
+        val postId = postIdFromAppNotification ?: postIdFromFcmData
         if (postId != null) {
             RunnersApplication.setPendingNotificationPostId(postId)
         }
