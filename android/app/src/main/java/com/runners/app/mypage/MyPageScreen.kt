@@ -152,31 +152,13 @@ fun MyPageScreen(
     }
 
     // --- UI Structure ---
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background, // 전체 배경색
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "마이페이지",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally // 전체 중앙 정렬
-        ) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
             Spacer(Modifier.height(20.dp))
 
             // 1. 프로필 섹션 (중앙 집중형)
@@ -393,7 +375,6 @@ fun MyPageScreen(
 
             Spacer(Modifier.height(40.dp))
         }
-    }
 
     // --- Dialogs ---
 

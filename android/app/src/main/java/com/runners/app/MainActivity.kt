@@ -33,9 +33,12 @@ import com.runners.app.navigation.RunnersNavHost
 import com.runners.app.network.BackendAuthApi
 import com.runners.app.auth.AuthTokenStore
 import com.runners.app.network.BackendHttpClient
+import com.runners.app.network.BackendNotificationsApi
 import com.runners.app.network.BackendUserApi
 import com.runners.app.network.GoogleLoginResult
+import com.runners.app.navigation.AppRoute
 import com.runners.app.ui.theme.RUNNERSTheme
+import com.runners.app.ui.components.RunnersTopAppBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -74,6 +77,9 @@ class MainActivity : ComponentActivity() {
 				val navController = rememberNavController()
 				val navBackStackEntry by navController.currentBackStackEntryAsState()
 				val currentRoute = navBackStackEntry?.destination?.route
+				var unreadCount by remember { mutableStateOf(0L) }
+				var notificationsRefreshNonce by remember { mutableStateOf(0) }
+				val showMainTopAppBar = session != null && shouldShowBottomBar(currentRoute)
 
 				LaunchedEffect(Unit) {
 					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -138,8 +144,36 @@ class MainActivity : ComponentActivity() {
 					}
 				}
 
+				LaunchedEffect(session, currentRoute, notificationsRefreshNonce) {
+					val hasSession = session != null
+					if (!hasSession) {
+						unreadCount = 0L
+						return@LaunchedEffect
+					}
+					if (!shouldShowBottomBar(currentRoute)) return@LaunchedEffect
+
+					runCatching {
+						val count = withContext(Dispatchers.IO) { BackendNotificationsApi.getUnreadCount() }
+						unreadCount = count
+					}
+				}
+
 				Scaffold(
 					modifier = Modifier.fillMaxSize(),
+					topBar = {
+						if (showMainTopAppBar) {
+							RunnersTopAppBar(
+								currentRoute = currentRoute,
+								unreadCount = unreadCount,
+								onNotificationsClick = { navController.navigate(AppRoute.Notifications.route) },
+								onCommunityCreateClick = {
+									if (currentRoute == AppRoute.Community.route) {
+										navController.navigate(AppRoute.CommunityCreate.route)
+									}
+								},
+							)
+						}
+					},
 					bottomBar = {
 						if (session != null && shouldShowBottomBar(currentRoute)) {
 							RunnersBottomBar(navController)
@@ -184,6 +218,7 @@ class MainActivity : ComponentActivity() {
 									session = null
 								}
 							},
+							onNotificationsChanged = { notificationsRefreshNonce += 1 },
 							modifier = Modifier.padding(innerPadding),
 						)
 					}

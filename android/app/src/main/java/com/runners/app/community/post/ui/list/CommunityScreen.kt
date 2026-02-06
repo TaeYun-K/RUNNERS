@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MapsUgc
 import androidx.compose.material.icons.filled.ModeComment
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,16 +26,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.runners.app.community.post.ui.components.CommunityHeader
 import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.network.CommunityPostBoardType
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommunityScreen(
     authorNickname: String,
     totalDistanceKm: Double?,
-    onCreateClick: () -> Unit,
     onPostClick: (Long) -> Unit,
     onBoardClick: (CommunityPostBoardType?) -> Unit,
     onMyPostsClick: () -> Unit = {},
@@ -51,14 +47,6 @@ fun CommunityScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background) // 배경색 명시
     ) {
-        // 1. 헤더 (상단 고정)
-        CommunityHeader(
-            title = "커뮤니티",
-            onCreateClick = onCreateClick,
-            onSearchClick = { onBoardClick(null) },
-            modifier = Modifier.padding(horizontal = 20.dp)
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()

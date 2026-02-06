@@ -37,6 +37,7 @@ import com.runners.app.network.CommunityPostBoardType
 import com.runners.app.RunnersApplication
 import com.runners.app.network.GoogleLoginResult
 import com.runners.app.network.BackendUserApi
+import com.runners.app.notification.ui.NotificationsScreen
 import com.runners.app.records.RecordsDashboardScreen
 import com.runners.app.records.RunRecordUiModel
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,7 @@ fun RunnersNavHost(
     navController: NavHostController,
     session: GoogleLoginResult,
     onLogout: () -> Unit,
+    onNotificationsChanged: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -392,6 +394,13 @@ fun RunnersNavHost(
                 initialSelectedDate = initialDate,
             )
         }
+        composable(AppRoute.Notifications.route) {
+            NotificationsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenPost = { postId -> navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) },
+                onNotificationsChanged = onNotificationsChanged,
+            )
+        }
         composable(AppRoute.Community.route) { entry ->
             ConsumeSavedStateHandleEvent(entry = entry, key = communityPostStatsUpdateKey) { update: CommunityPostStatsUpdate ->
                 communityViewModel.applyPostStatsUpdate(update)
@@ -408,7 +417,6 @@ fun RunnersNavHost(
             CommunityScreen(
                 authorNickname = session.nickname ?: session.email ?: "RUNNERS",
                 totalDistanceKm = totalDistanceKm,
-                onCreateClick = { navController.navigate(AppRoute.CommunityCreate.route) },
                 onPostClick = { postId -> navController.navigate(AppRoute.CommunityPostDetail.createRoute(postId)) },
                 onBoardClick = { type ->
                     val arg = type?.name ?: "ALL"
