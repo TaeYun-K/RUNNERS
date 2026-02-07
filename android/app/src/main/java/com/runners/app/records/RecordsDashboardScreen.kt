@@ -140,14 +140,6 @@ fun RecordsDashboardScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // 헤더
-        Text(
-            text = "기록 대시보드",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-
         RunningCalendarCard(
             runs = runs,
             loadDetails = loadDetails,
