@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../features/auth'
+import { NotificationCenter } from '../../features/notification'
 import { logout } from '../../shared/auth/logout'
 
 const navLinkBase =
@@ -64,6 +65,8 @@ export default function AppLayout() {
 
           {/* Auth / Mobile */}
           <div className="flex items-center gap-3">
+            {accessToken ? <NotificationCenter /> : null}
+
             {accessToken ? (
               <button
                 onClick={handleLogout}
