@@ -308,6 +308,15 @@ private fun NotificationRow(
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
+                notificationPreview(item)?.let { preview ->
+                    Text(
+                        text = preview,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 Text(
                     text = formatTimeText(item.createdAt),
                     style = MaterialTheme.typography.labelSmall,
@@ -349,6 +358,29 @@ private fun NotificationAvatar(
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
+    }
+}
+
+private fun notificationPreview(item: NotificationResult): String? {
+    fun String.truncate(max: Int = 30) = if (this.length > max) "${this.take(max)}..." else this
+    fun clean(value: String?): String? = value?.trim()?.takeUnless { it.isBlank() }
+
+    val post = clean(item.postTitlePreview)?.truncate(20)
+    val comment = clean(item.commentPreview)?.truncate(40)
+
+    return when (item.type) {
+        NotificationType.COMMENT_ON_MY_POST,
+        NotificationType.COMMENT_ON_MY_COMMENTED_POST -> {
+            // "내 글에 달린 댓글 내용" 우선 노출
+            comment?.let { "💬 $it" } ?: post
+        }
+        NotificationType.REPLY_TO_MY_COMMENT -> {
+            // 답글인 경우 원본 댓글의 맥락보다 답글 내용 강조
+            comment?.let { "RE: $it" }
+        }
+        NotificationType.RECOMMEND_ON_MY_POST -> post?.let { "👍 추천: $it" }
+        NotificationType.RECOMMEND_ON_MY_COMMENT -> comment?.let { "👍 추천한 댓글: $it" }
+        else -> post ?: comment
     }
 }
 

@@ -28,6 +28,8 @@ data class NotificationResult(
     val type: NotificationType,
     val relatedPostId: Long?,
     val relatedCommentId: Long?,
+    val postTitlePreview: String?,
+    val commentPreview: String?,
     val actorId: Long?,
     val actorName: String?,
     val actorPicture: String?,
@@ -154,6 +156,10 @@ object BackendNotificationsApi {
             type = type,
             relatedPostId = optNullableLong("relatedPostId"),
             relatedCommentId = optNullableLong("relatedCommentId"),
+            postTitlePreview = json.optString("postTitlePreview")
+                .takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) },
+            commentPreview = json.optString("commentPreview")
+                .takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) },
             actorId = optNullableLong("actorId"),
             actorName = json.optString("actorName").takeIf { it.isNotBlank() },
             actorPicture = json.optString("actorPicture").takeIf { it.isNotBlank() },
