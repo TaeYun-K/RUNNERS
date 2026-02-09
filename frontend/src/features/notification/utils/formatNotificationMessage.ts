@@ -29,27 +29,21 @@ export function formatNotificationMessage(item: NotificationItem) {
 }
 
 function formatPreview(item: NotificationItem): string | null {
-  const postTitle = clean(item.postTitlePreview)
-  const commentPreview = clean(item.commentPreview)
-  const postLabel = postTitle ? `게시글: ${postTitle}` : null
-  const commentLabel = commentPreview ? `댓글: ${commentPreview}` : null
+  const post = truncate(clean(item.postTitlePreview), 20)
+  const comment = truncate(clean(item.commentPreview), 40)
 
   switch (item.type) {
     case 'COMMENT_ON_MY_POST':
     case 'COMMENT_ON_MY_COMMENTED_POST':
+      return comment ? `💬 ${comment}` : post
     case 'REPLY_TO_MY_COMMENT':
-    case 'RECOMMEND_ON_MY_COMMENT': {
-      const parts = [postLabel, commentLabel].filter(
-        (value): value is string => Boolean(value),
-      )
-      return parts.length > 0 ? parts.join(' · ') : null
-    }
+      return comment ? `RE: ${comment}` : null
     case 'RECOMMEND_ON_MY_POST':
-      return postLabel
-    case 'UNKNOWN':
-      return postLabel ?? commentLabel
+      return post ? `👍 추천: ${post}` : null
+    case 'RECOMMEND_ON_MY_COMMENT':
+      return comment ? `👍 추천한 댓글: ${comment}` : null
     default:
-      return postLabel ?? commentLabel
+      return post ?? comment
   }
 }
 
@@ -60,4 +54,9 @@ function withPreview(message: string, preview: string | null): string {
 function clean(value: string | null | undefined): string | null {
   const normalized = value?.trim()
   return normalized ? normalized : null
+}
+
+function truncate(value: string | null, max: number): string | null {
+  if (!value) return null
+  return value.length > max ? `${value.slice(0, max)}...` : value
 }
