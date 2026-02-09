@@ -54,7 +54,7 @@ function formatPreview(item: NotificationItem): string | null {
 }
 
 function withPreview(message: string, preview: string | null): string {
-  return preview ? `${message} ${preview}` : message
+  return preview ? `${message}\n${preview}` : message
 }
 
 function clean(value: string | null | undefined): string | null {

@@ -83,7 +83,7 @@ export function NotificationCenter() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-12 z-50 w-[22rem] rounded-2xl border border-border/70 bg-background/95 p-3 shadow-xl backdrop-blur">
+        <div className="absolute right-0 top-12 z-50 w-[28rem] rounded-2xl border border-border/70 bg-background/95 p-3 shadow-xl backdrop-blur">
           <div className="mb-2 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-foreground">알림</p>
@@ -145,7 +145,7 @@ export function NotificationCenter() {
                           : 'border-primary/20 bg-primary/5 hover:bg-primary/10',
                       ].join(' ')}
                     >
-                      <p className="text-sm text-foreground">
+                      <p className="whitespace-pre-line text-sm text-foreground">
                         {formatNotificationMessage(item)}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
