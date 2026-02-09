@@ -83,19 +83,11 @@ export function CommunityPostCard(props: { post: CommunityPostSummary }) {
         </div>
 
         {post.thumbnailUrl ? (
-          <div className="relative hidden aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-secondary sm:flex">
+          <div className="relative hidden aspect-[4/3] overflow-hidden rounded-xl bg-secondary sm:block">
             <img
               src={post.thumbnailUrl}
               alt=""
-              aria-hidden="true"
-              className="absolute inset-0 h-full w-full scale-105 object-cover blur-md opacity-30"
-              loading="lazy"
-              referrerPolicy="no-referrer"
-            />
-            <img
-              src={post.thumbnailUrl}
-              alt=""
-              className="relative z-10 max-h-full max-w-full object-contain"
+              className="h-full w-full object-cover"
               loading="lazy"
               referrerPolicy="no-referrer"
             />
