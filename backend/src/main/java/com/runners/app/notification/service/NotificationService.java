@@ -40,6 +40,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class NotificationService {
 
+    private static final int POST_TITLE_PREVIEW_MAX_LENGTH = 60;
+    private static final int COMMENT_PREVIEW_MAX_LENGTH = 120;
+
     private final NotificationRepository notificationRepository;
     private final DeviceTokenRepository deviceTokenRepository;
     private final CommunityCommentRepository communityCommentRepository;
@@ -481,6 +484,8 @@ public class NotificationService {
                 notification.getType(),
                 notification.getRelatedPost() != null ? notification.getRelatedPost().getId() : null,
                 notification.getRelatedComment() != null ? notification.getRelatedComment().getId() : null,
+                buildPostTitlePreview(notification),
+                buildCommentPreview(notification),
                 actor != null ? actor.getId() : null,
                 actor != null ? actor.getDisplayName() : null,
                 actor != null ? userProfileImageResolver.resolve(actor) : null,
@@ -488,6 +493,45 @@ public class NotificationService {
                 notification.getCreatedAt(),
                 notification.getReadAt()
         );
+    }
+
+    private String buildPostTitlePreview(Notification notification) {
+        CommunityPost relatedPost = notification.getRelatedPost();
+        if (relatedPost == null) {
+            return null;
+        }
+        return normalizeAndTrimPreview(
+                relatedPost.getTitle(),
+                POST_TITLE_PREVIEW_MAX_LENGTH
+        );
+    }
+
+    private String buildCommentPreview(Notification notification) {
+        CommunityComment relatedComment = notification.getRelatedComment();
+        if (relatedComment == null) {
+            return null;
+        }
+        if (relatedComment.getStatus() == CommunityContentStatus.DELETED) {
+            return "삭제된 댓글입니다";
+        }
+        return normalizeAndTrimPreview(
+                relatedComment.getContent(),
+                COMMENT_PREVIEW_MAX_LENGTH
+        );
+    }
+
+    private String normalizeAndTrimPreview(String raw, int maxLength) {
+        if (raw == null) {
+            return null;
+        }
+        String normalized = raw.replaceAll("\\s+", " ").trim();
+        if (normalized.isBlank()) {
+            return null;
+        }
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+        return normalized.substring(0, maxLength - 1) + "…";
     }
 
 }

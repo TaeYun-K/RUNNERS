@@ -12,6 +12,8 @@ public record NotificationResponse(
         NotificationType type,
         Long relatedPostId,
         Long relatedCommentId,
+        String postTitlePreview,
+        String commentPreview,
         Long actorId,
         String actorName,
         String actorPicture,
