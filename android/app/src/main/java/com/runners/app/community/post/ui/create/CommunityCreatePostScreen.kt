@@ -18,10 +18,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,10 +44,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -66,10 +64,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.runners.app.community.post.ui.components.CommunityAuthorLine
 import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.network.CommunityPostBoardType
-import com.runners.app.settings.AppSettingsStore
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -85,10 +81,6 @@ fun CommunityCreatePostScreen(
     val context = LocalContext.current
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val initialSuccessSignal = remember { uiState.createSuccessSignal }
-    val showTotalDistanceInCommunity =
-        AppSettingsStore.showTotalDistanceInCommunityFlow(context)
-            .collectAsStateWithLifecycle(initialValue = true)
-            .value
 
     val pickImagesLauncher =
         rememberLauncherForActivityResult(
@@ -125,6 +117,13 @@ fun CommunityCreatePostScreen(
         if (isSamsung) WindowInsets.ime.exclude(WindowInsets.navigationBars) else WindowInsets.ime
 
     val isKeyboardVisible = WindowInsets.isImeVisible
+    val contentPlaceholder = remember {
+        """
+        내용을 입력하세요.
+        음란물/혐오 표현/불법 홍보성 게시물은 등록할 수 없어요.
+        전화번호, 계좌번호 등 개인정보 노출에 주의해 주세요.
+        """.trimIndent()
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -190,6 +189,7 @@ fun CommunityCreatePostScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .windowInsetsPadding(imeInsets.only(WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
@@ -201,24 +201,6 @@ fun CommunityCreatePostScreen(
                     if (uiState.createBoardType != initial) {
                         viewModel.onCreateBoardTypeChange(initial)
                     }
-                }
-            }
-
-            // 작성자 정보
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                ),
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    CommunityAuthorLine(
-                        nickname = authorNickname,
-                        pictureUrl = authorPictureUrl,
-                        totalDistanceKm = totalDistanceKm,
-                        showTotalDistance = showTotalDistanceInCommunity,
-                    )
                 }
             }
 
@@ -263,38 +245,75 @@ fun CommunityCreatePostScreen(
             }
 
             // 제목 입력
-            OutlinedTextField(
-                value = uiState.createTitle,
-                onValueChange = { viewModel.onCreateTitleChange(it.take(200)) },
-                label = { Text("제목") },
-                placeholder = { Text("제목을 입력하세요") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                enabled = !uiState.isCreating,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                ),
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "제목",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
+                )
+                TextField(
+                    value = uiState.createTitle,
+                    onValueChange = { viewModel.onCreateTitleChange(it.take(200)) },
+                    placeholder = { Text("제목을 입력하세요") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !uiState.isCreating,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    shape = RoundedCornerShape(10.dp),
+                    supportingText = {
+                        Text(
+                            text = "${uiState.createTitle.length}/200",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                        disabledIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                    ),
+                )
+            }
 
             // 내용 입력
-            OutlinedTextField(
-                value = uiState.createContent,
-                onValueChange = viewModel::onCreateContentChange,
-                label = { Text("내용") },
-                placeholder = { Text("내용을 입력하세요") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 10,
-                enabled = !uiState.isCreating,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                ),
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "내용",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
+                )
+                TextField(
+                    value = uiState.createContent,
+                    onValueChange = viewModel::onCreateContentChange,
+                    placeholder = {
+                        Text(
+                            text = contentPlaceholder,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 10,
+                    enabled = !uiState.isCreating,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                        disabledIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                    ),
+                )
+            }
 
             // 에러 메시지
             if (uiState.createErrorMessage != null) {
