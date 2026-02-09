@@ -330,7 +330,7 @@ export function CommunityPostDetailPage() {
           ) : null}
 
           <div className="p-5">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+            <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-relaxed text-foreground">
               {post.content}
             </p>
           </div>
