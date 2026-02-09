@@ -358,6 +358,8 @@ private fun notificationTitle(item: NotificationResult): String {
         NotificationType.COMMENT_ON_MY_POST -> "${actor}님이 내 글에 댓글을 남겼어요"
         NotificationType.COMMENT_ON_MY_COMMENTED_POST -> "${actor}님이 내가 댓글단 글에 댓글을 남겼어요"
         NotificationType.REPLY_TO_MY_COMMENT -> "${actor}님이 내 댓글에 답글을 남겼어요"
+        NotificationType.RECOMMEND_ON_MY_POST -> "${actor}님이 내 글을 추천했어요"
+        NotificationType.RECOMMEND_ON_MY_COMMENT -> "${actor}님이 내 댓글을 추천했어요"
         NotificationType.UNKNOWN -> "새 알림이 도착했어요"
     }
 }
@@ -367,4 +369,3 @@ private fun formatTimeText(raw: String): String {
     val normalized = raw.trim().replace('T', ' ')
     return if (normalized.length >= 16) normalized.substring(0, 16) else normalized
 }
-

@@ -11,6 +11,8 @@ enum class NotificationType {
     COMMENT_ON_MY_POST,
     COMMENT_ON_MY_COMMENTED_POST,
     REPLY_TO_MY_COMMENT,
+    RECOMMEND_ON_MY_POST,
+    RECOMMEND_ON_MY_COMMENT,
     UNKNOWN;
 
     companion object {
