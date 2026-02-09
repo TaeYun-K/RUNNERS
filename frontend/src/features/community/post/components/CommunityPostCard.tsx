@@ -87,7 +87,15 @@ export function CommunityPostCard(props: { post: CommunityPostSummary }) {
             <img
               src={post.thumbnailUrl}
               alt=""
-              className="max-h-full max-w-full object-contain"
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full scale-105 object-cover blur-md opacity-30"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+            <img
+              src={post.thumbnailUrl}
+              alt=""
+              className="relative z-10 max-h-full max-w-full object-contain"
               loading="lazy"
               referrerPolicy="no-referrer"
             />
