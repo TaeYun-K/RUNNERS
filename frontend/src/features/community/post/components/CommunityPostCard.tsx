@@ -1,12 +1,18 @@
 import { useNavigate } from 'react-router-dom'
 import { Eye, Heart, MessageCircle } from 'lucide-react'
-import { COMMUNITY_BOARD_LABEL } from '../constants'
+import {
+  COMMUNITY_BOARD_BADGE_CLASS,
+  COMMUNITY_BOARD_LABEL,
+} from '../constants'
 import type { CommunityPostSummary } from '../types'
 import { formatRelativeTime } from '../../shared/formatRelativeTime'
 
 export function CommunityPostCard(props: { post: CommunityPostSummary }) {
   const { post } = props
   const navigate = useNavigate()
+  const boardBadgeClass =
+    COMMUNITY_BOARD_BADGE_CLASS[post.boardType] ??
+    'bg-secondary text-foreground ring-border/30'
 
   return (
     <article
@@ -24,7 +30,12 @@ export function CommunityPostCard(props: { post: CommunityPostSummary }) {
       <div className="grid gap-4 p-5 sm:grid-cols-[1fr_140px] sm:items-start">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="rounded-full bg-secondary px-2 py-1 text-foreground">
+            <span
+              className={[
+                'rounded-full px-2 py-1 ring-1',
+                boardBadgeClass,
+              ].join(' ')}
+            >
               {COMMUNITY_BOARD_LABEL[post.boardType] ?? post.boardType}
             </span>
             <span>{formatRelativeTime(post.createdAt)}</span>

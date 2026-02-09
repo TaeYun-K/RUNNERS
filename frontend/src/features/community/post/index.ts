@@ -1,4 +1,7 @@
-export { COMMUNITY_BOARD_LABEL } from './constants'
+export {
+  COMMUNITY_BOARD_BADGE_CLASS,
+  COMMUNITY_BOARD_LABEL,
+} from './constants'
 export {
   createCommunityPost,
   fetchCommunityPostDetail,
