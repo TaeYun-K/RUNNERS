@@ -4,12 +4,14 @@ import com.runners.app.community.comment.entity.CommunityComment;
 import com.runners.app.community.comment.repository.CommunityCommentRepository;
 import com.runners.app.community.recommend.entity.CommunityCommentRecommend;
 import com.runners.app.community.recommend.entity.CommunityCommentRecommendId;
+import com.runners.app.community.recommend.event.CommentRecommendedEvent;
 import com.runners.app.community.recommend.dto.response.CommunityCommentRecommendResponse;
 import com.runners.app.community.recommend.repository.CommunityCommentRecommendRepository;
 import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.exception.CommunityDomainException;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,15 +21,18 @@ public class CommunityCommentRecommendService {
     private final CommunityCommentRepository communityCommentRepository;
     private final CommunityCommentRecommendRepository communityCommentRecommendRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CommunityCommentRecommendService(
             CommunityCommentRepository communityCommentRepository,
             CommunityCommentRecommendRepository communityCommentRecommendRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.communityCommentRepository = communityCommentRepository;
         this.communityCommentRecommendRepository = communityCommentRecommendRepository;
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -57,6 +62,12 @@ public class CommunityCommentRecommendService {
                         .build()
         );
         comment.increaseRecommendCount();
+        eventPublisher.publishEvent(new CommentRecommendedEvent(
+                comment.getId(),
+                postId,
+                comment.getAuthor().getId(),
+                user.getId()
+        ));
 
         return new CommunityCommentRecommendResponse(postId, comment.getId(), true, comment.getRecommendCount());
     }

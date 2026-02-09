@@ -243,6 +243,8 @@ public class FcmService {
             case COMMENT_ON_MY_POST -> "새 댓글이 달렸습니다";
             case COMMENT_ON_MY_COMMENTED_POST -> "새 댓글이 달렸습니다";
             case REPLY_TO_MY_COMMENT -> "대댓글이 달렸습니다";
+            case RECOMMEND_ON_MY_POST -> "게시글 추천 알림";
+            case RECOMMEND_ON_MY_COMMENT -> "댓글 추천 알림";
         };
     }
 
@@ -255,6 +257,8 @@ public class FcmService {
             case COMMENT_ON_MY_POST -> actorName + "님이 댓글을 남겼습니다";
             case COMMENT_ON_MY_COMMENTED_POST -> actorName + "님이 댓글을 남겼습니다";
             case REPLY_TO_MY_COMMENT -> actorName + "님이 대댓글을 남겼습니다";
+            case RECOMMEND_ON_MY_POST -> actorName + "님이 게시글을 추천했습니다";
+            case RECOMMEND_ON_MY_COMMENT -> actorName + "님이 댓글을 추천했습니다";
         };
     }
 

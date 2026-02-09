@@ -4,12 +4,14 @@ import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.community.post.repository.CommunityPostRepository;
 import com.runners.app.community.recommend.entity.CommunityPostRecommend;
 import com.runners.app.community.recommend.entity.CommunityPostRecommendId;
+import com.runners.app.community.recommend.event.PostRecommendedEvent;
 import com.runners.app.community.recommend.dto.response.CommunityPostRecommendResponse;
 import com.runners.app.community.recommend.repository.CommunityPostRecommendRepository;
 import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.community.exception.CommunityDomainException;
 import com.runners.app.user.entity.User;
 import com.runners.app.user.repository.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,15 +21,18 @@ public class CommunityPostRecommendService {
     private final CommunityPostRepository communityPostRepository;
     private final CommunityPostRecommendRepository communityPostRecommendRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CommunityPostRecommendService(
             CommunityPostRepository communityPostRepository,
             CommunityPostRecommendRepository communityPostRecommendRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.communityPostRepository = communityPostRepository;
         this.communityPostRecommendRepository = communityPostRecommendRepository;
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -57,6 +62,11 @@ public class CommunityPostRecommendService {
                         .build()
         );
         post.increaseRecommendCount();
+        eventPublisher.publishEvent(new PostRecommendedEvent(
+                post.getId(),
+                post.getAuthor().getId(),
+                user.getId()
+        ));
 
         return new CommunityPostRecommendResponse(post.getId(), true, post.getRecommendCount());
     }

@@ -2,6 +2,8 @@ package com.runners.app.notification.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.runners.app.community.comment.event.CommentCreatedEvent;
+import com.runners.app.community.recommend.event.CommentRecommendedEvent;
+import com.runners.app.community.recommend.event.PostRecommendedEvent;
 import com.runners.app.notification.entity.NotificationOutbox;
 import com.runners.app.notification.entity.OutboxStatus;
 import com.runners.app.notification.repository.NotificationOutboxRepository;
@@ -89,26 +91,42 @@ public class NotificationStreamService {
      * 실패 시 DB Outbox에 저장하여 유실 방지
      */
     public void publishEvent(CommentCreatedEvent event) {
+        publishEventInternal("COMMENT_CREATED", event, "commentId=" + event.commentId());
+    }
+
+    public void publishEvent(CommentRecommendedEvent event) {
+        publishEventInternal(
+                "COMMENT_RECOMMENDED",
+                event,
+                "commentId=" + event.commentId()
+        );
+    }
+
+    public void publishEvent(PostRecommendedEvent event) {
+        publishEventInternal("POST_RECOMMENDED", event, "postId=" + event.postId());
+    }
+
+    private void publishEventInternal(String eventType, Object event, String targetLog) {
         try {
             String payload = objectMapper.writeValueAsString(event);
 
             Map<String, String> fields = Map.of(
-                    "eventType", "COMMENT_CREATED",
+                    "eventType", eventType,
                     "payload", payload
             );
 
             // Redis Stream에 이벤트 발행 시도 (DB 2번 사용)
             notificationRedisTemplate.opsForStream().add(STREAM_KEY, fields);
-            log.debug("Published event to Redis Stream: commentId={}", event.commentId());
+            log.debug("Published event to Redis Stream: eventType={}, {}", eventType, targetLog);
 
             // 스트림이 방금 생성됐을 수 있음 → Consumer Group이 없으면 생성 (리스너가 메시지 수신 가능하도록)
             ensureConsumerGroupExists();
 
         } catch (Exception e) {
             // Redis Stream 발행 실패 시 DB Outbox에 저장
-            log.warn("Failed to publish to Redis Stream, saving to Outbox: commentId={}", 
-                    event.commentId(), e);
-            saveToOutbox(event);
+            log.warn("Failed to publish to Redis Stream, saving to Outbox: eventType={}, {}",
+                    eventType, targetLog, e);
+            saveToOutbox(eventType, event, targetLog);
         }
     }
 
@@ -116,22 +134,23 @@ public class NotificationStreamService {
      * Outbox에 저장 (별도 트랜잭션)
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void saveToOutbox(CommentCreatedEvent event) {
+    public void saveToOutbox(String eventType, Object event, String targetLog) {
         try {
             String payload = objectMapper.writeValueAsString(event);
 
             NotificationOutbox outbox = NotificationOutbox.builder()
-                    .eventType("COMMENT_CREATED")
+                    .eventType(eventType)
                     .payload(payload)
                     .status(OutboxStatus.PENDING)
                     .build();
 
             outboxRepository.save(outbox);
-            log.info("Saved event to Outbox: commentId={}, outboxId={}", 
-                    event.commentId(), outbox.getId());
+            log.info("Saved event to Outbox: eventType={}, {}, outboxId={}",
+                    eventType, targetLog, outbox.getId());
 
         } catch (Exception e) {
-            log.error("Failed to save to Outbox: commentId={}", event.commentId(), e);
+            log.error("Failed to save to Outbox: eventType={}, {}",
+                    eventType, targetLog, e);
             throw new RuntimeException("Failed to save event to Outbox", e);
         }
     }

@@ -1,6 +1,8 @@
 package com.runners.app.notification.listener;
 
 import com.runners.app.community.comment.event.CommentCreatedEvent;
+import com.runners.app.community.recommend.event.CommentRecommendedEvent;
+import com.runners.app.community.recommend.event.PostRecommendedEvent;
 import com.runners.app.notification.service.NotificationStreamService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,26 @@ public class NotificationStreamEventListener {
             // Stream 발행 실패는 로깅만 (Outbox에 저장되므로 유실 없음)
             log.error("Failed to publish notification event to stream for comment: {}", 
                     event.commentId(), e);
+        }
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleCommentRecommended(CommentRecommendedEvent event) {
+        try {
+            streamService.publishEvent(event);
+        } catch (Exception e) {
+            log.error("Failed to publish comment recommend event: commentId={}",
+                    event.commentId(), e);
+        }
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handlePostRecommended(PostRecommendedEvent event) {
+        try {
+            streamService.publishEvent(event);
+        } catch (Exception e) {
+            log.error("Failed to publish post recommend event: postId={}",
+                    event.postId(), e);
         }
     }
 }

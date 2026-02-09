@@ -2,6 +2,8 @@ package com.runners.app.notification.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.runners.app.community.comment.event.CommentCreatedEvent;
+import com.runners.app.community.recommend.event.CommentRecommendedEvent;
+import com.runners.app.community.recommend.event.PostRecommendedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.connection.RedisConnection;
@@ -106,12 +108,12 @@ public class NotificationPendingReprocessor {
                 MapRecord<byte[], byte[], byte[]> record = claimed.get(0);
 
                 // 이벤트 역직렬화 및 처리
+                byte[] eventTypeBytes = record.getValue().get("eventType".getBytes());
                 byte[] payloadBytes = record.getValue().get("payload".getBytes());
                 if (payloadBytes != null) {
+                    String eventType = eventTypeBytes == null ? null : new String(eventTypeBytes);
                     String payload = new String(payloadBytes);
-                    CommentCreatedEvent event = objectMapper.readValue(payload, CommentCreatedEvent.class);
-
-                    notificationService.processEvent(event);
+                    processEvent(eventType, payload);
 
                     // 처리 완료 확인 (ACK, DB 2번 사용)
                     streamCommands.xAck(STREAM_KEY.getBytes(), CONSUMER_GROUP, recordIdObj);
@@ -121,6 +123,32 @@ public class NotificationPendingReprocessor {
 
         } catch (Exception e) {
             log.error("Failed to claim and process pending message: {}", pending.getIdAsString(), e);
+        }
+    }
+
+    private void processEvent(String eventType, String payload) throws Exception {
+        if (eventType == null || payload == null) {
+            log.warn("Invalid pending stream record: eventType={}", eventType);
+            return;
+        }
+
+        switch (eventType) {
+            case "COMMENT_CREATED" -> {
+                CommentCreatedEvent event = objectMapper.readValue(payload, CommentCreatedEvent.class);
+                notificationService.processEvent(event);
+            }
+            case "COMMENT_RECOMMENDED" -> {
+                CommentRecommendedEvent event = objectMapper.readValue(
+                        payload,
+                        CommentRecommendedEvent.class
+                );
+                notificationService.processCommentRecommendEvent(event);
+            }
+            case "POST_RECOMMENDED" -> {
+                PostRecommendedEvent event = objectMapper.readValue(payload, PostRecommendedEvent.class);
+                notificationService.processPostRecommendEvent(event);
+            }
+            default -> log.warn("Unknown pending stream event type: {}", eventType);
         }
     }
 

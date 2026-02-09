@@ -2,6 +2,8 @@ package com.runners.app.notification.listener;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.runners.app.community.comment.event.CommentCreatedEvent;
+import com.runners.app.community.recommend.event.CommentRecommendedEvent;
+import com.runners.app.community.recommend.event.PostRecommendedEvent;
 import com.runners.app.notification.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -42,21 +44,9 @@ public class NotificationStreamMessageListener
 
         try {
             // 이벤트 역직렬화
+            String eventType = record.getValue().get("eventType");
             String payload = record.getValue().get("payload");
-            CommentCreatedEvent event = objectMapper.readValue(payload, CommentCreatedEvent.class);
-
-            log.info(
-                    "Received notification event from stream: recordId={}, commentId={}, postId={}, postAuthorId={}, commentAuthorId={}, parentCommentId={}",
-                    recordId,
-                    event.commentId(),
-                    event.postId(),
-                    event.postAuthorId(),
-                    event.commentAuthorId(),
-                    event.parentCommentId()
-            );
-
-            // 알림 처리
-            notificationService.processEvent(event);
+            processEvent(eventType, payload, recordId);
 
             // 처리 완료 확인 (ACK, DB 2번 사용)
             notificationRedisTemplate.opsForStream().acknowledge(STREAM_KEY, CONSUMER_GROUP, recordId);
@@ -66,6 +56,39 @@ public class NotificationStreamMessageListener
             log.error("Failed to process stream record: {}", recordId, e);
             // 실패 시 ACK하지 않으면 자동으로 PENDING 리스트에 추가됨
             // 재시도는 NotificationPendingReprocessor에서 처리
+        }
+    }
+
+    private void processEvent(String eventType, String payload, String recordId) throws Exception {
+        if (eventType == null || payload == null) {
+            log.warn("Invalid stream record: recordId={}, eventType={}", recordId, eventType);
+            return;
+        }
+
+        switch (eventType) {
+            case "COMMENT_CREATED" -> {
+                CommentCreatedEvent event = objectMapper.readValue(payload, CommentCreatedEvent.class);
+                log.info("Received stream event: recordId={}, eventType={}, commentId={}",
+                        recordId, eventType, event.commentId());
+                notificationService.processEvent(event);
+            }
+            case "COMMENT_RECOMMENDED" -> {
+                CommentRecommendedEvent event = objectMapper.readValue(
+                        payload,
+                        CommentRecommendedEvent.class
+                );
+                log.info("Received stream event: recordId={}, eventType={}, commentId={}",
+                        recordId, eventType, event.commentId());
+                notificationService.processCommentRecommendEvent(event);
+            }
+            case "POST_RECOMMENDED" -> {
+                PostRecommendedEvent event = objectMapper.readValue(payload, PostRecommendedEvent.class);
+                log.info("Received stream event: recordId={}, eventType={}, postId={}",
+                        recordId, eventType, event.postId());
+                notificationService.processPostRecommendEvent(event);
+            }
+            default -> log.warn("Unknown stream event type. recordId={}, eventType={}",
+                    recordId, eventType);
         }
     }
 }

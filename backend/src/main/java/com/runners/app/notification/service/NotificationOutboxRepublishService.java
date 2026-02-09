@@ -2,6 +2,8 @@ package com.runners.app.notification.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.runners.app.community.comment.event.CommentCreatedEvent;
+import com.runners.app.community.recommend.event.CommentRecommendedEvent;
+import com.runners.app.community.recommend.event.PostRecommendedEvent;
 import com.runners.app.notification.entity.NotificationOutbox;
 import com.runners.app.notification.entity.OutboxStatus;
 import com.runners.app.notification.repository.NotificationOutboxRepository;
@@ -44,25 +46,46 @@ public class NotificationOutboxRepublishService {
 
         for (NotificationOutbox outbox : pendingOutboxes) {
             try {
-                // 이벤트 역직렬화
-                CommentCreatedEvent event = objectMapper.readValue(
-                        outbox.getPayload(),
-                        CommentCreatedEvent.class
-                );
-
-                // Redis Stream에 재발행 시도
-                streamService.publishEvent(event);
+                republishByType(outbox);
 
                 // 성공 시 상태를 PUBLISHED로 변경
                 outbox.markAsPublished();
                 outboxRepository.save(outbox);
-                log.info("Successfully republished outbox event: outboxId={}, commentId={}", 
-                        outbox.getId(), event.commentId());
+                log.info("Successfully republished outbox event: outboxId={}, eventType={}",
+                        outbox.getId(), outbox.getEventType());
 
             } catch (Exception e) {
                 log.error("Failed to republish outbox: outboxId={}", outbox.getId(), e);
                 // 실패 시 다음 주기에 재시도
             }
+        }
+    }
+
+    private void republishByType(NotificationOutbox outbox) throws Exception {
+        String eventType = outbox.getEventType();
+        String payload = outbox.getPayload();
+
+        if (eventType == null || payload == null) {
+            throw new IllegalStateException("Invalid outbox event data");
+        }
+
+        switch (eventType) {
+            case "COMMENT_CREATED" -> {
+                CommentCreatedEvent event = objectMapper.readValue(payload, CommentCreatedEvent.class);
+                streamService.publishEvent(event);
+            }
+            case "COMMENT_RECOMMENDED" -> {
+                CommentRecommendedEvent event = objectMapper.readValue(
+                        payload,
+                        CommentRecommendedEvent.class
+                );
+                streamService.publishEvent(event);
+            }
+            case "POST_RECOMMENDED" -> {
+                PostRecommendedEvent event = objectMapper.readValue(payload, PostRecommendedEvent.class);
+                streamService.publishEvent(event);
+            }
+            default -> throw new IllegalArgumentException("Unsupported outbox event type: " + eventType);
         }
     }
 }

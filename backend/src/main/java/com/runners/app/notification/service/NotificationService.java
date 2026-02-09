@@ -5,6 +5,8 @@ import com.runners.app.community.comment.event.CommentCreatedEvent;
 import com.runners.app.community.comment.repository.CommunityCommentRepository;
 import com.runners.app.community.post.entity.CommunityPost;
 import com.runners.app.community.post.repository.CommunityPostRepository;
+import com.runners.app.community.recommend.event.CommentRecommendedEvent;
+import com.runners.app.community.recommend.event.PostRecommendedEvent;
 import com.runners.app.global.status.CommunityContentStatus;
 import com.runners.app.global.util.CursorUtils;
 import com.runners.app.notification.dto.response.NotificationCursorListResponse;
@@ -59,6 +61,25 @@ public class NotificationService {
                 event.commentAuthorId(),
                 event.parentCommentId(),
                 event.parentCommentAuthorId()
+        );
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void processCommentRecommendEvent(CommentRecommendedEvent event) {
+        sendCommentRecommendNotification(
+                event.commentId(),
+                event.postId(),
+                event.commentAuthorId(),
+                event.recommenderId()
+        );
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void processPostRecommendEvent(PostRecommendedEvent event) {
+        sendPostRecommendNotification(
+                event.postId(),
+                event.postAuthorId(),
+                event.recommenderId()
         );
     }
 
@@ -279,6 +300,102 @@ public class NotificationService {
 
     private String generateDedupeKey(NotificationType type, Long recipientId, Long commentId) {
         return String.format("%s:%d:%d", type.name(), recipientId, commentId);
+    }
+
+    private String generateDedupeKey(
+            NotificationType type,
+            Long recipientId,
+            String targetType,
+            Long targetId,
+            Long actorId
+    ) {
+        return String.format(
+                "%s:%d:%s:%d:%d",
+                type.name(),
+                recipientId,
+                targetType,
+                targetId,
+                actorId
+        );
+    }
+
+    private void sendCommentRecommendNotification(
+            Long commentId,
+            Long postId,
+            Long commentAuthorId,
+            Long recommenderId
+    ) {
+        if (commentAuthorId.equals(recommenderId)) {
+            return;
+        }
+
+        CommunityPost post = communityPostRepository.getReferenceById(postId);
+        CommunityComment comment = communityCommentRepository.getReferenceById(commentId);
+        User recommender = userRepository.getReferenceById(recommenderId);
+
+        String dedupeKey = generateDedupeKey(
+                NotificationType.RECOMMEND_ON_MY_COMMENT,
+                commentAuthorId,
+                "comment",
+                commentId,
+                recommenderId
+        );
+
+        try {
+            Notification notification = Notification.builder()
+                    .recipient(userRepository.getReferenceById(commentAuthorId))
+                    .type(NotificationType.RECOMMEND_ON_MY_COMMENT)
+                    .relatedPost(post)
+                    .relatedComment(comment)
+                    .actor(recommender)
+                    .dedupeKey(dedupeKey)
+                    .isRead(false)
+                    .build();
+
+            notificationRepository.save(notification);
+            sendPushNotification(commentAuthorId, notification);
+
+        } catch (DataIntegrityViolationException e) {
+            log.debug("Duplicate notification ignored: {}", dedupeKey);
+        }
+    }
+
+    private void sendPostRecommendNotification(
+            Long postId,
+            Long postAuthorId,
+            Long recommenderId
+    ) {
+        if (postAuthorId.equals(recommenderId)) {
+            return;
+        }
+
+        CommunityPost post = communityPostRepository.getReferenceById(postId);
+        User recommender = userRepository.getReferenceById(recommenderId);
+
+        String dedupeKey = generateDedupeKey(
+                NotificationType.RECOMMEND_ON_MY_POST,
+                postAuthorId,
+                "post",
+                postId,
+                recommenderId
+        );
+
+        try {
+            Notification notification = Notification.builder()
+                    .recipient(userRepository.getReferenceById(postAuthorId))
+                    .type(NotificationType.RECOMMEND_ON_MY_POST)
+                    .relatedPost(post)
+                    .actor(recommender)
+                    .dedupeKey(dedupeKey)
+                    .isRead(false)
+                    .build();
+
+            notificationRepository.save(notification);
+            sendPushNotification(postAuthorId, notification);
+
+        } catch (DataIntegrityViolationException e) {
+            log.debug("Duplicate notification ignored: {}", dedupeKey);
+        }
     }
 
     /**
