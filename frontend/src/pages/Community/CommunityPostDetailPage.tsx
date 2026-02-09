@@ -23,6 +23,8 @@ import { useLightbox } from '../../shared/hooks/useLightbox'
 import { useMyUserId } from '../../shared/hooks/useMyUserId'
 import { NotFoundPage } from '../Error/NotFoundPage'
 
+const COMMENT_MAX_LENGTH = 16000
+
 export function CommunityPostDetailPage() {
   const params = useParams()
   const navigate = useNavigate()
@@ -65,28 +67,29 @@ export function CommunityPostDetailPage() {
 
   if (postId == null) return <NotFoundPage />
 
-  const handleToggleRecommend = async () => {
-    if (!accessToken) {
-      navigate('/login', {
-        replace: false,
-        state: { from: `${location.pathname}${location.search}${location.hash}` },
-      })
-      return
-    }
+  const requireAuthOrRedirect = () => {
+    if (accessToken) return true
+    navigate('/login', {
+      replace: false,
+      state: { from: `${location.pathname}${location.search}${location.hash}` },
+    })
+    return false
+  }
 
-    await toggleRecommend()
+  const handleToggleRecommend = async () => {
+    if (!requireAuthOrRedirect()) return
+
+    try {
+      await toggleRecommend()
+    } catch {
+      // error is shown via recommendError
+    }
   }
 
   const handleSubmit = async () => {
-    if (!accessToken) {
-      navigate('/login', {
-        replace: false,
-        state: { from: `${location.pathname}${location.search}${location.hash}` },
-      })
-      return
-    }
+    if (!requireAuthOrRedirect()) return
     const content = draft.trim()
-    if (!content) return
+    if (!content || content.length > COMMENT_MAX_LENGTH) return
 
     setSubmitError(null)
     try {
@@ -100,13 +103,7 @@ export function CommunityPostDetailPage() {
   }
 
   const handleDeletePost = async () => {
-    if (!accessToken) {
-      navigate('/login', {
-        replace: false,
-        state: { from: `${location.pathname}${location.search}${location.hash}` },
-      })
-      return
-    }
+    if (!requireAuthOrRedirect()) return
     if (postId == null) return
     if (post?.authorId !== myUserId) return
 
@@ -368,6 +365,7 @@ export function CommunityPostDetailPage() {
             onChange={(e) => setDraft(e.target.value)}
             placeholder={accessToken ? '댓글을 입력하세요…' : '로그인 후 댓글을 작성할 수 있어요.'}
             disabled={!accessToken || creating}
+            maxLength={COMMENT_MAX_LENGTH}
             className="min-h-24 w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-blue-500/40 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
           />
 
@@ -379,7 +377,7 @@ export function CommunityPostDetailPage() {
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
-              {draft.length.toLocaleString()} / 16000
+              {draft.length.toLocaleString()} / {COMMENT_MAX_LENGTH.toLocaleString()}
             </p>
             <div className="flex items-center gap-2">
               {!accessToken ? (
