@@ -315,12 +315,12 @@ export function CommunityPostDetailPage() {
                     imageLightbox.open(url)
                   }}
                   aria-label="이미지 크게 보기"
-                  className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-secondary"
+                  className="group relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-secondary"
                 >
                   <img
                     src={url}
                     alt=""
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    className="max-h-full max-w-full object-contain"
                     loading="lazy"
                     referrerPolicy="no-referrer"
                   />
