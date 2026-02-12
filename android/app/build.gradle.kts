@@ -25,7 +25,7 @@ android {
         applicationId = "com.runners.app"
         minSdk = 29
         targetSdk = 35
-        versionCode = 3
+        versionCode = 5
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -43,7 +43,7 @@ android {
         }
         release {
             isMinifyEnabled = false
-            resValue("string", "admob_banner_ad_unit_id", "ca-app-pub-3940256099942544/6300978111")
+            resValue("string", "admob_banner_ad_unit_id", "ca-app-pub-2326672240316116~5940995224")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
