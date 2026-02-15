@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.runners.app.ads.InlineBannerAd
 import com.runners.app.community.post.ui.editor.CommunityPostEditorForm
 import com.runners.app.community.post.ui.editor.CommunityPostEditorImageItem
 import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel
@@ -231,6 +232,11 @@ fun CommunityPostEditScreen(
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
+                    InlineBannerAd(
+                        modifier = Modifier.fillMaxWidth(),
+                        compact = true,
+                    )
+
                     CommunityPostEditorForm(
                         title = title,
                         content = content,

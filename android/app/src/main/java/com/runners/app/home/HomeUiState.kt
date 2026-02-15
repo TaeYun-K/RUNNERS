@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.runners.app.ads.InlineBannerAd
 import com.runners.app.ui.theme.Blue40
 import com.runners.app.ui.theme.Blue60
 import com.runners.app.ui.theme.Teal40
@@ -97,6 +98,11 @@ fun HomeScreen(
                     .padding(horizontal = 20.dp, vertical = 20.dp),
                 verticalArrangement = spacedBy(16.dp),
             ) {
+                InlineBannerAd(
+                    modifier = Modifier.fillMaxWidth(),
+                    compact = true,
+                )
+
                 // 환영 헤더
                 Column(verticalArrangement = spacedBy(4.dp)) {
                     Text(

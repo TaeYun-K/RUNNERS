@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +31,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.runners.app.ads.InlineBannerAd
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.runners.app.community.post.viewmodel.CommunityViewModel
 import com.runners.app.network.CommunityPostBoardType
@@ -57,6 +56,14 @@ fun CommunityScreen(
     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
     verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
+
+    item(key = "community_screen_top_banner_ad") {
+      InlineBannerAd(
+        modifier = Modifier.fillMaxWidth(),
+        compact = true,
+      )
+    }
+      
     item(key = "my_activity_header") {
       SectionHeader(title = "내 활동")
     }
@@ -94,8 +101,11 @@ fun CommunityScreen(
       BoardNavigationSection(onBoardClick = onBoardClick)
     }
 
-    item(key = "latest_spacer") {
-      Spacer(modifier = Modifier.height(8.dp))
+    item(key = "latest_divider") {
+      HorizontalDivider(
+        modifier = Modifier.padding(vertical = 8.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+      )
     }
 
     item(key = "latest_header") {

@@ -39,6 +39,7 @@ import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.runners.app.R
+import com.runners.app.ads.InlineBannerAd
 import com.runners.app.auth.AuthTokenStore
 import com.runners.app.mypage.components.HealthConnectSection
 import com.runners.app.network.*
@@ -159,6 +160,11 @@ fun MyPageScreen(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+            InlineBannerAd(
+                modifier = Modifier.fillMaxWidth(),
+                compact = true,
+            )
+
             Spacer(Modifier.height(20.dp))
 
             // 1. 프로필 섹션 (중앙 집중형)

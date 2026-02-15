@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
@@ -38,38 +39,40 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun CommunityTopBannerAd(
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
-    val context = LocalContext.current
     val adUnitId = stringResource(R.string.admob_banner_ad_unit_id)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = if (compact) 2.dp else 4.dp),
     ) {
         AdaptiveBannerAd(
             adUnitId = adUnitId,
             modifier = Modifier.fillMaxWidth(),
+            maxAdWidthDp = if (compact) 360 else null,
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(if (compact) 0.dp else 2.dp))
     }
 }
 
 @Composable
 fun InlineBannerAd(
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
-    val context = LocalContext.current
     val adUnitId = stringResource(R.string.admob_banner_ad_unit_id)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = if (compact) 2.dp else 8.dp),
     ) {
         AdaptiveBannerAd(
             adUnitId = adUnitId,
             modifier = Modifier.fillMaxWidth(),
+            maxAdWidthDp = if (compact) 360 else null,
         )
     }
 }
@@ -78,6 +81,7 @@ fun InlineBannerAd(
 private fun AdaptiveBannerAd(
     adUnitId: String,
     modifier: Modifier = Modifier,
+    maxAdWidthDp: Int? = null,
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
@@ -85,13 +89,20 @@ private fun AdaptiveBannerAd(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     var containerWidthPx by remember { mutableIntStateOf(0) }
-    val adWidthDp = remember(containerWidthPx, configuration.screenWidthDp, density) {
-        val widthDp = if (containerWidthPx > 0) {
+    val adWidthDp = remember(
+        containerWidthPx,
+        configuration.screenWidthDp,
+        density,
+        maxAdWidthDp,
+    ) {
+        val rawWidthDp = if (containerWidthPx > 0) {
             with(density) { containerWidthPx.toDp().value }
         } else {
             configuration.screenWidthDp.toFloat()
         }
-        widthDp.toInt().coerceAtLeast(1)
+        val boundedWidthDp = maxAdWidthDp?.let { rawWidthDp.coerceAtMost(it.toFloat()) }
+            ?: rawWidthDp
+        boundedWidthDp.toInt().coerceAtLeast(1)
     }
 
     val adSize = remember(adWidthDp) {
@@ -157,7 +168,7 @@ private fun AdaptiveBannerAd(
         )
         AndroidView(
             factory = { adView },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.align(Alignment.Center),
         )
     }
 }

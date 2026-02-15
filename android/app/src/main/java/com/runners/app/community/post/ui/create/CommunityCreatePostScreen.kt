@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.runners.app.ads.InlineBannerAd
 import com.runners.app.community.post.ui.editor.CommunityPostEditorForm
 import com.runners.app.community.post.ui.editor.CommunityPostEditorImageItem
 import com.runners.app.community.post.viewmodel.CommunityViewModel
@@ -187,6 +188,11 @@ fun CommunityCreatePostScreen(
                     }
                 }
             }
+
+            InlineBannerAd(
+                modifier = Modifier.fillMaxWidth(),
+                compact = true,
+            )
 
             // 게시판 선택
             CommunityPostEditorForm(

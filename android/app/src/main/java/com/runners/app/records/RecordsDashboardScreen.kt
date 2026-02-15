@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.records.metadata.DataOrigin
+import com.runners.app.ads.InlineBannerAd
 import com.runners.app.healthconnect.HealthConnectRepository
 import com.runners.app.ui.theme.Blue40
 import com.runners.app.ui.theme.Blue60
@@ -140,6 +141,11 @@ fun RecordsDashboardScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        InlineBannerAd(
+            modifier = Modifier.fillMaxWidth(),
+            compact = true,
+        )
+
         RunningCalendarCard(
             runs = runs,
             loadDetails = loadDetails,
