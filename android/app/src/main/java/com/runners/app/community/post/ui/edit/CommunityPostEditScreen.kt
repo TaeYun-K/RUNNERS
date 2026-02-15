@@ -5,39 +5,27 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.AttachFile
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -51,16 +39,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
+import com.runners.app.community.post.ui.editor.CommunityPostEditorForm
+import com.runners.app.community.post.ui.editor.CommunityPostEditorImageItem
 import com.runners.app.community.post.viewmodel.CommunityPostDetailViewModel
-import androidx.compose.foundation.shape.CircleShape
 import com.runners.app.network.CommunityPostBoardType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -246,226 +231,67 @@ fun CommunityPostEditScreen(
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "게시판",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Medium,
+                    CommunityPostEditorForm(
+                        title = title,
+                        content = content,
+                        selectedBoardType = selectedBoardType,
+                        images = buildList {
+                            existingImageUrls.forEachIndexed { index, url ->
+                                add(
+                                    CommunityPostEditorImageItem(
+                                        id = "existing:$index",
+                                        model = url,
+                                        contentDescription = "기존 이미지",
+                                    )
+                                )
+                            }
+                            newImageUris.forEach { uriString ->
+                                add(
+                                    CommunityPostEditorImageItem(
+                                        id = "new:$uriString",
+                                        model = Uri.parse(uriString),
+                                        contentDescription = "새 이미지",
+                                    )
+                                )
+                            }
+                        },
+                        isSubmitting = uiState.isUpdatingPost,
+                        errorMessage = uiState.updatePostErrorMessage,
+                        onBoardTypeChange = { boardTypeRaw = it.name },
+                        onTitleChange = { title = it.take(200) },
+                        onContentChange = { content = it },
+                        onAddImages = {
+                            if (uiState.isUpdatingPost) return@CommunityPostEditorForm
+                            if (existingImageKeys.size + newImageUris.size >= 10) {
+                                return@CommunityPostEditorForm
+                            }
+                            pickImagesLauncher.launch(
+                                PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
                             )
-
-                            listOf(
-                                CommunityPostBoardType.FREE,
-                                CommunityPostBoardType.QNA,
-                                CommunityPostBoardType.INFO,
-                            ).forEach { type ->
-                                FilterChip(
-                                    selected = selectedBoardType == type,
-                                    onClick = { boardTypeRaw = type.name },
-                                    enabled = !uiState.isUpdatingPost,
-                                    label = { Text(type.labelKo) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                        labelColor = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                )
-                            }
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it.take(200) },
-                        label = { Text("제목") },
-                        placeholder = { Text("제목을 입력하세요") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = !uiState.isUpdatingPost,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        ),
-                    )
-
-                    OutlinedTextField(
-                        value = content,
-                        onValueChange = { content = it },
-                        label = { Text("내용") },
-                        placeholder = { Text("내용을 입력하세요") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 10,
-                        enabled = !uiState.isUpdatingPost,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        ),
-                    )
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.AttachFile,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Text(
-                                    "사진",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                                Text(
-                                    "(${existingImageKeys.size + newImageUris.size}/10)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Box(modifier = Modifier.weight(1f))
-                                TextButton(
-                                    onClick = {
-                                        if (uiState.isUpdatingPost) return@TextButton
-                                        if (existingImageKeys.size + newImageUris.size >= 10) return@TextButton
-                                        pickImagesLauncher.launch(
-                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                        )
-                                    },
-                                    enabled = !uiState.isUpdatingPost,
-                                ) {
-                                    Text("추가")
-                                }
-                            }
-
-                            if (existingImageUrls.isNotEmpty() || newImageUris.isNotEmpty()) {
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    items(existingImageUrls.size) { index ->
-                                        val url = existingImageUrls[index]
-                                        Box(modifier = Modifier.size(86.dp)) {
-                                            AsyncImage(
-                                                model = url,
-                                                contentDescription = "기존 이미지",
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(RoundedCornerShape(12.dp)),
-                                            )
-                                            Surface(
-                                                modifier = Modifier
-                                                    .align(Alignment.TopEnd)
-                                                    .padding(6.dp)
-                                                    .size(26.dp),
-                                                shape = CircleShape,
-                                                color = Color.Black.copy(alpha = 0.58f),
-                                                shadowElevation = 2.dp,
-                                            ) {
-                                                IconButton(
-                                                    onClick = {
-                                                        if (uiState.isUpdatingPost) return@IconButton
-                                                        existingImageUrls =
-                                                            existingImageUrls.filterIndexed { i, _ -> i != index }
-                                                        existingImageKeys =
-                                                            existingImageKeys.filterIndexed { i, _ -> i != index }
-                                                    },
-                                                    enabled = !uiState.isUpdatingPost,
-                                                    colors = IconButtonDefaults.iconButtonColors(
-                                                        contentColor = Color.White,
-                                                    ),
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Outlined.Close,
-                                                        contentDescription = "삭제",
-                                                    )
-                                                }
-                                            }
-                                        }
+                        },
+                        onRemoveImage = { image ->
+                            if (uiState.isUpdatingPost) return@CommunityPostEditorForm
+                            when {
+                                image.id.startsWith("existing:") -> {
+                                    val index = image.id.removePrefix("existing:")
+                                        .toIntOrNull() ?: return@CommunityPostEditorForm
+                                    existingImageUrls = existingImageUrls.filterIndexed { i, _ ->
+                                        i != index
                                     }
-
-                                    items(newImageUris.size) { index ->
-                                        val uriString = newImageUris[index]
-                                        Box(modifier = Modifier.size(86.dp)) {
-                                            AsyncImage(
-                                                model = Uri.parse(uriString),
-                                                contentDescription = "새 이미지",
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(RoundedCornerShape(12.dp)),
-                                            )
-                                            Surface(
-                                                modifier = Modifier
-                                                    .align(Alignment.TopEnd)
-                                                    .padding(6.dp)
-                                                    .size(26.dp),
-                                                shape = CircleShape,
-                                                color = Color.Black.copy(alpha = 0.58f),
-                                                shadowElevation = 2.dp,
-                                            ) {
-                                                IconButton(
-                                                    onClick = {
-                                                        if (uiState.isUpdatingPost) return@IconButton
-                                                        newImageUris =
-                                                            newImageUris.filterIndexed { i, _ -> i != index }
-                                                    },
-                                                    enabled = !uiState.isUpdatingPost,
-                                                    colors = IconButtonDefaults.iconButtonColors(
-                                                        contentColor = Color.White,
-                                                    ),
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Outlined.Close,
-                                                        contentDescription = "삭제",
-                                                    )
-                                                }
-                                            }
-                                        }
+                                    existingImageKeys = existingImageKeys.filterIndexed { i, _ ->
+                                        i != index
                                     }
                                 }
+                                image.id.startsWith("new:") -> {
+                                    val uriString = image.id.removePrefix("new:")
+                                    newImageUris = newImageUris.filterNot { it == uriString }
+                                }
                             }
-                        }
-                    }
-
-                    if (uiState.updatePostErrorMessage != null) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Text(
-                                text = uiState.updatePostErrorMessage!!,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(16.dp),
-                            )
-                        }
-                    }
+                        },
+                        addImageButtonLabel = "추가",
+                    )
                 }
             }
         }
